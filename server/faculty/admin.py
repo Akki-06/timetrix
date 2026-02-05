@@ -1,3 +1,10 @@
 from django.contrib import admin
+from .models import (
+    Faculty,
+    TeacherAvailability,
+    FacultySubjectEligibility,
+)
 
-# Register your models here.
+admin.site.register(Faculty)
+admin.site.register(TeacherAvailability)
+admin.site.register(FacultySubjectEligibility)
