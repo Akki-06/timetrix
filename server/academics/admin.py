@@ -3,7 +3,7 @@ from .models import (
     Department,
     Program,
     AcademicTerm,
-    Courses,
+    Course,
     StudentGroup,
     CourseOffering,
 )
@@ -11,6 +11,6 @@ from .models import (
 admin.site.register(Department)
 admin.site.register(Program)
 admin.site.register(AcademicTerm)
-admin.site.register(Courses)
+admin.site.register(Course)
 admin.site.register(StudentGroup)
 admin.site.register(CourseOffering)
