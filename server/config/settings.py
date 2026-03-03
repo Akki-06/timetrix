@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     
     'corsheaders',
     'rest_framework',
-    'django_filters'
+    'django_filters',
     'academics',
     'faculty',
     'infrastructure',
