@@ -1,0 +1,93 @@
+# ==============================
+# Python / Django
+# ==============================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Media & Static (if generated)
+media/
+staticfiles/
+
+# Migrations (optional — keep if production)
+# */migrations/*
+# !*/migrations/__init__.py
+
+
+# ==============================
+# Virtual Environment
+# ==============================
+
+venv/
+env/
+ENV/
+.venv/
+
+
+# ==============================
+# Environment Variables
+# ==============================
+
+.env
+.env.*
+*.env
+
+
+# ==============================
+# VS Code
+# ==============================
+
+.vscode/
+
+
+# ==============================
+# OS Files
+# ==============================
+
+.DS_Store
+Thumbs.db
+
+
+# ==============================
+# React / Node (Future Client)
+# ==============================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+
+# React environment
+client/.env
+client/node_modules/
+client/build/
+
+
+# ==============================
+# Coverage / Testing
+# ==============================
+
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
+
+# ==============================
+# Misc
+# ==============================
+
+*.swp
+*.swo
