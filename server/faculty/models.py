@@ -2,6 +2,10 @@ from django.db import models
 from academics.models import Course
 
 
+# ----------------------------
+# FACULTY CORE MODEL
+# ----------------------------
+
 class Faculty(models.Model):
 
     class RoleChoices(models.TextChoices):
@@ -20,16 +24,26 @@ class Faculty(models.Model):
         default=RoleChoices.REGULAR
     )
 
+    # Constraint Parameters
     max_lectures_per_day = models.PositiveIntegerField(default=4)
     max_consecutive_lectures = models.PositiveIntegerField(default=2)
+    max_weekly_load = models.PositiveIntegerField(default=18)
 
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["employee_id"]),
+            models.Index(fields=["role"]),
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.employee_id}"
 
-      
 
+# ----------------------------
+# TEACHER AVAILABILITY
+# ----------------------------
 
 class TeacherAvailability(models.Model):
 
@@ -56,13 +70,27 @@ class TeacherAvailability(models.Model):
     end_slot = models.PositiveIntegerField()
 
     class Meta:
-        unique_together = ("faculty", "day", "start_slot", "end_slot")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["faculty", "day", "start_slot", "end_slot"],
+                name="unique_availability_block"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["faculty"]),
+            models.Index(fields=["day"]),
+        ]
 
     def __str__(self):
         return f"{self.faculty.name} - {self.day} ({self.start_slot}-{self.end_slot})"
 
 
+# ----------------------------
+# FACULTY SUBJECT ELIGIBILITY
+# ----------------------------
+
 class FacultySubjectEligibility(models.Model):
+
     faculty = models.ForeignKey(
         Faculty,
         on_delete=models.CASCADE,
@@ -75,9 +103,19 @@ class FacultySubjectEligibility(models.Model):
         related_name="eligible_faculty"
     )
 
+    priority_weight = models.PositiveIntegerField(default=1)
+
     class Meta:
-        unique_together = ("faculty", "course")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["faculty", "course"],
+                name="unique_faculty_course_pair"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["faculty"]),
+            models.Index(fields=["course"]),
+        ]
 
     def __str__(self):
         return f"{self.faculty.name} → {self.course.code}"
-
