@@ -7,8 +7,7 @@
 
 **TIMETRIX** is a full-stack academic timetable management system designed to generate, manage, and optimize institutional timetables using structured constraints.
 
-It provides:
-
+### ✨ Key Features
 - 🏫 Academic Structure Management  
 - 👩‍🏫 Faculty Constraint Handling  
 - 🏢 Infrastructure & Room Allocation  
@@ -16,7 +15,7 @@ It provides:
 - 📁 Excel/CSV Data Import & Export  
 - ⚙️ Future AI/ML-Based Optimization  
 
-The system is built with a modular architecture to support scalability and intelligent scheduling.
+Built with a modular and scalable architecture to support intelligent scheduling and future automation.
 
 ---
 
@@ -61,6 +60,9 @@ TIMETRIX/
 ├── requirements.txt
 ├── .gitignore
 └── README.md
+```
+
+---
 
 ## ⚙️ Core Modules
 
@@ -100,13 +102,13 @@ TIMETRIX/
 
 ## 🧠 System Capabilities
 
-✔ Hard Constraint Enforcement  
-✔ Soft Constraint Scoring  
-✔ Conflict Prevention (Room / Faculty / Student Group)  
-✔ Faculty Workload Balancing  
-✔ Versioned Timetable Management  
-✔ Manual + Future Auto Generation  
-✔ ML-Ready Data Architecture  
+- ✔ Hard Constraint Enforcement  
+- ✔ Soft Constraint Scoring  
+- ✔ Conflict Prevention (Room / Faculty / Student Group)  
+- ✔ Faculty Workload Balancing  
+- ✔ Versioned Timetable Management  
+- ✔ Manual + Future Auto Generation  
+- ✔ ML-Ready Data Architecture  
 
 ---
 
