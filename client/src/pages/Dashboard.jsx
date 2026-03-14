@@ -1,9 +1,54 @@
+import DashboardLayout from "../layouts/DashboardLayout";
+import StatsSection from "../components/StatsSection";
+import ActivitySection from "../components/ActivitySection";
+import TermStatusSection from "../components/TermStatucSection";
+
 function Dashboard() {
+
+  // 🔥 Temporary Mock Data (Later replace with API)
+  const stats = [
+    { title: "Total Departments", value: 12 },
+    { title: "Total Programs", value: 45 },
+    { title: "Total Faculty", value: 186 },
+    { title: "Total Rooms", value: 92 },
+    { title: "Active Version", value: "V3", subtitle: "Spring 2025" },
+    { title: "Constraint Score", value: "87%" },
+  ];
+
+  const activities = [
+    { message: "Timetable Version 3 generated", time: "2 hours ago" },
+    { message: "Faculty availability updated", time: "4 hours ago" },
+    { message: "Room conflict detected", time: "1 day ago" },
+    { message: "New course added", time: "2 days ago" },
+  ];
+
+  const term = {
+    name: "Spring 2025",
+    status: "Active",
+    courses: 124,
+    groups: 38,
+    offerings: 215,
+    progress: 73,
+  };
+
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>TIMETRIX Dashboard</h1>
-      <p>Academic Timetable Management System</p>
-    </div>
+    <DashboardLayout>
+      <h1>Dashboard</h1>
+      <p style={{ color: "#6b7280", marginBottom: "24px" }}>
+        Overview of your timetable management system
+      </p>
+
+      <StatsSection stats={stats} />
+
+      <div style={{ display: "flex", gap: "20px", marginTop: "24px" }}>
+        <div style={{ flex: 2 }}>
+          <ActivitySection activities={activities} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <TermStatusSection term={term} />
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

@@ -1,0 +1,1259 @@
+academic_year,semester_type,program,semester,section,course_code,course_name,faculty,room,day,day_index,slot_index,session_type,is_lab,group,is_elective_split,is_consecutive_lab,contact_hours_weekly,semester_int,section_encoded,room_is_lab,program_encoded
+2021-22,even,BCA,2,A,21BCA201,Data Structures,Mr. Digvijay Singh,GF-06,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-06,Monday,0,2,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BTCS201,Data Structures,TBD,unknown,Monday,0,2,lab,1,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-06,Monday,0,3,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA204,Python Programming,TBD,GF-06,Monday,0,5,theory,0,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA201,Data Structures,Mr. Digvijay Singh,GF-06,Tuesday,1,1,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA201,Data Structures,TBD,GF-06,Tuesday,1,2,theory,0,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,GF-06,Tuesday,1,5,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,,Environmental Science,TBD,GF-06,Tuesday,1,5,theory,0,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BSIT203,Python Programming,TBD,unknown,Tuesday,1,5,lab,1,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA201,Data Structures,Mr. Digvijay Singh,GF-06,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-06,Wednesday,2,2,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,GF-06,Wednesday,2,3,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA202,Advanced Web Technology,TBD,GF-06,Wednesday,2,5,theory,0,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-06,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-06,Thursday,3,2,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-06,Thursday,3,5,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,GF-06,Thursday,3,5,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,,Environmental Science,TBD,GF-06,Friday,4,1,theory,0,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-06,Friday,4,2,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-06,Friday,4,3,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-06,Friday,4,5,theory,0,ALL,0,0,3,2,0,0,1
+2021-22,even,BCA,2,A,BSSM,Seminar,Ms. Avni Sharma,GF-06,Friday,4,5,theory,0,ALL,0,0,1,2,0,0,1
+2021-22,even,BCA,2,A,21BCA202,Advanced Web Technology,TBD,unknown,Friday,4,5,lab,1,ALL,0,0,2,2,0,0,1
+2021-22,even,BCA,2,A,,Life skills and Mentoring,Mr. Arif Ali,GF-06,Saturday,5,1,theory,0,ALL,0,0,1,2,0,0,1
+2021-22,even,BCA,2,B,,Environmental Science,TBD,GF-207,Monday,0,1,theory,0,ALL,0,0,2,2,1,0,1
+2021-22,even,BCA,2,B,21BCA201,Data Structures,TBD,GF-207,Monday,0,2,theory,0,ALL,0,0,1,2,1,0,1
+2021-22,even,BCA,2,B,21BCA201,Data Structures,Mr. Digvijay Singh,GF-207,Monday,0,5,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-207,Tuesday,1,1,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,,Environmental Science,TBD,GF-207,Tuesday,1,2,theory,0,ALL,0,0,2,2,1,0,1
+2021-22,even,BCA,2,B,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-207,Tuesday,1,3,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA204,Python Programming,TBD,GF-207,Tuesday,1,5,theory,0,ALL,0,0,1,2,1,0,1
+2021-22,even,BCA,2,B,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-207,Wednesday,2,1,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA201,Data Structures,Mr. Digvijay Singh,GF-207,Wednesday,2,2,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-207,Wednesday,2,3,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-207,Wednesday,2,5,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA202,Advanced Web Technology,Ms. Avni Sharma,GF-207,Thursday,3,1,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA203,Computer Organization and Digital Electronics,Ms. Manvi Walia,GF-207,Thursday,3,3,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-207,Thursday,3,5,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,BSSM,Seminar,Ms. Avni Sharma,GF-207,Thursday,3,5,theory,0,ALL,0,0,1,2,1,0,1
+2021-22,even,BCA,2,B,21BCA201,Data Structures,Mr. Digvijay Singh,GF-207,Friday,4,1,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA204,Python Programming,Mr. Mukesh Rajput,GF-207,Friday,4,3,theory,0,ALL,0,0,3,2,1,0,1
+2021-22,even,BCA,2,B,21BCA202,Advanced Web Technology,TBD,GF-207,Friday,4,5,theory,0,ALL,0,0,1,2,1,0,1
+2021-22,even,BCA,2,B,,Life skills and Mentoring,Mr. Arif Ali,GF-207,Saturday,5,1,theory,0,ALL,0,0,1,2,1,0,1
+2021-22,even,BCA,4,A,BCAP42,Visual Basic Programming,Mr. Arif Ali,SF-110,Monday,0,1,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BCA403,Software Engineering,Mr. Sachin Sharma,SF-110,Monday,0,2,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BEET 404,Computer Org. & Architecture,TBD,SF-110,Monday,0,3,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BCAP41,Operating System Organization and UNIX,TBD,unknown,Monday,0,3,lab,1,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,4,A,BCA401,Operating System Organization and UNIX,Mrs. Gunjan Bhatnagar,SF-110,Monday,0,4,theory,0,ALL,0,0,4,4,0,0,1
+2021-22,even,BCA,4,A,BCAP42,Visual Basic Programming,Mr. Arif Ali,SF-110,Tuesday,1,1,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BCA403,Software Engineering,Mr. Sachin Sharma,SF-110,Tuesday,1,2,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BEET 404,Computer Org. & Architecture,TBD,SF-110,Tuesday,1,3,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BCA401,Operating System Organization and UNIX,Mrs. Gunjan Bhatnagar,SF-110,Tuesday,1,4,theory,0,ALL,0,0,4,4,0,0,1
+2021-22,even,BCA,4,A,BCAP42,Visual Basic Programming,Mr. Arif Ali,SF-110,Wednesday,2,1,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BCA401,Operating System Organization and UNIX,Mrs. Gunjan Bhatnagar,SF-110,Wednesday,2,2,theory,0,ALL,0,0,4,4,0,0,1
+2021-22,even,BCA,4,A,BCA403,Software Engineering,Mr. Sachin Sharma,SF-110,Wednesday,2,3,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,BEET 404,Computer Org. & Architecture,TBD,SF-110,Wednesday,2,4,theory,0,ALL,0,0,3,4,0,0,1
+2021-22,even,BCA,4,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-110,Thursday,3,1,theory,0,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,4,A,BCA401,Operating System Organization and UNIX,Mrs. Gunjan Bhatnagar,SF-110,Thursday,3,3,theory,0,ALL,0,0,4,4,0,0,1
+2021-22,even,BCA,4,A,BCAP42,Visual Basic Programming,TBD,SF-110,Friday,4,1,theory,0,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,4,A,,C Programming (Value Added),TBD,SF-110,Friday,4,3,theory,0,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,4,A,,Q&R,TBD,SF-110,Friday,4,4,theory,0,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,4,A,,Life skills and Mentoring,Mr. Arif Ali,SF-110,Saturday,5,1,theory,0,ALL,0,0,1,4,0,0,1
+2021-22,even,BCA,6,A,,Java Programming,TBD,SF-204,Monday,0,1,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Q&R,Mr. Gaurav Dobriyal,SF-204,Monday,0,2,theory,0,ALL,0,0,2,6,0,0,1
+2021-22,even,BCA,6,A,,Q&R,Mr. Gaurav Dobriyal,SF-204,Monday,0,3,theory,0,ALL,0,0,2,6,0,0,1
+2021-22,even,BCA,6,A,BCA602,Network Security,Ms. Amita Bisht,SF-204,Monday,0,4,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Java Programming,TBD,SF-204,Tuesday,1,1,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Java Programming (Value Added),TBD,SF-204,Tuesday,1,2,theory,0,ALL,0,0,1,6,0,0,1
+2021-22,even,BCA,6,A,BCAP61,.NET Framework,Mr. Arif Ali,SF-204,Tuesday,1,4,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-204,Wednesday,2,1,theory,0,ALL,0,0,2,6,0,0,1
+2021-22,even,BCA,6,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-204,Wednesday,2,2,theory,0,ALL,0,0,2,6,0,0,1
+2021-22,even,BCA,6,A,BCAP61,.NET Framework,Mr. Arif Ali,SF-204,Wednesday,2,3,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,BCA602,Network Security,Ms. Amita Bisht,SF-204,Wednesday,2,4,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Java Programming,TBD,SF-204,Thursday,3,1,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,BCAP61,.NET Framework,TBD,SF-204,Thursday,3,2,theory,0,ALL,0,0,1,6,0,0,1
+2021-22,even,BCA,6,A,BCAP61,.NET Framework,Mr. Arif Ali,SF-204,Thursday,3,4,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,BCAPR,Project,Mr. Vivek,SF-204,Friday,4,1,theory,0,ALL,0,0,1,6,0,0,1
+2021-22,even,BCA,6,A,BCA602,Network Security,Ms. Amita Bisht,SF-204,Friday,4,2,theory,0,ALL,0,0,3,6,0,0,1
+2021-22,even,BCA,6,A,,Life skills and Mentoring,Ms. Avni Sharma,SF-204,Saturday,5,1,theory,0,ALL,0,0,1,6,0,0,1
+2021-22,even,BSc IT,2,A,21BSIT204,Statistical Methods,Mr. Sachin Sharma,FF-07,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT203,Python Programming,Dr. Gesu Thakur,FF-07,Monday,0,2,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT202,Computer Organization,Ms. Manvi Walia,FF-07,Monday,0,3,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,FF-07,Monday,0,5,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,BSSM,Seminar,Ms. Avni Sharma,FF-07,Monday,0,5,theory,0,ALL,0,0,1,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT204,Statistical Methods,Mr. Sachin Sharma,FF-07,Tuesday,1,1,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT203,Python Programming,Dr. Gesu Thakur,FF-07,Tuesday,1,2,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,,Environmental Science,TBD,FF-07,Tuesday,1,3,theory,0,ALL,0,0,2,2,0,0,2
+2021-22,even,BSc IT,2,A,21BCA203,Computer Organization and Digital Electronics,TBD,FF-07,Tuesday,1,5,theory,0,ALL,0,0,1,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT204,Statistical Methods,Mr. Sachin Sharma,FF-07,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT201,Data Structures,TBD,FF-07,Wednesday,2,2,theory,0,ALL,0,0,1,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,FF-07,Wednesday,2,5,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT201,Data Structures,Mr. Digvijay Singh,FF-07,Wednesday,2,5,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT202,Computer Organization,Ms. Manvi Walia,FF-07,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT201,Data Structures,Mr. Digvijay Singh,FF-07,Thursday,3,2,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT203,Python Programming,Dr. Gesu Thakur,FF-07,Thursday,3,3,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT203,Python Programming,TBD,FF-07,Thursday,3,5,theory,0,ALL,0,0,1,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT202,Computer Organization,Ms. Manvi Walia,FF-07,Friday,4,1,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,,Environmental Science,TBD,FF-07,Friday,4,2,theory,0,ALL,0,0,2,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT201,Data Structures,Mr. Digvijay Singh,FF-07,Friday,4,3,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,21BSIT205,Basics of Management and Financial Accounting,Ms. Shweta Kandari,FF-07,Friday,4,5,theory,0,ALL,0,0,3,2,0,0,2
+2021-22,even,BSc IT,2,A,,Life skills and Mentoring,Mr. Arif Ali,FF-07,Saturday,5,1,theory,0,ALL,0,0,1,2,0,0,2
+2021-22,even,BSc IT,4,A,,Q&R,TBD,FF-106,Monday,0,1,theory,0,ALL,0,0,1,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP41,Advanced RDBMS,TBD,FF-106,Monday,0,2,theory,0,ALL,0,0,5,4,0,0,2
+2021-22,even,BSc IT,4,A,BS404,Multimedia Technology and Application,Ms. Amita Bisht,FF-106,Monday,0,3,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BS403,Management Information System,Ms. Champa Devi,FF-106,Monday,0,4,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP42,Operating System,Mrs. Gunjan Bhatnagar,FF-106,Tuesday,1,1,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP41,Advanced RDBMS,TBD,FF-106,Tuesday,1,2,theory,0,ALL,0,0,5,4,0,0,2
+2021-22,even,BSc IT,4,A,BS404,Multimedia Technology and Application,Ms. Amita Bisht,FF-106,Tuesday,1,3,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BS403,Management Information System,Ms. Champa Devi,FF-106,Tuesday,1,4,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP42,Operating System,Mrs. Gunjan Bhatnagar,FF-106,Wednesday,2,1,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP41,Advanced RDBMS,TBD,FF-106,Wednesday,2,2,theory,0,ALL,0,0,5,4,0,0,2
+2021-22,even,BSc IT,4,A,BS404,Multimedia Technology and Application,Ms. Amita Bisht,FF-106,Wednesday,2,3,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BS403,Management Information System,Ms. Champa Devi,FF-106,Wednesday,2,4,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP42,Operating System,TBD,FF-106,Thursday,3,1,theory,0,ALL,0,0,2,4,0,0,2
+2021-22,even,BSc IT,4,A,BS401,Operating System,TBD,unknown,Thursday,3,2,lab,1,ALL,0,0,2,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP41,Advanced RDBMS,TBD,FF-106,Thursday,3,3,theory,0,ALL,0,0,5,4,0,0,2
+2021-22,even,BSc IT,4,A,,Personality Development Programme,Mr. Hammad,FF-106,Friday,4,1,theory,0,ALL,0,0,1,4,0,0,2
+2021-22,even,BSc IT,4,A,,C Programming (Value Added),TBD,FF-106,Friday,4,3,theory,0,ALL,0,0,1,4,0,0,2
+2021-22,even,BSc IT,4,A,BS402,Advanced RDBMS,TBD,unknown,Friday,4,3,lab,1,ALL,0,0,5,4,0,0,2
+2021-22,even,BSc IT,4,A,BSP42,Operating System,Mrs. Gunjan Bhatnagar,FF-106,Friday,4,4,theory,0,ALL,0,0,3,4,0,0,2
+2021-22,even,BSc IT,4,A,,Life skills and Mentoring,Mr. Akhilesh Pandey,FF-106,Saturday,5,1,theory,0,ALL,0,0,1,4,0,0,2
+2021-22,even,BSc IT,6,A,BS602,Advanced Programming in Java,Mr. Kuldeep Bahuguna,SF-205,Monday,0,1,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,,Q&R,Mr. Gaurav Dobriyal,SF-205,Monday,0,2,theory,0,ALL,0,0,2,6,0,0,2
+2021-22,even,BSc IT,6,A,,Q&R,Mr. Gaurav Dobriyal,SF-205,Monday,0,3,theory,0,ALL,0,0,2,6,0,0,2
+2021-22,even,BSc IT,6,A,BS601,E-Governance,Mr. Sachin Sharma,SF-205,Monday,0,4,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,BS602,Advanced Programming in Java,Mr. Kuldeep Bahuguna,SF-205,Tuesday,1,1,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,BS602,Advanced Programming in Java,TBD,SF-205,Tuesday,1,2,theory,0,ALL,0,0,1,6,0,0,2
+2021-22,even,BSc IT,6,A,,.NET Framework Lab,Mr. Arif Ali,SF-205,Tuesday,1,4,theory,0,ALL,0,0,4,6,0,0,2
+2021-22,even,BSc IT,6,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-205,Wednesday,2,1,theory,0,ALL,0,0,2,6,0,0,2
+2021-22,even,BSc IT,6,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-205,Wednesday,2,2,theory,0,ALL,0,0,2,6,0,0,2
+2021-22,even,BSc IT,6,A,,.NET Framework Lab,Mr. Arif Ali,SF-205,Wednesday,2,3,theory,0,ALL,0,0,4,6,0,0,2
+2021-22,even,BSc IT,6,A,BS601,E-Governance,Mr. Sachin Sharma,SF-205,Wednesday,2,4,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,BS602,Advanced Programming in Java,Mr. Kuldeep Bahuguna,SF-205,Thursday,3,1,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,,.NET Framework Lab,Mr. Arif Ali,SF-205,Thursday,3,2,lab,1,ALL,0,0,4,6,0,0,2
+2021-22,even,BSc IT,6,A,,.NET Framework Lab,Mr. Arif Ali,SF-205,Thursday,3,4,theory,0,ALL,0,0,4,6,0,0,2
+2021-22,even,BSc IT,6,A,BSPR,Project,Mr. Vivek,SF-205,Friday,4,1,theory,0,ALL,0,0,1,6,0,0,2
+2021-22,even,BSc IT,6,A,BS601,E-Governance,Mr. Sachin Sharma,SF-205,Friday,4,2,theory,0,ALL,0,0,3,6,0,0,2
+2021-22,even,BSc IT,6,A,,Life skills and Mentoring,Ms. Avni Sharma,SF-205,Saturday,5,1,theory,0,ALL,0,0,1,6,0,0,2
+2021-22,even,BTech CSE,2,A,,Sensor and Display Device,Dr. Prashant Kumar,unknown,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Statistical Methods,Mr. Sachin Sharma,unknown,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Python Programming,Dr. Gesu Thakur,unknown,Monday,0,2,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Data Warehousing and Data Mining,Ms. Manvi Walia,unknown,Monday,0,5,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Artificial Intelligence,Mr. Arif Ali,unknown,Monday,0,6,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Statistical Methods,Mr. Sachin Sharma,unknown,Tuesday,1,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Python Programming,Dr. Gesu Thakur,unknown,Tuesday,1,2,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Computer Organization and Digital Electronics Lab,Ms. Manvi Walia,unknown,Tuesday,1,5,lab,1,ALL,0,0,1,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Statistical Methods,Mr. Sachin Sharma,unknown,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Sensor and Display Device,Dr. Prashant Kumar,unknown,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Artificial Intelligence,Mr. Arif Ali,unknown,Wednesday,2,5,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Sensor and Display Device,Dr. Prashant Kumar,unknown,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Python Programming,Dr. Gesu Thakur,unknown,Thursday,3,3,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Data Warehousing and Data Mining,Ms. Manvi Walia,unknown,Thursday,3,5,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Artificial Intelligence,Mr. Arif Ali,unknown,Friday,4,3,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,2,A,,Data Warehousing and Data Mining,Ms. Manvi Walia,unknown,Friday,4,5,theory,0,ALL,0,0,3,2,0,0,0
+2021-22,even,BTech CSE,4,A,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Monday,0,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,unknown,Monday,0,1,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Visual Basic Programming,Mr. Arif Ali,unknown,Monday,0,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Monday,0,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Advanced RDBMS,Dr. Ekta,unknown,Monday,0,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Software Testing and Quality Assurance,Mr. Arif Ali,unknown,Monday,0,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Monday,0,3,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Communication and Computer Networks,Ms. Sameeka Saini,unknown,Monday,0,3,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Monday,0,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Management Information System,Ms. Champa Devi,unknown,Monday,0,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,.NET Framework,Ms. Abhilasha Chauhan,unknown,Monday,0,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Database Management Systems Lab,TBD,FF-101,Monday,0,5,lab,1,G1,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Computer Org. & Architecture Lab,TBD,FF-101,Monday,0,5,lab,1,G2,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Tuesday,1,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Visual Basic Programming,Mr. Arif Ali,unknown,Tuesday,1,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Tuesday,1,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Advanced RDBMS,Dr. Ekta,unknown,Tuesday,1,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Tuesday,1,3,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Communication and Computer Networks,Ms. Sameeka Saini,unknown,Tuesday,1,3,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Tuesday,1,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Management Information System,Ms. Champa Devi,unknown,Tuesday,1,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,.NET Framework,Ms. Abhilasha Chauhan,unknown,Tuesday,1,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Software Testing and Quality Assurance,Mr. Arif Ali,unknown,Tuesday,1,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Computer Org. & Architecture Lab,TBD,FF-101,Tuesday,1,5,lab,1,G2,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Database Management Systems Lab,TBD,FF-101,Tuesday,1,5,lab,1,G1,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Wednesday,2,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Visual Basic Programming,Mr. Arif Ali,unknown,Wednesday,2,1,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Advanced RDBMS,Dr. Ekta,unknown,Wednesday,2,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,.NET Framework Lab,Ms. Abhilasha Chauhan,unknown,Wednesday,2,2,lab,1,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECP 403,Software Engineering,TBD,FF-101,Wednesday,2,2,theory,0,ALL,0,0,4,4,0,0,0
+2021-22,even,BTech CSE,4,A,VAM,C Programming (Value Added),TBD,FF-101,Wednesday,2,3,theory,0,ALL,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Management Information System,Ms. Champa Devi,unknown,Wednesday,2,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Communication and Computer Networks,Ms. Sameeka Saini,unknown,Wednesday,2,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Software Testing and Quality Assurance,Mr. Arif Ali,unknown,Wednesday,2,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Science,Dr. Gesu Thakur,unknown,Wednesday,2,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,PDA,Personality Development Programme,TBD,FF-101,Wednesday,2,5,theory,0,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,BHUT401,Universal Human Values,Ms. Manvi Chopra,FF-101,Wednesday,2,6,theory,0,ALL,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Project,Mr. Akhilesh Pandey,unknown,Wednesday,2,6,theory,0,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECP 403,Software Engineering,TBD,FF-101,Thursday,3,1,theory,0,ALL,0,0,4,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Science,Dr. Gesu Thakur,unknown,Thursday,3,2,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Q&R,TBD,FF-101,Thursday,3,2,theory,0,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,unknown,Thursday,3,3,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,VAM,C Programming (Value Added),TBD,FF-101,Thursday,3,3,theory,0,ALL,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,.NET Framework,Ms. Abhilasha Chauhan,unknown,Thursday,3,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECP 403,Software Engineering,TBD,FF-101,Thursday,3,5,theory,0,ALL,0,0,4,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,unknown,Friday,4,1,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Visual Basic Programming Lab,Mr. Arif Ali,unknown,Friday,4,1,lab,1,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,BECP 403,Software Engineering,TBD,FF-101,Friday,4,1,theory,0,ALL,0,0,4,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Friday,4,2,theory,0,ALL,0,0,6,4,0,0,0
+2021-22,even,BTech CSE,4,A,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Friday,4,3,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Friday,4,4,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BHUT401,Universal Human Values,Ms. Manvi Chopra,FF-101,Friday,4,5,theory,0,ALL,0,0,2,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Data Science,Dr. Gesu Thakur,unknown,Friday,4,5,theory,0,ALL,0,0,3,4,0,0,0
+2021-22,even,BTech CSE,4,A,BCST 408,Cyber Security,TBD,FF-101,Friday,4,6,theory,0,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,A,,Life skills and Mentoring,Ms. Avni Sharma,FF-101,Saturday,5,1,theory,0,ALL,0,0,1,4,0,0,0
+2021-22,even,BTech CSE,4,B,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Monday,0,1,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 403,Software Engineering,Dr. Luxmi Sapra,FF-101,Monday,0,2,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Monday,0,3,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Monday,0,4,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,VAM,C Programming (Value Added),TBD,FF-101,Monday,0,5,theory,0,ALL,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Tuesday,1,1,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 403,Software Engineering,Dr. Luxmi Sapra,FF-101,Tuesday,1,2,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Tuesday,1,3,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BHUT401,Universal Human Values,Ms. Manvi Chopra,FF-101,Tuesday,1,4,theory,0,ALL,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 403,Software Engineering,TBD,FF-101,Tuesday,1,5,theory,0,ALL,0,0,1,4,1,0,0
+2021-22,even,BTech CSE,4,B,BHUT401,Universal Human Values,Ms. Manvi Chopra,FF-101,Wednesday,2,1,theory,0,ALL,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Wednesday,2,2,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BAST 401,Mathematics,Ms. Isha Sharma,FF-101,Wednesday,2,3,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BCST 408,Cyber Security,Mrs. Gunjan Bhatnagar,FF-101,Wednesday,2,4,theory,0,ALL,0,0,1,4,1,0,0
+2021-22,even,BTech CSE,4,B,VAM,C Programming (Value Added),TBD,FF-101,Wednesday,2,5,theory,0,ALL,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Thursday,3,1,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BEET 404,Computer Org. & Architecture,Mr. Vivek,FF-101,Thursday,3,2,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Thursday,3,3,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Q&R,TBD,FF-101,Thursday,3,4,theory,0,ALL,0,0,1,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Computer Org. & Architecture Lab,TBD,FF-101,Thursday,3,5,lab,1,G2,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Database Management Systems Lab,TBD,FF-101,Thursday,3,5,lab,1,G1,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,BEET 405,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,FF-101,Friday,4,1,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 403,Software Engineering,Dr. Luxmi Sapra,FF-101,Friday,4,2,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,BECT 402,Database Management Systems,Mr. Rahul Bhatt,FF-101,Friday,4,3,theory,0,ALL,0,0,3,4,1,0,0
+2021-22,even,BTech CSE,4,B,PDA,Personality Development Programme,TBD,FF-101,Friday,4,4,theory,0,ALL,0,0,1,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Database Management Systems Lab,TBD,FF-101,Friday,4,5,lab,1,G1,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Computer Org. & Architecture Lab,TBD,FF-101,Friday,4,5,lab,1,G2,0,0,2,4,1,0,0
+2021-22,even,BTech CSE,4,B,,Life skills and Mentoring,TBD,FF-101,Saturday,5,1,theory,0,ALL,0,0,1,4,1,0,0
+2021-22,even,BTech CSE,6,A,PDA,Personality Development Programme,TBD,FF-03,Monday,0,1,theory,0,ALL,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,PDA,Personality Development Programme,TBD,FF-03,Monday,0,2,theory,0,ALL,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,,E-Governance,Mr. Sachin Sharma,unknown,Monday,0,3,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Distributed Systems and Cloud Computing,TBD,FF-03,Monday,0,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Machine Learning,TBD,FF-03,Monday,0,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Data Mining,TBD,FF-03,Monday,0,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Software Quality Management,TBD,FF-03,Monday,0,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Data Analytics Lab,TBD,FF-03,Monday,0,5,lab,1,G1,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Microprocessors and Applications Lab,TBD,FF-03,Monday,0,5,lab,1,G2,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCSP -603,Data Analytics,TBD,unknown,Monday,0,5,lab,1,G2,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-03,Tuesday,1,1,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-03,Tuesday,1,2,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Machine Learning,TBD,FF-03,Tuesday,1,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Distributed Systems and Cloud Computing,TBD,FF-03,Tuesday,1,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,.NET Framework,Mr. Arif Ali,unknown,Tuesday,1,4,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Software Quality Management,TBD,FF-03,Tuesday,1,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Data Mining,TBD,FF-03,Tuesday,1,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Data Analytics Lab,TBD,FF-03,Tuesday,1,5,lab,1,G1,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Microprocessors and Applications Lab,TBD,FF-03,Tuesday,1,5,lab,1,G2,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-03,Wednesday,2,1,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-03,Wednesday,2,2,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-03,Wednesday,2,3,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,.NET Framework,Mr. Arif Ali,unknown,Wednesday,2,3,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Q&R,Mr. Gaurav Dobriyal,FF-03,Wednesday,2,4,theory,0,ALL,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,B.Tech III,Value Added Course-III (Numpy & Pandas),TBD,FF-03,Wednesday,2,5,theory,0,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Java Programming,TBD,unknown,Wednesday,2,5,lab,1,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Q&R,Mr. Gaurav Dobriyal,FF-03,Thursday,3,1,theory,0,ALL,0,0,2,6,0,0,0
+2021-22,even,BTech CSE,6,A,,.NET Framework Lab,Mr. Arif Ali,unknown,Thursday,3,2,lab,1,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,,C Programming,TBD,FF-03,Thursday,3,2,theory,0,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-03,Thursday,3,3,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,E-Governance,Mr. Sachin Sharma,unknown,Thursday,3,3,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-03,Thursday,3,4,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,.NET Framework,Mr. Arif Ali,unknown,Thursday,3,4,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Minor Project (C Programming),TBD,FF-03,Thursday,3,5,theory,0,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-03,Friday,4,1,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-03,Friday,4,2,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,E-Governance,Mr. Sachin Sharma,unknown,Friday,4,2,theory,0,ALL,0,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Machine Learning,TBD,FF-03,Friday,4,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Distributed Systems and Cloud Computing,TBD,FF-03,Friday,4,3,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Data Mining,TBD,FF-03,Friday,4,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Software Quality Management,TBD,FF-03,Friday,4,4,theory,0,ALL,1,0,3,6,0,0,0
+2021-22,even,BTech CSE,6,A,BCST -602,Compiler Design,TBD,FF-03,Friday,4,5,theory,0,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,A,,Life skills and Mentoring,Ms. Abhilasha Chauhan,FF-03,Saturday,5,1,theory,0,ALL,0,0,1,6,0,0,0
+2021-22,even,BTech CSE,6,B,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-04,Monday,0,1,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-04,Monday,0,2,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Machine Learning,TBD,FF-04,Monday,0,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Distributed Systems and Cloud Computing,TBD,FF-04,Monday,0,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Data Mining,TBD,FF-04,Monday,0,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Software Quality Management,TBD,FF-04,Monday,0,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -602,Compiler Design,TBD,FF-04,Monday,0,5,theory,0,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Q&R,Mr. Gaurav Dobriyal,FF-04,Tuesday,1,1,theory,0,ALL,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-04,Tuesday,1,2,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Machine Learning,TBD,FF-04,Tuesday,1,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Distributed Systems and Cloud Computing,TBD,FF-04,Tuesday,1,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Data Mining,TBD,FF-04,Tuesday,1,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Software Quality Management,TBD,FF-04,Tuesday,1,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Minor Project (C Programming),TBD,FF-04,Tuesday,1,5,theory,0,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-04,Wednesday,2,1,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-04,Wednesday,2,2,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,B.Tech III,Value Added Course-III (Numpy & Pandas),TBD,FF-04,Wednesday,2,3,theory,0,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Java Programming,TBD,unknown,Wednesday,2,3,lab,1,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Microprocessors and Applications Lab,TBD,FF-04,Wednesday,2,5,lab,1,G2,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Data Analytics Lab,TBD,FF-04,Wednesday,2,5,lab,1,G1,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCSP -603,Data Analytics,TBD,unknown,Wednesday,2,5,lab,1,G1,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-04,Thursday,3,1,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST-601,Microprocessors and Applications,Ms. Renu Yadav,FF-04,Thursday,3,2,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Personality Development Programme,Mr. Nitin Mohan Arya,FF-04,Thursday,3,3,theory,0,ALL,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Personality Development Programme,Mr. Nitin Mohan Arya,FF-04,Thursday,3,4,theory,0,ALL,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Data Analytics Lab,TBD,FF-04,Thursday,3,5,lab,1,G1,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Microprocessors and Applications Lab,TBD,FF-04,Thursday,3,5,lab,1,G2,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCSP -603,Data Analytics,TBD,unknown,Thursday,3,5,lab,1,G2,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -603,Data Analytics,Mr. Ankit Maithani,FF-04,Friday,4,1,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,BCST -602,Compiler Design,Mr. Shubhashish Goswami,FF-04,Friday,4,2,theory,0,ALL,0,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Distributed Systems and Cloud Computing,TBD,FF-04,Friday,4,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Machine Learning,TBD,FF-04,Friday,4,3,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Software Quality Management,TBD,FF-04,Friday,4,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Data Mining,TBD,FF-04,Friday,4,4,theory,0,ALL,1,0,3,6,1,0,0
+2021-22,even,BTech CSE,6,B,,C Programming,TBD,FF-04,Friday,4,5,theory,0,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Q&R,Mr. Gaurav Dobriyal,FF-04,Friday,4,6,theory,0,ALL,0,0,2,6,1,0,0
+2021-22,even,BTech CSE,6,B,,Life skills and Mentoring,Ms. Sameeka Saini,FF-04,Saturday,5,1,theory,0,ALL,0,0,1,6,1,0,0
+2021-22,even,BTech CSE,8,A,BCST -803,Speech and Natural Language Processing,Dr. Ekta,FF-105,Monday,0,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,,Departmental Elective(Speech and Natural Language Processing),Dr. Ekta,unknown,Monday,0,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP-801,Advanced Operating Systems,TBD,FF-105,Monday,0,2,theory,0,ALL,0,0,1,8,0,0,0
+2021-22,even,BTech CSE,8,A,BOCS -804 (B),Artificial Intelligence,Mr. Ankit Maithani,FF-105,Monday,0,4,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCST -803,Speech and Natural Language Processing,Dr. Ekta,FF-105,Tuesday,1,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,,Departmental Elective(Speech and Natural Language Processing),Dr. Ekta,unknown,Tuesday,1,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-105,Tuesday,1,2,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP-801,Advanced Operating Systems,Mr. Ankit Maithani,FF-105,Tuesday,1,3,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BOCS -804 (B),Artificial Intelligence,Mr. Ankit Maithani,FF-105,Tuesday,1,4,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCST -803,Speech and Natural Language Processing,Dr. Ekta,FF-105,Wednesday,2,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,,Departmental Elective(Speech and Natural Language Processing),Dr. Ekta,unknown,Wednesday,2,1,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-105,Wednesday,2,2,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP-801,Advanced Operating Systems,Mr. Ankit Maithani,FF-105,Wednesday,2,3,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BOCS -804 (B),Artificial Intelligence,Mr. Ankit Maithani,FF-105,Wednesday,2,4,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP-801,Advanced Operating Systems,Mr. Ankit Maithani,FF-105,Thursday,3,1,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-105,Thursday,3,2,theory,0,ALL,0,0,3,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCST -803,Speech and Natural Language Processing,Dr. Ekta,FF-105,Thursday,3,3,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,,Departmental Elective(Speech and Natural Language Processing),Dr. Ekta,unknown,Thursday,3,3,theory,0,ALL,0,0,4,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -802,Cryptography and Network Security,TBD,FF-105,Friday,4,1,theory,0,ALL,0,0,1,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -805,Project,Mr. Ankit Maithani,FF-105,Friday,4,3,theory,0,ALL,0,0,2,8,0,0,0
+2021-22,even,BTech CSE,8,A,BCSP -805,Project,Mr. Ankit Maithani,FF-105,Friday,4,4,theory,0,ALL,0,0,2,8,0,0,0
+2021-22,even,BTech CSE,8,A,,Life skills and Mentoring,Mr. Ankit Maithani,FF-105,Saturday,5,1,theory,0,ALL,0,0,1,8,0,0,0
+2021-22,even,MCA,2,A,21OE019,Sensor and Display Device,Dr. Prashant Kumar,FF-110,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,BSP42,Operating System,TBD,FF-110,Monday,0,2,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,CSE III,Object Oriented Programming,Mr. Ajay Singh,FF-110,Monday,0,5,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,21MCA201,Operating System with Linux,Mrs. Gunjan Bhatnagar,FF-110,Monday,0,5,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,21MCA205,Artificial Intelligence,Mr. Arif Ali,FF-110,Monday,0,6,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21MCA203,Design and Analysis of Algorithms,Dr. Gesu Thakur,FF-110,Tuesday,1,1,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,21BCA202,Advanced Web Technology,TBD,FF-110,Tuesday,1,2,theory,0,ALL,0,0,4,2,0,0,3
+2021-22,even,MCA,2,A,,Personality Development Programme,Mr. Nitin Mohan Arya,FF-110,Tuesday,1,3,theory,0,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-110,Tuesday,1,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21MCA283,Design and Analysis of Algorithms Lab,Dr. Gesu Thakur,FF-110,Tuesday,1,5,lab,1,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,CSE-V,Data Warehousing and Data Mining,TBD,FF-110,Tuesday,1,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21OE019,Sensor and Display Device,Dr. Prashant Kumar,FF-110,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,CSE III,Object Oriented Programming,Mr. Ajay Singh,FF-110,Wednesday,2,2,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,21BCA202,Advanced Web Technology,TBD,FF-110,Wednesday,2,3,theory,0,ALL,0,0,4,2,0,0,3
+2021-22,even,MCA,2,A,21MCA205,Artificial Intelligence,Mr. Arif Ali,FF-110,Wednesday,2,5,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21BCA202,Advanced Web Technology,TBD,FF-110,Wednesday,2,5,theory,0,ALL,0,0,4,2,0,0,3
+2021-22,even,MCA,2,A,21MCA204,Advanced Web Technologies,TBD,unknown,Wednesday,2,5,lab,1,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,21OE019,Sensor and Display Device,Dr. Prashant Kumar,FF-110,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,,Value Added Course,TBD,FF-110,Thursday,3,2,theory,0,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-110,Thursday,3,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21BCA202,Advanced Web Technology,TBD,FF-110,Thursday,3,5,theory,0,ALL,0,0,4,2,0,0,3
+2021-22,even,MCA,2,A,CSE-V,Data Warehousing and Data Mining,TBD,FF-110,Thursday,3,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,21MCA203,Design and Analysis of Algorithms,Dr. Gesu Thakur,FF-110,Thursday,3,6,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,21MCA201,Operating System with Linux,Mrs. Gunjan Bhatnagar,FF-110,Friday,4,1,theory,0,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,,Q&R,Mr. Gaurav Dobriyal,FF-110,Friday,4,2,theory,0,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,21MCA205,Artificial Intelligence,Mr. Arif Ali,FF-110,Friday,4,3,theory,0,ALL,0,0,3,2,0,0,3
+2021-22,even,MCA,2,A,BCSP -802,Cryptography and Network Security,Ms. Sameeka Saini,FF-110,Friday,4,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,CSE-V,Data Warehousing and Data Mining,TBD,FF-110,Friday,4,5,theory,0,ALL,1,0,3,2,0,0,3
+2021-22,even,MCA,2,A,CSE III,Object Oriented Programming,TBD,FF-110,Friday,4,5,theory,0,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,2,A,BS401,Operating System,TBD,unknown,Friday,4,5,lab,1,ALL,0,0,2,2,0,0,3
+2021-22,even,MCA,2,A,,Life skills and Mentoring,Mrs. Gunjan Bhatnagar,FF-110,Saturday,5,1,theory,0,ALL,0,0,1,2,0,0,3
+2021-22,even,MCA,4,A,MCAT435,Advanced Java,Mr. Kuldeep Bahuguna,SF-207,Monday,0,1,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT424,Software Testing and Quality Assurance,Mr. Arif Ali,SF-207,Monday,0,2,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT402,Network and Cyber Security,Ms. Jigyasha Chandok,SF-207,Monday,0,3,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT 401,.NET Framework,Ms. Abhilasha Chauhan,SF-207,Monday,0,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT402,Network and Cyber Security,TBD,SF-207,Monday,0,5,theory,0,ALL,0,0,1,4,0,0,3
+2021-22,even,MCA,4,A,MCAT435,Advanced Java,Mr. Kuldeep Bahuguna,SF-207,Tuesday,1,1,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT435,Advanced Java,TBD,SF-207,Tuesday,1,2,theory,0,ALL,0,0,1,4,0,0,3
+2021-22,even,MCA,4,A,MCAT 401,.NET Framework,Ms. Abhilasha Chauhan,SF-207,Tuesday,1,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT424,Software Testing and Quality Assurance,Mr. Arif Ali,SF-207,Tuesday,1,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,,Q&R,Mr. Gaurav Dobriyal,SF-207,Wednesday,2,1,theory,0,ALL,0,0,2,4,0,0,3
+2021-22,even,MCA,4,A,MCAT 401,.NET Framework,TBD,SF-207,Wednesday,2,2,theory,0,ALL,0,0,1,4,0,0,3
+2021-22,even,MCA,4,A,MCAT424,Software Testing and Quality Assurance,Mr. Arif Ali,SF-207,Wednesday,2,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT413,Data Science,Dr. Gesu Thakur,SF-207,Wednesday,2,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,BSPR,Project,Mr. Vivek,SF-207,Wednesday,2,6,theory,0,ALL,0,0,1,4,0,0,3
+2021-22,even,MCA,4,A,MCAT435,Advanced Java,Mr. Kuldeep Bahuguna,SF-207,Thursday,3,1,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT413,Data Science,Dr. Gesu Thakur,SF-207,Thursday,3,2,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT402,Network and Cyber Security,Ms. Jigyasha Chandok,SF-207,Thursday,3,3,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT 401,.NET Framework,Ms. Abhilasha Chauhan,SF-207,Thursday,3,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-207,Thursday,3,5,theory,0,ALL,0,0,2,4,0,0,3
+2021-22,even,MCA,4,A,,Q&R,Mr. Gaurav Dobriyal,SF-207,Friday,4,1,theory,0,ALL,0,0,2,4,0,0,3
+2021-22,even,MCA,4,A,MCAT402,Network and Cyber Security,Ms. Jigyasha Chandok,SF-207,Friday,4,3,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,MCAT413,Data Science,Dr. Gesu Thakur,SF-207,Friday,4,5,theory,0,ALL,0,0,3,4,0,0,3
+2021-22,even,MCA,4,A,,Personality Development Programme,Mr. Nitin Mohan Arya,SF-207,Friday,4,5,theory,0,ALL,0,0,2,4,0,0,3
+2021-22,even,MCA,4,A,,Life skills and Mentoring,Ms. Manvi Walia,SF-207,Saturday,5,1,theory,0,ALL,0,0,1,4,0,0,3
+2025-26,even,BCA,2,A,,Python Programming,Mr. Rishabh Vashisht,1018,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1018,Monday,0,2,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Data Structures,Mr. Dharmendra Kumar,1018,Monday,0,3,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Basics of Management and Financial Accounting,TBD,1018,Monday,0,4,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Monday,0,5,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Monday,0,6,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Advanced Web Technology Lab,Ms. Vaishali Yadav,1108,Tuesday,1,1,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Advanced Web Technology Lab,Ms. Vaishali Yadav,1108,Tuesday,1,2,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1018,Tuesday,1,3,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Data Structures,Mr. Dharmendra Kumar,1018,Tuesday,1,4,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Advanced Web Technology,Ms. Vaishali Yadav,1018,Tuesday,1,5,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Python Programming,Mr. Rishabh Vashisht,1018,Tuesday,1,6,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Data Structures,Mr. Dharmendra Kumar,1018,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Python Programming,Mr. Rishabh Vashisht,1108,Wednesday,2,2,theory,0,ALL,0,0,3,2,0,1,1
+2025-26,even,BCA,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1018,Wednesday,2,3,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Advanced Web Technology,Ms. Vaishali Yadav,1018,Wednesday,2,4,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Environmental Studies,Mr. Arun Kumar,1018,Wednesday,2,5,theory,0,ALL,0,0,2,2,0,0,1
+2025-26,even,BCA,2,A,,Basics of Management and Financial Accounting,TBD,1018,Wednesday,2,6,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,1,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,2,lab,1,ALL,0,1,2,2,0,1,1
+2025-26,even,BCA,2,A,,Advanced Web Technology,Ms. Vaishali Yadav,1018,Thursday,3,3,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Basics of Management and Financial Accounting,TBD,1018,Thursday,3,4,theory,0,ALL,0,0,3,2,0,0,1
+2025-26,even,BCA,2,A,,Environmental Studies,Mr. Arun Kumar,1018,Thursday,3,5,theory,0,ALL,0,0,2,2,0,0,1
+2025-26,even,BCA,2,A,,Seminar,TBD,1018,Thursday,3,6,theory,0,ALL,0,0,1,2,0,0,1
+2025-26,even,BCA,2,B,,Advanced Web Technology,Ms. Vaishali Yadav,1019,Monday,0,1,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Basics of Management and Financial Accounting,TBD,1019,Monday,0,2,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Advanced Web Technology Lab,Ms. Vaishali Yadav,1108,Monday,0,3,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Advanced Web Technology Lab,Ms. Vaishali Yadav,1108,Monday,0,4,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Python Programming,Mr. Rishabh Vashisht,1019,Monday,0,5,theory,0,ALL,0,0,2,2,1,0,1
+2025-26,even,BCA,2,B,,Environmental Studies,Mr. Arun Kumar,1019,Monday,0,6,theory,0,ALL,0,0,2,2,1,0,1
+2025-26,even,BCA,2,B,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1019,Wednesday,2,1,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Basics of Management and Financial Accounting,TBD,1019,Wednesday,2,2,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Wednesday,2,3,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Wednesday,2,4,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Data Structures,Mr. Dharmendra Kumar,1019,Wednesday,2,5,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Python Programming,Mr. Rishabh Vashisht,1019,Wednesday,2,6,theory,0,ALL,0,0,2,2,1,0,1
+2025-26,even,BCA,2,B,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1019,Thursday,3,1,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Environmental Studies,Mr. Arun Kumar,1019,Thursday,3,2,theory,0,ALL,0,0,2,2,1,0,1
+2025-26,even,BCA,2,B,,Data Structures,Mr. Dharmendra Kumar,1019,Thursday,3,3,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Advanced Web Technology,Ms. Vaishali Yadav,1019,Thursday,3,4,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,5,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,6,lab,1,ALL,0,1,2,2,1,1,1
+2025-26,even,BCA,2,B,,Data Structures,Mr. Dharmendra Kumar,1019,Friday,4,1,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Advanced Web Technology,Ms. Vaishali Yadav,1019,Friday,4,2,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1019,Friday,4,3,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Basics of Management and Financial Accounting,TBD,1019,Friday,4,4,theory,0,ALL,0,0,3,2,1,0,1
+2025-26,even,BCA,2,B,,Seminar,TBD,1019,Friday,4,6,theory,0,ALL,0,0,1,2,1,0,1
+2025-26,even,BCA,2,C,,Data Structures Lab,Mr. Vikas Kumar,1108,Monday,0,1,lab,1,ALL,0,1,2,2,2,1,1
+2025-26,even,BCA,2,C,,Data Structures Lab,Mr. Vikas Kumar,1108,Monday,0,2,lab,1,ALL,0,1,2,2,2,1,1
+2025-26,even,BCA,2,C,,Environmental Studies,Mr. Arun Kumar,1020,Monday,0,3,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1020,Monday,0,4,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Network Defence Essentials,Mr. Ajay Singh,1020,Monday,0,5,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Basics of Management and Financial Accounting,TBD,1020,Tuesday,1,1,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Environmental Studies,Mr. Arun Kumar,1020,Tuesday,1,2,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Advanced Web Technology,Ms. Vaishali Yadav,1020,Tuesday,1,3,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1020,Tuesday,1,4,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Tuesday,1,5,lab,1,ALL,0,1,3,2,2,1,1
+2025-26,even,BCA,2,C,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Tuesday,1,6,lab,1,ALL,0,1,3,2,2,1,1
+2025-26,even,BCA,2,C,,Environmental Studies,Mr. Arun Kumar,1020,Thursday,3,1,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Advanced Web Technology,Ms. Vaishali Yadav,1020,Thursday,3,2,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Network Defence Essentials,Mr. Ajay Singh,1020,Thursday,3,3,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Data Structures Lab,Mr. Dharmendra Kumar,1108,Thursday,3,4,lab,1,ALL,0,0,3,2,2,1,1
+2025-26,even,BCA,2,C,,Seminar,TBD,1020,Thursday,3,5,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Basics of Management and Financial Accounting,TBD,1020,Friday,4,1,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Seminar,TBD,1020,Friday,4,2,theory,0,ALL,0,0,2,2,2,0,1
+2025-26,even,BCA,2,C,,Advanced Web Technology,Ms. Vaishali Yadav,1020,Friday,4,3,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1020,Friday,4,4,theory,0,ALL,0,0,3,2,2,0,1
+2025-26,even,BCA,2,C,,Advanced Web Technology Lab,Dr. Ajeet Kumar Vishwakarma,1108,Friday,4,5,lab,1,ALL,0,1,2,2,2,1,1
+2025-26,even,BCA,2,C,,Advanced Web Technology Lab,Dr. Ajeet Kumar Vishwakarma,1108,Friday,4,6,lab,1,ALL,0,1,2,2,2,1,1
+2025-26,even,BSc IT,2,A,,Advanced Web Technology Lab,Ms. Jaishree Aggarwal,1125,Monday,0,1,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Advanced Web Technology Lab,Ms. Jaishree Aggarwal,1125,Monday,0,2,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Data Structures,Mr. Vikas Kumar,1220,Monday,0,3,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Python Programming,Mr. Rishabh Vashisht,1220,Monday,0,4,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1220,Monday,0,5,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Basics of Management and Financial Accounting,TBD,1220,Monday,0,6,theory,0,ALL,0,0,2,2,0,0,2
+2025-26,even,BSc IT,2,A,,Data Structures,Mr. Vikas Kumar,1222,Tuesday,1,1,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Advanced Web Technology,Ms. Jaishree Aggarwal,1222,Tuesday,1,2,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Data Structures Lab,Mr. Vikas Kumar,1108,Tuesday,1,3,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Data Structures Lab,Mr. Vikas Kumar,1108,Tuesday,1,4,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Python Programming,Mr. Rishabh Vashisht,1220,Tuesday,1,5,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Environmental Studies,Mr. Arun Kumar,1220,Tuesday,1,6,theory,0,ALL,0,0,2,2,0,0,2
+2025-26,even,BSc IT,2,A,,Advanced Web Technology,Ms. Jaishree Aggarwal,1220,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1222,Thursday,3,2,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,3,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Python Programming Lab,Mr. Rishabh Vashisht,1108,Thursday,3,4,lab,1,ALL,0,1,2,2,0,1,2
+2025-26,even,BSc IT,2,A,,Basics of Management and Financial Accounting,TBD,1220,Thursday,3,5,theory,0,ALL,0,0,2,2,0,0,2
+2025-26,even,BSc IT,2,A,,Seminar,TBD,1220,Thursday,3,6,theory,0,ALL,0,0,1,2,0,0,2
+2025-26,even,BSc IT,2,A,,Advanced Web Technology,Ms. Jaishree Aggarwal,1220,Friday,4,1,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Computer Organization and Digital Electronics,Ms. Nishi Aggarwal,1220,Friday,4,2,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Data Structures,Mr. Vikas Kumar,1220,Friday,4,3,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Python Programming,Mr. Rishabh Vashisht,1220,Friday,4,4,theory,0,ALL,0,0,3,2,0,0,2
+2025-26,even,BSc IT,2,A,,Environmental Studies,Mr. Arun Kumar,1220,Friday,4,6,theory,0,ALL,0,0,2,2,0,0,2
+2025-26,even,BTech CSE,4,A,,Data Communication and Computer Networks Lab,Mr. Anubhav Singh Bisht,1109,Monday,0,1,lab,1,ALL,0,0,1,4,0,1,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems,Mr. Rahul Bhatt,1118,Monday,0,2,theory,0,ALL,0,0,4,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems,Mr. Rahul Bhatt,1118,Monday,0,3,theory,0,ALL,0,0,4,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1118,Monday,0,4,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Server Side Web Programming,Mr. Mukesh Rajput,1118,Monday,0,5,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1118,Tuesday,1,1,theory,0,ALL,0,0,1,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems,Mr. Rahul Bhatt,1118,Tuesday,1,2,theory,0,ALL,0,0,4,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems Lab,Mr. Rahul Bhatt,1125,Tuesday,1,3,lab,1,ALL,0,1,2,4,0,1,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems Lab,Mr. Rahul Bhatt,1125,Tuesday,1,4,lab,1,ALL,0,1,2,4,0,1,0
+2025-26,even,BTech CSE,4,A,,Universal Human Values,Ms. Manvi Chopra,1118,Tuesday,1,5,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Server-Side Web Programming Lab,Mr. Mukesh Rajput,1126,Wednesday,2,1,lab,1,ALL,0,1,2,4,0,1,0
+2025-26,even,BTech CSE,4,A,,Server-Side Web Programming Lab,Mr. Mukesh Rajput,1126,Wednesday,2,2,lab,1,ALL,0,1,2,4,0,1,0
+2025-26,even,BTech CSE,4,A,,Universal Human Values,Ms. Manvi Chopra,1118,Wednesday,2,3,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1118,Wednesday,2,4,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1118,Wednesday,2,5,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Ability Enhancement Course,Ms. Anshika Sharma,1118,Thursday,3,1,theory,0,ALL,0,0,1,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1118,Thursday,3,2,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1118,Thursday,3,3,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Open Elective,TBD,1118,Thursday,3,4,theory,0,ALL,0,0,2,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Server Side Web Programming,Mr. Mukesh Rajput,1118,Thursday,3,5,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Universal Human Values,Ms. Manvi Chopra,1118,Friday,4,1,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Database Management Systems,Mr. Rahul Bhatt,1118,Friday,4,2,theory,0,ALL,0,0,4,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Server Side Web Programming,Mr. Mukesh Rajput,1118,Friday,4,3,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1118,Friday,4,4,theory,0,ALL,0,0,3,4,0,0,0
+2025-26,even,BTech CSE,4,A,,Open Elective,TBD,1118,Friday,4,5,theory,0,ALL,0,0,2,4,0,0,0
+2025-26,even,BTech CSE,4,B,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1124,Monday,0,1,theory,0,ALL,0,0,1,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Database Management Systems,Mr. Rahul Bhatt,1124,Monday,0,2,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Monday,0,3,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Monday,0,4,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1124,Monday,0,5,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Server Side Web Programming Lab,Mr. Mukesh Rajput,1126,Tuesday,1,1,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Server Side Web Programming Lab,Mr. Mukesh Rajput,1126,Tuesday,1,2,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Universal Human Values,Ms. Manvi Chopra,1124,Tuesday,1,3,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1124,Tuesday,1,4,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1124,Tuesday,1,5,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Ability Enhancement Course,Ms. Anshika Sharma,1124,Wednesday,2,1,theory,0,ALL,0,0,1,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Database Management Systems,Mr. Rahul Bhatt,1124,Wednesday,2,2,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Database Management Systems Lab,Mr. Rahul Bhatt,1125,Wednesday,2,3,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Database Management Systems Lab,Mr. Rahul Bhatt,1125,Wednesday,2,4,lab,1,ALL,0,1,2,4,1,1,0
+2025-26,even,BTech CSE,4,B,,Server Side Web Programming,Mr. Mukesh Rajput,1124,Wednesday,2,5,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Open Elective,TBD,1124,Thursday,3,1,theory,0,ALL,0,0,2,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Database Management Systems,Mr. Rahul Bhatt,1124,Thursday,3,2,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Server Side Web Programming,Mr. Mukesh Rajput,1124,Thursday,3,3,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Universal Human Values,Ms. Manvi Chopra,1124,Thursday,3,4,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1124,Thursday,3,5,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Server Side Web Programming,Mr. Mukesh Rajput,1124,Friday,4,1,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Data Communication and Computer Networks,Dr. Sudhir Kumar Rathi,1124,Friday,4,2,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1124,Friday,4,3,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Universal Human Values,Ms. Manvi Chopra,1124,Friday,4,4,theory,0,ALL,0,0,3,4,1,0,0
+2025-26,even,BTech CSE,4,B,,Open Elective,TBD,1124,Friday,4,5,theory,0,ALL,0,0,2,4,1,0,0
+2025-26,even,BTech CSE,4,C,,Server-Side Web Programming Lab,Mr. Mukesh Rajput,1126,Monday,0,1,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Server-Side Web Programming Lab,Mr. Mukesh Rajput,1126,Monday,0,2,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1127,Monday,0,3,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Server-Side Web Programming,Mr. Mukesh Rajput,1127,Monday,0,4,theory,0,ALL,0,0,1,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Universal Human Values,Ms. Manvi Chopra,1127,Monday,0,5,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Tuesday,1,1,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Tuesday,1,2,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Database Management Systems,Mr. Ashok Kumar,1127,Tuesday,1,3,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Server Side Web Programming,Mr. Mukesh Rajput,1127,Tuesday,1,4,theory,0,ALL,0,0,2,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Data Communication and Computer Networks,Mr. Ajay Singh,1127,Tuesday,1,5,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Database Management Systems Lab,Mr. Anubhav Singh Bisht,1125,Wednesday,2,1,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Database Management Systems Lab,Mr. Anubhav Singh Bisht,1125,Wednesday,2,2,lab,1,ALL,0,1,2,4,2,1,0
+2025-26,even,BTech CSE,4,C,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1127,Wednesday,2,3,theory,0,ALL,0,0,1,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1127,Wednesday,2,4,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Open Elective,TBD,1127,Wednesday,2,5,theory,0,ALL,0,0,2,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Server Side Web Programming,Mr. Mukesh Rajput,1127,Thursday,3,1,theory,0,ALL,0,0,2,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Theory of Automata and Formal Language,Mr. Dhajvir Singh Rai,1127,Thursday,3,2,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Database Management Systems,Mr. Ashok Kumar,1127,Thursday,3,3,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Data Communication and Computer Networks,Mr. Ajay Singh,1127,Thursday,3,4,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Universal Human Values,Ms. Manvi Chopra,1127,Thursday,3,5,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Data Communication and Computer Networks,Mr. Ajay Singh,1127,Friday,4,1,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Ability Enhancement Course,Ms. Anshika Sharma,1127,Friday,4,2,theory,0,ALL,0,0,1,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Database Management Systems,Mr. Ashok Kumar,1127,Friday,4,3,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Open Elective,TBD,1127,Friday,4,4,theory,0,ALL,0,0,2,4,2,0,0
+2025-26,even,BTech CSE,4,C,,Universal Human Values,Ms. Manvi Chopra,1127,Friday,4,5,theory,0,ALL,0,0,3,4,2,0,0
+2025-26,even,BTech CSE,4,D,,Universal Human Values,Ms. Manvi Chopra,1112,Monday,0,1,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Ability Enhancement Course,Ms. Anshika Sharma,1112,Monday,0,2,theory,0,ALL,0,0,1,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems Lab,Ms. Sumedha,1125,Monday,0,3,lab,1,ALL,0,1,2,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems Lab,Ms. Sumedha,1125,Monday,0,4,lab,1,ALL,0,1,2,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Machine Learning I Lab,Mr. Aquib Hussain,1018,Monday,0,5,lab,1,ALL,0,1,5,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Machine Learning I Lab,Mr. Aquib Hussain,1018,Monday,0,6,lab,1,ALL,0,1,5,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Machine Learning I Lab,Mr. Aquib Hussain,1126,Tuesday,1,1,lab,1,ALL,0,1,5,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Machine Learning I Lab,Mr. Aquib Hussain,1126,Tuesday,1,2,lab,1,ALL,0,1,5,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1112,Tuesday,1,3,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems,Mr. Ashok Kumar,1112,Tuesday,1,4,theory,0,ALL,0,0,4,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Open Elective,TBD,1112,Tuesday,1,5,theory,0,ALL,0,0,2,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1112,Wednesday,2,1,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1112,Wednesday,2,2,theory,0,ALL,0,0,1,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems,Mr. Ashok Kumar,1112,Wednesday,2,3,theory,0,ALL,0,0,4,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Data Communication and Computer Networks,Mr. Ajay Singh,1112,Wednesday,2,4,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Universal Human Values,Ms. Manvi Chopra,1112,Wednesday,2,5,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Thursday,3,1,lab,1,ALL,0,1,2,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Data Communication and Computer Networks Lab,Mr. Ajay Singh,1109,Thursday,3,2,lab,1,ALL,0,1,2,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Machine Learning I Lab,Mr. Aquib Hussain,1126,Thursday,3,3,lab,1,ALL,0,0,5,4,3,1,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems,Mr. Ashok Kumar,1112,Thursday,3,4,theory,0,ALL,0,0,4,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Data Communication and Computer Networks,Mr. Ajay Singh,1112,Thursday,3,5,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1112,Friday,4,1,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Data Communication and Computer Networks,Mr. Ajay Singh,1112,Friday,4,2,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Universal Human Values,Ms. Manvi Chopra,1112,Friday,4,3,theory,0,ALL,0,0,3,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Database Management Systems,Mr. Ashok Kumar,1112,Friday,4,4,theory,0,ALL,0,0,4,4,3,0,0
+2025-26,even,BTech CSE,4,D,,Open Elective,TBD,1112,Friday,4,5,theory,0,ALL,0,0,2,4,3,0,0
+2025-26,even,BTech CSE,4,E,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1215,Monday,0,1,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Database Management Systems,Mr. Govind Singh Panwar,1215,Monday,0,2,theory,0,ALL,0,0,1,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Universal Human Values,Ms. Manvi Chopra,1215,Monday,0,3,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1215,Monday,0,4,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Open Elective,TBD,1215,Monday,0,5,theory,0,ALL,0,0,2,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Ability Enhancement Course,Ms. Anshika Sharma,1215,Tuesday,1,1,theory,0,ALL,0,0,1,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Tuesday,1,2,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Tuesday,1,3,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Universal Human Values,Ms. Manvi Chopra,1215,Tuesday,1,4,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1215,Tuesday,1,5,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Universal Human Values,Ms. Manvi Chopra,1215,Wednesday,2,1,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Wednesday,2,2,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Wednesday,2,3,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1215,Wednesday,2,4,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Data Communication and Computer Networks Lab,Mr. Anubhav Singh Bisht,1109,Wednesday,2,5,lab,1,ALL,0,1,2,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Data Communication and Computer Networks Lab,Mr. Anubhav Singh Bisht,1109,Wednesday,2,6,lab,1,ALL,0,1,2,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1215,Thursday,3,1,theory,0,ALL,0,0,1,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Thursday,3,2,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1215,Thursday,3,3,lab,1,ALL,0,1,8,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1215,Thursday,3,4,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1215,Thursday,3,5,theory,0,ALL,0,0,3,4,4,0,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1126,Friday,4,1,lab,1,ALL,0,1,8,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Machine Learning I Lab,Mr. Aquib Hussain,1126,Friday,4,2,lab,1,ALL,0,1,8,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Database Management Systems Lab,Mr. Govind Singh Panwar,1125,Friday,4,3,lab,1,ALL,0,1,2,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Database Management Systems Lab,Mr. Govind Singh Panwar,1125,Friday,4,4,lab,1,ALL,0,1,2,4,4,1,0
+2025-26,even,BTech CSE,4,E,,Open Elective,TBD,1215,Friday,4,5,theory,0,ALL,0,0,2,4,4,0,0
+2025-26,even,BTech CSE,4,F,,Open Elective,TBD,1127,Monday,0,1,theory,0,ALL,0,0,2,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Universal Human Values,Ms. Manvi Chopra,1127,Monday,0,2,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1113,Monday,0,3,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1113,Monday,0,4,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Universal Human Values,Ms. Manvi Chopra,1127,Tuesday,1,1,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Database Management Systems,Mr. Govind Singh Panwar,1127,Tuesday,1,2,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Server-Side Web Programming,Mr. Mukesh Rajput,1113,Tuesday,1,3,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1113,Tuesday,1,4,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Server-Side Web Programming Lab,Mr. Pradumb Dhyani,1126,Tuesday,1,5,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Server-Side Web Programming Lab,Mr. Pradumb Dhyani,1126,Tuesday,1,6,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Open Elective,TBD,rotation,Wednesday,2,1,theory,0,ALL,0,0,2,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Database Management Systems,Mr. Govind Singh Panwar,1127,Wednesday,2,2,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Ability Enhancement Course,Ms. Anshika Sharma,1113,Wednesday,2,3,theory,0,ALL,0,0,1,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Server-Side Web Programming,Mr. Mukesh Rajput,1113,Wednesday,2,4,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Theory of Automata and Formal Language,Mr. Yudhveer Singh Moudgil,1114,Wednesday,2,5,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Universal Human Values,Ms. Manvi Chopra,1112,Thursday,3,1,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Database Management Systems,Mr. Govind Singh Panwar,1112,Thursday,3,2,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Database Management Systems Lab,Mr. Govind Singh Panwar,1125,Thursday,3,3,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Database Management Systems Lab,Mr. Govind Singh Panwar,1125,Thursday,3,4,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1116,Thursday,3,5,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Data Communication and Computer Networks,Mr. Anubhav Singh Bisht,1018,Friday,4,1,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1018,Friday,4,2,theory,0,ALL,0,0,1,4,5,0,0
+2025-26,even,BTech CSE,4,F,,Data Communication and Computer Networks Lab,Mr. Anubhav Singh Bisht,1109,Friday,4,3,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Data Communication and Computer Networks Lab,Mr. Anubhav Singh Bisht,1109,Friday,4,4,lab,1,ALL,0,1,2,4,5,1,0
+2025-26,even,BTech CSE,4,F,,Server-Side Web Programming,Mr. Mukesh Rajput,1018,Friday,4,5,theory,0,ALL,0,0,3,4,5,0,0
+2025-26,even,BTech CSE,6,A,,Software Engineering,Mr. Mohit Kumar Sharma,1113,Monday,0,1,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Ability Enhancement Course,Ms. Charu Aghi,1113,Monday,0,2,theory,0,ALL,0,0,1,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Machine Learning Lab,Ms. Sarthika Dutt,1126,Monday,0,3,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Machine Learning Lab,Ms. Sarthika Dutt,1126,Monday,0,4,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Monday,0,5,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1113,Monday,0,6,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Compiler Design,Mr. Bal Krishna Yadav,1113,Tuesday,1,1,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Machine Learning,Ms. Sarthika Dutt,1113,Tuesday,1,2,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Software Engineering Lab,Mr. Mohit Kumar Sharma,1021,Tuesday,1,3,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Software Engineering Lab,Mr. Mohit Kumar Sharma,1021,Tuesday,1,4,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1113,Tuesday,1,5,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Technical Session,Mr. Kuldeep Bahuguna,1113,Tuesday,1,6,theory,0,ALL,0,0,2,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Ability Enhancement Course,Ms. Arundatti Sati,1113,Wednesday,2,1,theory,0,ALL,0,0,1,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Software Engineering,Mr. Mohit Kumar Sharma,1113,Wednesday,2,2,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Cloud Computing Technologies Lab,Mr. Sanjay Kumar Tuddu,1022,Wednesday,2,3,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Cloud Computing Technologies Lab,Mr. Sanjay Kumar Tuddu,1022,Wednesday,2,4,lab,1,ALL,0,1,2,6,0,1,0
+2025-26,even,BTech CSE,6,A,,Technical Session,Mr. Kuldeep Bahuguna,1113,Wednesday,2,5,theory,0,ALL,0,0,2,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Thursday,3,1,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Compiler Design,Mr. Bal Krishna Yadav,1113,Thursday,3,2,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Machine Learning,Ms. Sarthika Dutt,1113,Thursday,3,3,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Industry Oriented DSA Training,Mr. Mukesh Kumar,1113,Thursday,3,4,theory,0,ALL,0,0,2,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Minor Project-I,Mr. Dhajvir Singh Rai,1113,Thursday,3,5,theory,0,ALL,0,0,1,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Industry Oriented DSA Training,Mr. Mukesh Kumar,1113,Friday,4,1,theory,0,ALL,0,0,2,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Compiler Design,Mr. Bal Krishna Yadav,1113,Friday,4,2,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Machine Learning,Ms. Sarthika Dutt,1113,Friday,4,3,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1113,Friday,4,4,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Software Engineering,Mr. Mohit Kumar Sharma,1113,Friday,4,5,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,A,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Friday,4,6,theory,0,ALL,0,0,3,6,0,0,0
+2025-26,even,BTech CSE,6,B,,Machine Learning,Ms. Sarthika Dutt,1114,Monday,0,1,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1114,Monday,0,2,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Compiler Design,Mr. Bal Krishna Yadav,1114,Monday,0,3,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Software Engineering,Mr. Mohit Kumar Sharma,1114,Monday,0,4,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Monday,0,5,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Technical Session,Mr. Kuldeep Bahuguna,1114,Monday,0,6,theory,0,ALL,0,0,2,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Ability Enhancement Course,Ms. Charu Aghi,1114,Tuesday,1,1,theory,0,ALL,0,0,1,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Industry Oriented DSA Training,Mr. Mukesh Kumar,1114,Tuesday,1,2,theory,0,ALL,0,0,2,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Machine Learning,Ms. Sarthika Dutt,1114,Tuesday,1,3,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1114,Tuesday,1,4,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Minor Project-I,Mr. Dhajvir Singh Rai,1114,Tuesday,1,5,theory,0,ALL,0,0,1,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Software Engineering,Mr. Mohit Kumar Sharma,1114,Wednesday,2,1,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Compiler Design,Mr. Bal Krishna Yadav,1114,Wednesday,2,2,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Machine Learning,Ms. Sarthika Dutt,1114,Wednesday,2,3,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cloud Computing Technologies Lab,Mr. Sanjay Kumar Tuddu,1022,Wednesday,2,4,lab,1,ALL,0,1,2,6,1,1,0
+2025-26,even,BTech CSE,6,B,,Cloud Computing Technologies Lab,Mr. Sanjay Kumar Tuddu,1022,Wednesday,2,5,lab,1,ALL,0,1,2,6,1,1,0
+2025-26,even,BTech CSE,6,B,,Industry Oriented DSA Training,Mr. Mukesh Kumar,1114,Wednesday,2,6,theory,0,ALL,0,0,2,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Thursday,3,1,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Ability Enhancement Course,Ms. Arundatti Sati,1114,Thursday,3,2,theory,0,ALL,0,0,1,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Machine Learning Lab,Ms. Sarthika Dutt,1126,Thursday,3,5,lab,1,ALL,0,0,1,6,1,1,0
+2025-26,even,BTech CSE,6,B,,Software Engineering Lab,Mr. Mohit Kumar Sharma,1021,Thursday,3,6,lab,1,ALL,0,0,1,6,1,1,0
+2025-26,even,BTech CSE,6,B,,Technical Session,Mr. Kuldeep Bahuguna,1114,Friday,4,1,theory,0,ALL,0,0,2,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Software Engineering,Mr. Mohit Kumar Sharma,1114,Friday,4,2,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Compiler Design,Mr. Bal Krishna Yadav,1114,Friday,4,3,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Open Elective,TBD,1114,Friday,4,4,theory,0,ALL,0,0,1,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cloud Computing Technologies,Mr. Sanjay Kumar Tuddu,1114,Friday,4,5,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,6,B,,Cyber Security,Mrs. Gunjan Bhatnagar,1113,Friday,4,6,theory,0,ALL,0,0,3,6,1,0,0
+2025-26,even,BTech CSE,8,A,,Computer Forensics,Mr. Rakesh Arya,4205,Monday,0,1,theory,0,ALL,0,0,3,8,0,0,0
+2025-26,even,BTech CSE,8,A,,PDP Soft Skill,Ms. Asmi Khan,4205,Monday,0,2,theory,0,ALL,0,0,1,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Major Project,Mr. Manish Naagar,4205,Monday,0,3,theory,0,ALL,0,0,1,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Industry Oriented DSA Training,Mr. Mukesh Kumar,4205,Monday,0,5,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Technical Session,Mr. Kuldeep Bahuguna,4205,Tuesday,1,1,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Computer Forensics,Mr. Rakesh Arya,4205,Tuesday,1,2,theory,0,ALL,0,0,3,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Indian Constitution,Ms. Anamika Bhatt,4205,Tuesday,1,3,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,A,,PDP Soft Skill,Ms. Esha Dogra,4205,Tuesday,1,4,theory,0,ALL,0,0,1,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Indian Constitution,Ms. Anamika Bhatt,4205,Friday,4,1,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Computer Forensics,Mr. Rakesh Arya,4205,Friday,4,2,theory,0,ALL,0,0,3,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Industry Oriented DSA Training,Mr. Mukesh Kumar,4205,Friday,4,3,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,A,,Technical Session,Mr. Kuldeep Bahuguna,4205,Friday,4,4,theory,0,ALL,0,0,2,8,0,0,0
+2025-26,even,BTech CSE,8,B,,Technical Session,Mr. Kuldeep Bahuguna,4202,Wednesday,2,1,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,BTech CSE,8,B,,PDP Soft Skill,Ms. Asmi Khan,4202,Wednesday,2,2,theory,0,ALL,0,0,1,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Computer Forensics,Mr. Rakesh Arya,4205,Wednesday,2,3,theory,0,ALL,0,0,3,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Indian Constitution,Mr. Arun Kumar,4202,Wednesday,2,4,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Industry Oriented DSA Training,Mr. Mukesh Kumar,4202,Thursday,3,1,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Computer Forensics,Mr. Rakesh Arya,4205,Thursday,3,2,theory,0,ALL,0,0,3,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Indian Constitution,Mr. Arun Kumar,4202,Thursday,3,3,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Technical Session,Mr. Kuldeep Bahuguna,4202,Thursday,3,4,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Computer Forensics,Mr. Rakesh Arya,1017,Friday,4,1,theory,0,ALL,0,0,3,8,1,0,0
+2025-26,even,BTech CSE,8,B,,PDP Soft Skill,Ms. Esha Dogra,4202,Friday,4,2,theory,0,ALL,0,0,1,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Major Project,Dr. Sudhir Kumar Rathi,4205,Friday,4,3,theory,0,ALL,0,0,1,8,1,0,0
+2025-26,even,BTech CSE,8,B,,Industry Oriented DSA Training,Mr. Mukesh Kumar,4202,Friday,4,5,theory,0,ALL,0,0,2,8,1,0,0
+2025-26,even,MCA,2,A,,Design and Analysis of Algorithms,Mr. Dharmendra Singh,1213,Monday,0,1,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Advanced Web Technologies,Ms. Vaishali Yadav,1213,Monday,0,2,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Operating System with Linux,Ms. Vijayshree Khugshal,1213,Monday,0,3,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Ability Enhancement Course,Mr. Harpreet Singh Cheema,1213,Monday,0,4,theory,0,ALL,0,0,1,2,0,0,3
+2025-26,even,MCA,2,A,,Advanced Web Technologies Lab,Ms. Vaishali Yadav,1125,Monday,0,5,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Advanced Web Technologies Lab,Ms. Vaishali Yadav,1125,Monday,0,6,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Program Elective-I Mobile Application Development,Mr. Jatiender Kumar,1213,Tuesday,1,1,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Object Oriented Programming,Mr. Vikas Kumar,1213,Tuesday,1,2,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Design and Analysis of Algorithms,Mr. Dharmendra Singh,1213,Tuesday,1,3,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Advanced Web Technologies,Ms. Vaishali Yadav,1213,Tuesday,1,4,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Artificial Intelligence,Mr. Siddhant Nautiyal,1213,Tuesday,1,5,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Value Added Course-I,Mr. Mukesh Kumar,1213,Tuesday,1,6,theory,0,ALL,0,0,2,2,0,0,3
+2025-26,even,MCA,2,A,,Operating System with Linux,Ms. Vijayshree Khugshal,1213,Wednesday,2,1,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Design and Analysis of Algorithms,Mr. Dharmendra Singh,1213,Wednesday,2,2,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Advanced Web Technologies,Ms. Vaishali Yadav,1213,Wednesday,2,3,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Program Elective-I Mobile Application Development,Mr. Jatiender Kumar,1213,Wednesday,2,4,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Artificial Intelligence,Mr. Siddhant Nautiyal,1213,Wednesday,2,5,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Object Oriented Programming,Mr. Vikas Kumar,1213,Wednesday,2,6,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Object Oriented Programming,Mr. Vikas Kumar,1213,Thursday,3,1,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Ability Enhancement Course,Ms. Anshika Sharma,1213,Thursday,3,2,theory,0,ALL,0,0,1,2,0,0,3
+2025-26,even,MCA,2,A,,Object Oriented Programming Lab,Mr. Vikas Kumar,1126,Thursday,3,3,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Object Oriented Programming Lab,Mr. Vikas Kumar,1126,Thursday,3,4,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Operating System with Linux,Ms. Vijayshree Khugshal,1213,Thursday,3,5,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Value Added Course-I,Mr. Mukesh Kumar,1213,Thursday,3,6,theory,0,ALL,0,0,2,2,0,0,3
+2025-26,even,MCA,2,A,,Artificial Intelligence,Mr. Siddhant Nautiyal,1213,Friday,4,1,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Program Elective-I Mobile Application Development,Mr. Jatiender Kumar,1213,Friday,4,2,theory,0,ALL,0,0,3,2,0,0,3
+2025-26,even,MCA,2,A,,Design and Analysis of Algorithms Lab,Mr. Dharmendra Singh,1108,Friday,4,3,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Design and Analysis of Algorithms Lab,Mr. Dharmendra Singh,1108,Friday,4,4,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Operating System with Linux Lab,Ms. Vijayshree Khugshal,1109,Friday,4,5,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,even,MCA,2,A,,Operating System with Linux Lab,Ms. Vijayshree Khugshal,1109,Friday,4,6,lab,1,ALL,0,1,2,2,0,1,3
+2025-26,odd,BCA,1,A,,Fundamentals of Computers and Element of IT Lab,Dr. Shikha Singh,1126,Monday,0,1,theory,0,ALL,0,0,1,1,0,1,1
+2025-26,odd,BCA,1,A,BCA I,Introduction to Programming Lab,Mr. Jatiender Kumar,1126,Monday,0,5,lab,1,ALL,0,0,4,1,0,1,1
+2025-26,odd,BCA,1,A,BCA I,Introduction to Programming Lab,Mr. Jatiender Kumar,1126,Tuesday,1,1,lab,1,ALL,0,0,4,1,0,1,1
+2025-26,odd,BCA,1,A,,Fundamentals of Computers and Element of IT Lab,Dr. Shikha Singh,1126,Tuesday,1,3,theory,0,ALL,0,0,1,1,0,1,1
+2025-26,odd,BCA,1,A,BCA I,Introduction to Programming Lab,Mr. Jatiender Kumar,1126,Wednesday,2,1,lab,1,ALL,0,0,4,1,0,1,1
+2025-26,odd,BCA,1,A,,Web Technology Lab,Ms. Noopur Dass,1126,Wednesday,2,3,lab,1,ALL,0,0,1,1,0,1,1
+2025-26,odd,BCA,1,A,,Fundamentals of Computers and Element of IT Lab,Dr. Shikha Singh,1126,Thursday,3,3,theory,0,ALL,0,0,1,1,0,1,1
+2025-26,odd,BCA,1,A,BCA I,Introduction to Programming Lab,Mr. Jatiender Kumar,1126,Friday,4,1,lab,1,ALL,0,0,4,1,0,1,1
+2025-26,odd,BCA,1,A,,Web Technology Lab,Ms. Vaishali Yadav,1126,Friday,4,3,lab,1,ALL,0,0,1,1,0,1,1
+2025-26,odd,BCA,3,A,Friday,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4102,Monday,0,1,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4102,Monday,0,2,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,4102,Monday,0,3,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,BCA III,Computer Networks,Mr. Anubhav Singh Bisht,1122,Tuesday,1,1,lab,1,G2,0,0,5,3,0,1,1
+2025-26,odd,BCA,3,A,24COA272,Computer Networks Lab,Mr. Anubhav Singh Bisht,1122,Tuesday,1,1,lab,1,G2,0,0,2,3,0,1,1
+2025-26,odd,BCA,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,4102,Tuesday,1,3,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,,Ability Enhancement Course-I,Ms. Charu Aghi,4102,Tuesday,1,4,theory,0,ALL,0,0,1,3,0,0,1
+2025-26,odd,BCA,3,A,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4102,Tuesday,1,5,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,24COA203,Computer Networks,Mr. Anubhav Singh Bisht,4102,Tuesday,1,6,theory,0,ALL,0,0,5,3,0,0,1
+2025-26,odd,BCA,3,A,Friday,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4102,Wednesday,2,1,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,,Ability Enhancement Course-I,Ms. Arundatti Sati,4102,Wednesday,2,3,theory,0,ALL,0,0,1,3,0,0,1
+2025-26,odd,BCA,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,4102,Wednesday,2,4,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,24COA203,Computer Networks,Mr. Anubhav Singh Bisht,4102,Wednesday,2,5,theory,0,ALL,0,0,5,3,0,0,1
+2025-26,odd,BCA,3,A,Friday,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4102,Thursday,3,1,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,24COA203,Computer Networks,Mr. Anubhav Singh Bisht,4102,Thursday,3,2,theory,0,ALL,0,0,5,3,0,0,1
+2025-26,odd,BCA,3,A,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4102,Thursday,3,3,theory,0,ALL,0,0,3,3,0,0,1
+2025-26,odd,BCA,3,A,Thursday,Value Added Course-I(Advance Logical Thinking),TBD,4102,Friday,4,1,theory,0,ALL,0,0,1,3,0,0,1
+2025-26,odd,BCA,3,A,BCA III,Computer Networks,Mr. Anubhav Singh Bisht,1122,Friday,4,3,lab,1,G1,0,0,5,3,0,1,1
+2025-26,odd,BCA,3,A,24COA272,Computer Networks Lab,Mr. Anubhav Singh Bisht,1122,Friday,4,3,lab,1,G2,0,0,2,3,0,1,1
+2025-26,odd,BCA,3,B,24COA272,Computer Networks Lab,Dr. Sudhir Kumar Rathi,1122,Monday,0,1,lab,1,G2,0,0,2,3,1,1,1
+2025-26,odd,BCA,3,B,BCA III,Computer Networks,Dr. Sudhir Kumar Rathi,1122,Monday,0,1,lab,1,G2,0,0,2,3,1,1,1
+2025-26,odd,BCA,3,B,,Ability Enhancement Course-I,Ms. Arundatti Sati,4105,Monday,0,3,theory,0,ALL,0,0,1,3,1,0,1
+2025-26,odd,BCA,3,B,24COA201,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4105,Monday,0,4,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA204,Software Engineering,TBD,4105,Tuesday,1,1,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA203,Computer Networks,Dr. Sachin Kumar Rana,4105,Tuesday,1,2,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4105,Tuesday,1,3,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA201,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4105,Tuesday,1,5,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4105,Wednesday,2,1,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA203,Computer Networks,Dr. Sachin Kumar Rana,4105,Wednesday,2,2,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA272,Computer Networks Lab,Dr. Sudhir Kumar Rathi,1122,Wednesday,2,3,lab,1,G2,0,0,2,3,1,1,1
+2025-26,odd,BCA,3,B,BCA III,Computer Networks,Dr. Sudhir Kumar Rathi,1122,Wednesday,2,3,lab,1,G1,0,0,2,3,1,1,1
+2025-26,odd,BCA,3,B,VAM30301,Value Added Course-I(Advance Logical Thinking),TBD,4105,Thursday,3,1,theory,0,ALL,0,0,1,3,1,0,1
+2025-26,odd,BCA,3,B,24COA204,Software Engineering,TBD,4105,Thursday,3,3,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA201,Computer Based Numerical and  Statistical Techniques,Mr. Dharmendra Kumar,4105,Friday,4,1,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,,Ability Enhancement Course-I,Ms. Charu Aghi,4105,Friday,4,2,theory,0,ALL,0,0,1,3,1,0,1
+2025-26,odd,BCA,3,B,24COA203,Computer Networks,Dr. Sachin Kumar Rana,4105,Friday,4,3,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24COA204,Software Engineering,TBD,4105,Friday,4,4,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,3,B,24HUM201,Organizational Behavior,Ms. Manvi Chopra,4105,Friday,4,5,theory,0,ALL,0,0,3,3,1,0,1
+2025-26,odd,BCA,5,A,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4202,Monday,0,1,theory,0,ALL,0,0,4,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA501,.NET Framework,TBD,4202,Monday,0,2,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,Thursday,Ability Enhancement Course-III,Ms. Esha Dogra,4202,Monday,0,3,theory,0,ALL,0,0,1,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA581,.NET Framework Lab,Dr. Sumit Sharma,4301,Monday,0,5,lab,1,G1,0,0,2,5,0,1,1
+2025-26,odd,BCA,5,A,21BCA582,Computer Graphics Lab,Dr. Ajeet Kumar Vishwakarma,4202,Monday,0,5,lab,1,G2,0,0,2,5,0,0,1
+2025-26,odd,BCA,5,A,21BSIT501,.NET Framework,Dr. Sumit Sharma,1108,Monday,0,5,lab,1,G1,0,0,2,5,0,1,1
+2025-26,odd,BCA,5,A,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4202,Tuesday,1,1,theory,0,ALL,0,0,4,5,0,0,1
+2025-26,odd,BCA,5,A,Thursday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,4202,Tuesday,1,3,theory,0,ALL,0,0,1,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA503,Management Information System,Ms. Vaishali Yadav,4202,Tuesday,1,5,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,4202,Tuesday,1,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,3201,Tuesday,1,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,BCA V,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,1109,Wednesday,2,1,lab,1,G1,0,0,4,5,0,1,1
+2025-26,odd,BCA,5,A,21BCA581,.NET Framework Lab,Dr. Sumit Sharma,1108,Wednesday,2,1,lab,1,G1,0,0,2,5,0,1,1
+2025-26,odd,BCA,5,A,21BCA582,Computer Graphics Lab,Dr. Ajeet Kumar Vishwakarma,1109,Wednesday,2,1,lab,1,G2,0,0,2,5,0,1,1
+2025-26,odd,BCA,5,A,21BSIT501,.NET Framework,Dr. Sumit Sharma,1108,Wednesday,2,1,lab,1,G2,0,0,2,5,0,1,1
+2025-26,odd,BCA,5,A,21BCA503,Management Information System,Ms. Vaishali Yadav,4202,Wednesday,2,3,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,3201,Wednesday,2,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,4202,Wednesday,2,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,Friday,Value Added Course-III Advanced Java Skills,Mr. Vikas Kumar,4202,Thursday,3,1,theory,0,ALL,0,0,1,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA503,Management Information System,Ms. Vaishali Yadav,4202,Thursday,3,3,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA501,.NET Framework,TBD,4202,Thursday,3,5,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,3201,Thursday,3,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,4202,Thursday,3,6,theory,0,ALL,1,0,3,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4202,Friday,4,1,theory,0,ALL,0,0,4,5,0,0,1
+2025-26,odd,BCA,5,A,21BCA501,.NET Framework,TBD,4202,Friday,4,2,theory,0,ALL,0,0,3,5,0,0,1
+2025-26,odd,BCA,5,B,21BCA503,Management Information System,Ms. Vaishali Yadav,4205,Monday,0,2,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA501,.NET Framework,TBD,4205,Monday,0,3,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4205,Monday,0,4,theory,0,ALL,0,0,4,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA521,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,4205,Tuesday,1,1,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,3201,Tuesday,1,1,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,Thursday,Ability Enhancement Course-III,Ms. Esha Dogra,rotation,Tuesday,1,2,theory,0,ALL,0,0,1,5,1,0,1
+2025-26,odd,BCA,5,B,21BSIT501,.NET Framework,Dr. Sumit Sharma,1108,Tuesday,1,3,lab,1,G1,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA581,.NET Framework Lab,Dr. Sumit Sharma,4301,Tuesday,1,3,lab,1,G1,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA582,Computer Graphics Lab,Dr. Ajeet Kumar Vishwakarma,1109,Tuesday,1,3,lab,1,G2,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA503,Management Information System,Ms. Vaishali Yadav,4205,Wednesday,2,1,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA521,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,4205,Wednesday,2,2,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,3201,Wednesday,2,2,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4205,Wednesday,2,4,theory,0,ALL,0,0,4,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA501,.NET Framework,TBD,4205,Wednesday,2,5,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,Thursday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,4103,Thursday,3,1,theory,0,ALL,0,0,1,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA503,Management Information System,Ms. Vaishali Yadav,4205,Thursday,3,2,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,BCA V,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,1109,Thursday,3,3,lab,1,G1,0,0,4,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA582,Computer Graphics Lab,Dr. Ajeet Kumar Vishwakarma,1109,Thursday,3,3,lab,1,G2,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BSIT501,.NET Framework,Dr. Sumit Sharma,1108,Thursday,3,3,lab,1,G2,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA581,.NET Framework Lab,Dr. Sumit Sharma,4301,Thursday,3,3,lab,1,G1,0,0,2,5,1,1,1
+2025-26,odd,BCA,5,B,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,3201,Thursday,3,5,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA521,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,4205,Thursday,3,5,theory,0,ALL,1,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,VAM50301,Value Added Course-III Advanced Java Skills,Mr. Vikas Kumar,4205,Friday,4,1,theory,0,ALL,0,0,1,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA501,.NET Framework,TBD,4205,Friday,4,3,theory,0,ALL,0,0,3,5,1,0,1
+2025-26,odd,BCA,5,B,21BCA502,Computer Graphics,Dr. Ajeet Kumar Vishwakarma,4205,Friday,4,4,theory,0,ALL,0,0,4,5,1,0,1
+2025-26,odd,BSc IT,1,A,B.Sc IT-I,Introduction to Programming Lab,Dr. Rohit Goyal,1125,Friday,4,3,lab,1,ALL,0,0,1,1,0,1,2
+2025-26,odd,BSc IT,3,A,24COA271,Object Oriented Programming with JAVA Lab,Ms. Noopur Dass,1214,Monday,0,1,lab,1,ALL,0,0,4,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA203,Computer Networks,Dr. Rohit Goyal,1214,Monday,0,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA205,Operating System,Mr. Dharmendra Kumar,1214,Monday,0,3,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,1214,Monday,0,4,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24HUM201,Organizational Behavior,Ms. Manvi Chopra,1214,Monday,0,6,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA271,Object Oriented Programming with JAVA Lab,Ms. Noopur Dass,1214,Tuesday,1,1,lab,1,ALL,0,0,4,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Tech III,Operating System,Mr. Dharmendra Kumar,rotation,Tuesday,1,1,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA205,Operating System,Mr. Dharmendra Kumar,1214,Tuesday,1,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA271,Object Oriented Programming with JAVA Lab,Ms. Noopur Dass,1125,Tuesday,1,3,lab,1,ALL,0,0,4,3,0,1,2
+2025-26,odd,BSc IT,3,A,,Object Oriented Programming Lab,Ms. Noopur Dass,1125,Tuesday,1,3,lab,1,ALL,0,0,1,3,0,1,2
+2025-26,odd,BSc IT,3,A,B.Sc IT-III,Computer Networks,Dr. Rohit Goyal,1214,Tuesday,1,5,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA203,Computer Networks,Dr. Rohit Goyal,1214,Wednesday,2,1,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA271,Object Oriented Programming with JAVA Lab,Ms. Noopur Dass,1214,Wednesday,2,2,lab,1,ALL,0,0,4,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc IT-III,Computer Networks,Dr. Rohit Goyal,1214,Wednesday,2,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc (IT) III,Organizational Behavior,Ms. Manvi Chopra,1214,Wednesday,2,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA273,Operating System with Linux Lab,Mr. Dharmendra Kumar,1214,Wednesday,2,3,lab,1,ALL,0,0,1,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Tech III,Operating System,Mr. Dharmendra Kumar,rotation,Wednesday,2,3,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,Thursday,Ability Enhancement Course-I,Ms. Charu Aghi,1214,Wednesday,2,5,theory,0,ALL,0,0,1,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc (IT) III,Organizational Behavior,Ms. Manvi Chopra,1214,Thursday,3,1,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA271,Object Oriented Programming with JAVA Lab,Ms. Noopur Dass,1214,Thursday,3,2,lab,1,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA205,Operating System,Mr. Dharmendra Kumar,1214,Thursday,3,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc IT III,Operating System,Mr. Sachin Sharma,1214,Thursday,3,3,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,1214,Thursday,3,4,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,Thursday,Ability Enhancement Course-I,Ms. Anshika Sharma,1214,Thursday,3,5,theory,0,ALL,0,0,1,3,0,0,2
+2025-26,odd,BSc IT,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,1214,Friday,4,1,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc (IT) III,Organizational Behavior,Ms. Manvi Chopra,1214,Friday,4,2,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,B.Sc IT III,Operating System,Mr. Sachin Sharma,1214,Friday,4,3,theory,0,ALL,0,0,3,3,0,0,2
+2025-26,odd,BSc IT,3,A,VAM30301,Value Added Course-I(Advance Logical Thinking),Ms. Noopur Dass,1214,Friday,4,3,theory,0,ALL,0,0,1,3,0,0,2
+2025-26,odd,BSc IT,5,A,B.Sc IT V,Business Intelligence,Mr. Rakesh Arya,1221,Monday,0,2,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,,Minor Project-I,Dr. Rohit Goyal,rotation,Monday,0,3,theory,0,ALL,0,0,1,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1221,Monday,0,5,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,1221,Monday,0,6,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT501,.NET Framework,Dr. Sumit Sharma,1221,Tuesday,1,1,theory,0,ALL,0,0,2,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT502,Business Intelligence,Mr. Rakesh Arya,1221,Tuesday,1,2,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1221,Tuesday,1,5,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT502,Business Intelligence,Mr. Rakesh Arya,1221,Wednesday,2,2,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT501,.NET Framework,Dr. Sumit Sharma,1221,Wednesday,2,3,theory,0,ALL,0,0,2,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT504,Cryptography and Network Security,Ms. Renu Devi,1221,Wednesday,2,4,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,1221,Wednesday,2,5,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT581,.NET Framework Lab,TBD,1221,Thursday,3,1,lab,1,ALL,0,0,1,5,0,0,2
+2025-26,odd,BSc IT,5,A,B.Sc IT V,Business Intelligence,Mr. Rakesh Arya,rotation,Thursday,3,2,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT501,.NET Framework,TBD,1221,Thursday,3,3,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT504,Cryptography and Network Security,Ms. Renu Devi,1221,Thursday,3,4,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1221,Thursday,3,5,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,1221,Friday,4,2,theory,0,ALL,0,0,1,5,0,0,2
+2025-26,odd,BSc IT,5,A,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,1221,Friday,4,3,theory,0,ALL,0,0,1,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BSIT504,Cryptography and Network Security,Ms. Renu Devi,1221,Friday,4,4,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BSc IT,5,A,21BCA522,Introduction to Cloud Computing,Mr. Rishabh Vashisht,1221,Friday,4,5,theory,0,ALL,0,0,3,5,0,0,2
+2025-26,odd,BTech CSE,3,A,24CSE205,Web Technologies,Ms. Jaishree Aggarwal,1112,Monday,0,1,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1112,Monday,0,2,theory,0,ALL,0,0,4,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE202,Digital Electronics,Ms. Arundatti Sati,1112,Monday,0,3,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1112,Monday,0,4,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE202,Digital Electronics,TBD,1228,Monday,0,5,theory,0,ALL,0,0,1,3,0,1,0
+2025-26,odd,BTech CSE,3,A,III,Digital Electronics Lab,TBD,unknown,Monday,0,5,lab,1,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE205,Web Technologies,Ms. Jaishree Aggarwal,1112,Tuesday,1,1,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1112,Tuesday,1,2,theory,0,ALL,0,0,4,3,0,0,0
+2025-26,odd,BTech CSE,3,A,,Ability Enhancement Course-I,Ms. Arundatti Sati,1112,Tuesday,1,3,theory,0,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1112,Tuesday,1,4,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE273,Operating System with Linux Lab,TBD,1112,Tuesday,1,5,lab,1,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE205,Web Technologies,Ms. Jaishree Aggarwal,1112,Wednesday,2,1,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1112,Wednesday,2,2,theory,0,ALL,0,0,4,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1112,Wednesday,2,3,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,,Ability Enhancement Course-I,Ms. Charu Aghi,1112,Wednesday,2,4,theory,0,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1112,Wednesday,2,5,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE202,Digital Electronics,Ms. Arundatti Sati,1112,Thursday,3,2,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,CSE III,Object Oriented Programming,Mr. Govind Singh Panwar,1125,Thursday,3,3,lab,1,ALL,0,0,4,3,0,1,0
+2025-26,odd,BTech CSE,3,A,24CSE271,Object Oriented Programming Lab,Mr. Govind Singh Panwar,1125,Thursday,3,3,lab,1,ALL,0,0,1,3,0,1,0
+2025-26,odd,BTech CSE,3,A,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1112,Thursday,3,5,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1112,Friday,4,1,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE202,Digital Electronics,Ms. Arundatti Sati,1112,Friday,4,2,theory,0,ALL,0,0,3,3,0,0,0
+2025-26,odd,BTech CSE,3,A,24CSE274,Web Technologies Lab,Ms. Jaishree Aggarwal,1112,Friday,4,3,lab,1,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,A,BCA I,Web Technology Lab,TBD,1125,Friday,4,3,lab,1,ALL,0,0,1,3,0,1,0
+2025-26,odd,BTech CSE,3,A,VAM30304,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1112,Friday,4,5,theory,0,ALL,0,0,1,3,0,0,0
+2025-26,odd,BTech CSE,3,B,CSE III,Object Oriented Programming,Mr. Mohit Kumar Sharma,1125,Monday,0,1,lab,1,ALL,0,0,1,3,1,1,0
+2025-26,odd,BTech CSE,3,B,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1113,Monday,0,4,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,Friday,Ability Enhancement Course-I,Ms. Anshika Sharma,1113,Monday,0,5,theory,0,ALL,0,0,1,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1113,Tuesday,1,1,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE202,Digital Electronics,Ms. Anshika Sharma,1113,Tuesday,1,2,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1113,Tuesday,1,3,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1113,Tuesday,1,4,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1113,Wednesday,2,1,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE202,Digital Electronics,Ms. Anshika Sharma,1113,Wednesday,2,2,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE202,Digital Electronics,TBD,1228,Wednesday,2,3,theory,0,ALL,0,0,1,3,1,1,0
+2025-26,odd,BTech CSE,3,B,III,Digital Electronics Lab,TBD,1228,Wednesday,2,3,lab,1,ALL,0,0,1,3,1,1,0
+2025-26,odd,BTech CSE,3,B,VAM30304,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1113,Wednesday,2,5,theory,0,ALL,0,0,1,3,1,0,0
+2025-26,odd,BTech CSE,3,B,BCA I,Web Technology Lab,TBD,1125,Wednesday,2,5,lab,1,ALL,0,0,2,3,1,1,0
+2025-26,odd,BTech CSE,3,B,24CSE204,Operating System,Mr. Yudhveer Singh Moudgil,1113,Thursday,3,1,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1113,Thursday,3,2,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,Friday,Ability Enhancement Course-I,Ms. Charu Aghi,1113,Thursday,3,4,theory,0,ALL,0,0,1,3,1,0,0
+2025-26,odd,BTech CSE,3,B,BCA I,Web Technology Lab,TBD,1122,Thursday,3,5,lab,1,ALL,0,0,2,3,1,1,0
+2025-26,odd,BTech CSE,3,B,24CSE273,Operating System with Linux Lab,Ms. Jaishree Aggarwal,1113,Friday,4,1,lab,1,ALL,0,0,1,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE202,Digital Electronics,Ms. Anshika Sharma,1113,Friday,4,3,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1113,Friday,4,4,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,B,24CSE203,Design and Analysis of Algorithms,Mr. Dhajvir Singh Rai,1113,Friday,4,5,theory,0,ALL,0,0,3,3,1,0,0
+2025-26,odd,BTech CSE,3,C,24CSE204,Operating System,Mr. Arif Ali Chauhan,1017,Monday,0,1,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1017,Monday,0,2,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,VAM30304,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1114,Monday,0,3,theory,0,ALL,0,0,1,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE205,Web Technologies,Mr. Manoj Adhikari,1017,Monday,0,5,theory,0,ALL,0,0,4,3,2,0,0
+2025-26,odd,BTech CSE,3,C,CSE V,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1126,Monday,0,5,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1017,Tuesday,1,1,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1017,Tuesday,1,2,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE205,Web Technologies,Mr. Manoj Adhikari,1017,Tuesday,1,3,theory,0,ALL,0,0,4,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE204,Operating System,Mr. Arif Ali Chauhan,1017,Tuesday,1,4,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,CSE III,Object Oriented Programming,Mr. Ajay Singh,1125,Tuesday,1,5,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,24CSE271,Object Oriented Programming Lab,Ms. Arundatti Sati,1125,Tuesday,1,5,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1017,Wednesday,2,1,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1017,Wednesday,2,2,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE205,Web Technologies,Mr. Manoj Adhikari,rotation,Wednesday,2,3,theory,0,ALL,0,0,4,3,2,0,0
+2025-26,odd,BTech CSE,3,C,BCA I,Web Technology Lab,TBD,1126,Wednesday,2,3,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1017,Wednesday,2,5,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE205,Web Technologies,Mr. Manoj Adhikari,1017,Thursday,3,1,theory,0,ALL,0,0,4,3,2,0,0
+2025-26,odd,BTech CSE,3,C,Thursday,Ability Enhancement Course-I,Ms. Arundatti Sati,rotation,Thursday,3,2,theory,0,ALL,0,0,1,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1017,Thursday,3,3,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE204,Operating System,Mr. Arif Ali Chauhan,1017,Thursday,3,4,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1017,Thursday,3,5,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,Thursday,Ability Enhancement Course-I,Ms. Charu Aghi,rotation,Friday,4,1,theory,0,ALL,0,0,1,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE201,Object Oriented Programming,Mr. Govind Singh Panwar,1017,Friday,4,2,theory,0,ALL,0,0,3,3,2,0,0
+2025-26,odd,BTech CSE,3,C,24CSE202,Digital Electronics,TBD,1228,Friday,4,3,theory,0,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,III,Digital Electronics Lab,TBD,1228,Friday,4,3,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,24CSE273,Operating System with Linux Lab,Mr. Arif Ali Chauhan,1109,Friday,4,5,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,C,B.Tech III,Operating System,TBD,1109,Friday,4,5,lab,1,ALL,0,0,1,3,2,1,0
+2025-26,odd,BTech CSE,3,D,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1114,Monday,0,1,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1114,Monday,0,2,theory,0,ALL,0,0,4,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE273,Operating System with Linux Lab,Mr. Arif Ali Chauhan,1109,Monday,0,3,lab,1,ALL,0,0,1,3,3,1,0
+2025-26,odd,BTech CSE,3,D,B.Tech III,Operating System,TBD,1109,Monday,0,3,lab,1,ALL,0,0,1,3,3,1,0
+2025-26,odd,BTech CSE,3,D,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1116,Monday,0,5,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE204,Operating System,Mr. Arif Ali Chauhan,1114,Monday,0,6,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,III,Digital Electronics Lab,TBD,1228,Tuesday,1,1,lab,1,ALL,0,0,1,3,3,1,0
+2025-26,odd,BTech CSE,3,D,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1114,Tuesday,1,2,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE204,Operating System,Mr. Arif Ali Chauhan,1114,Tuesday,1,3,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1114,Tuesday,1,4,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,VAM30304,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1114,Tuesday,1,5,theory,0,ALL,0,0,1,3,3,0,0
+2025-26,odd,BTech CSE,3,D,Thursday,Ability Enhancement Course-I,Mr. Ajay Singh,1114,Wednesday,2,1,theory,0,ALL,0,0,1,3,3,0,0
+2025-26,odd,BTech CSE,3,D,Monday,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,TBD,1114,Wednesday,2,2,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1116,Wednesday,2,4,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1116,Wednesday,2,5,theory,0,ALL,0,0,4,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE204,Operating System,Mr. Arif Ali Chauhan,1114,Wednesday,2,6,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,Thursday,Ability Enhancement Course-I,Ms. Charu Aghi,1114,Thursday,3,1,theory,0,ALL,0,0,1,3,3,0,0
+2025-26,odd,BTech CSE,3,D,Monday,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,TBD,1114,Thursday,3,2,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1116,Thursday,3,3,theory,0,ALL,0,0,4,3,3,0,0
+2025-26,odd,BTech CSE,3,D,CSE III,Object Oriented Programming,Mr. Ajay Singh,1125,Thursday,3,5,lab,1,ALL,0,0,4,3,3,1,0
+2025-26,odd,BTech CSE,3,D,24CSE271,Object Oriented Programming Lab,Mr. Ajay Singh,1125,Thursday,3,5,lab,1,ALL,0,0,1,3,3,1,0
+2025-26,odd,BTech CSE,3,D,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1114,Friday,4,1,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,Monday,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,TBD,1114,Friday,4,2,theory,0,ALL,0,0,3,3,3,0,0
+2025-26,odd,BTech CSE,3,D,24CSE202,Digital Electronics,TBD,1228,Friday,4,5,theory,0,ALL,0,0,1,3,3,1,0
+2025-26,odd,BTech CSE,3,E,24AML201/24AML201,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,Industry Expert,1116,Monday,0,1,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,,Cyber Security,TBD,1116,Monday,0,1,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1116,Monday,0,2,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1117,Monday,0,4,theory,0,ALL,0,0,4,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE204,Operating System,Mr. Arif Ali Chauhan,1116,Tuesday,1,1,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24AML201/24AML201,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,Industry Expert,1116,Tuesday,1,2,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,,Cyber Security,TBD,1116,Tuesday,1,2,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1117,Tuesday,1,4,theory,0,ALL,0,0,4,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE202,Digital Electronics,TBD,1228,Tuesday,1,5,theory,0,ALL,0,0,1,3,4,1,0
+2025-26,odd,BTech CSE,3,E,III,Digital Electronics Lab,TBD,unknown,Tuesday,1,5,lab,1,ALL,0,0,1,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1117,Wednesday,2,1,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24AML201/24AML201,Mathematical and Statistical Foundations/Cyber Security and Investigation Techniques,Industry Expert,1116,Wednesday,2,2,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,,Cyber Security,TBD,1116,Wednesday,2,2,theory,0,ALL,1,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,CSE III,Object Oriented Programming,Mr. Ajay Singh,1125,Wednesday,2,3,lab,1,ALL,0,0,4,3,4,1,0
+2025-26,odd,BTech CSE,3,E,24CSE271,Object Oriented Programming Lab,Mr. Ajay Singh,1125,Wednesday,2,3,lab,1,ALL,0,0,1,3,4,1,0
+2025-26,odd,BTech CSE,3,E,24CSE204,Operating System,Mr. Arif Ali Chauhan,1116,Wednesday,2,5,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1116,Wednesday,2,6,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1117,Thursday,3,1,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,Thursday,Ability Enhancement Course-I,Ms. Charu Aghi,1116,Thursday,3,2,theory,0,ALL,0,0,1,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE204,Operating System,Mr. Arif Ali Chauhan,1116,Thursday,3,3,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1116,Thursday,3,4,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,E,Wednesday,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1124,Thursday,3,5,theory,0,ALL,0,0,1,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1117,Friday,4,1,theory,0,ALL,0,0,4,3,4,0,0
+2025-26,odd,BTech CSE,3,E,Thursday,Ability Enhancement Course-I,Mr. Ajay Singh,1116,Friday,4,2,theory,0,ALL,0,0,1,3,4,0,0
+2025-26,odd,BTech CSE,3,E,24CSE273,Operating System with Linux Lab,Mr. Arif Ali Chauhan,1109,Friday,4,3,lab,1,ALL,0,0,1,3,4,1,0
+2025-26,odd,BTech CSE,3,E,B.Tech III,Operating System,TBD,1109,Friday,4,3,lab,1,ALL,0,0,1,3,4,1,0
+2025-26,odd,BTech CSE,3,E,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1117,Friday,4,5,theory,0,ALL,0,0,3,3,4,0,0
+2025-26,odd,BTech CSE,3,F,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1020,Monday,0,1,theory,0,ALL,0,0,4,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE204,Operating System,Ms. Jaishree Aggarwal,1020,Monday,0,2,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE274,Web Technologies Lab,Mr. Manoj Adhikari,rotation,Monday,0,3,lab,1,ALL,0,0,1,3,5,0,0
+2025-26,odd,BTech CSE,3,F,BCA I,Web Technology Lab,TBD,1125,Monday,0,3,lab,1,ALL,0,0,1,3,5,1,0
+2025-26,odd,BTech CSE,3,F,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1117,Monday,0,5,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1117,Monday,0,6,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,CSE III,Object Oriented Programming,Mr. Ajay Singh,1125,Tuesday,1,1,lab,1,ALL,0,0,4,3,5,1,0
+2025-26,odd,BTech CSE,3,F,24CSE271,Object Oriented Programming Lab,Mr. Ajay Singh,1125,Tuesday,1,1,lab,1,ALL,0,0,1,3,5,1,0
+2025-26,odd,BTech CSE,3,F,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1117,Tuesday,1,3,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE205,Web Technologies,Mr. Manoj Adhikari,1020,Tuesday,1,4,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1117,Tuesday,1,6,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,VAM30304,Value Added Course-III (Numpy & Pandas),Mr. Aquib Hussain,1017,Wednesday,2,1,theory,0,ALL,0,0,1,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE202,Digital Electronics,Mr. Paramjeet Singh Paliyal,1117,Wednesday,2,3,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE204,Operating System,Ms. Jaishree Aggarwal,1020,Wednesday,2,4,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE205,Web Technologies,Mr. Manoj Adhikari,1020,Wednesday,2,5,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,III,Digital Electronics Lab,TBD,1228,Wednesday,2,5,lab,1,ALL,0,0,1,3,5,1,0
+2025-26,odd,BTech CSE,3,F,24CSE204,Operating System,Ms. Jaishree Aggarwal,1020,Thursday,3,1,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1020,Thursday,3,2,theory,0,ALL,0,0,4,3,5,0,0
+2025-26,odd,BTech CSE,3,F,Thursday,Ability Enhancement Course-I,Mr. Ajay Singh,rotation,Thursday,3,3,theory,0,ALL,0,0,1,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE205,Web Technologies,Mr. Manoj Adhikari,1020,Thursday,3,4,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE202,Digital Electronics,TBD,1228,Thursday,3,5,theory,0,ALL,0,0,1,3,5,1,0
+2025-26,odd,BTech CSE,3,F,24CSE203,Design and Analysis of Algorithms,Mr. Bal Krishna Yadav,1113,Friday,4,2,theory,0,ALL,0,0,3,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE201,Object Oriented Programming,Mr. Ajay Singh,1020,Friday,4,3,theory,0,ALL,0,0,4,3,5,0,0
+2025-26,odd,BTech CSE,3,F,Thursday,Ability Enhancement Course-I,Ms. Charu Aghi,rotation,Friday,4,4,theory,0,ALL,0,0,1,3,5,0,0
+2025-26,odd,BTech CSE,3,F,24CSE273,Operating System with Linux Lab,Ms. Jaishree Aggarwal,rotation,Friday,4,5,lab,1,ALL,0,0,1,3,5,0,0
+2025-26,odd,BTech CSE,3,F,B.Tech III,Operating System,TBD,1126,Friday,4,5,lab,1,ALL,0,0,1,3,5,1,0
+2025-26,odd,BTech CSE,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,rotation,Monday,0,1,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,rotation,Monday,0,2,theory,0,ALL,0,0,1,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Wednesday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,rotation,Monday,0,3,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,rotation,Monday,0,4,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,rotation,Monday,0,5,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,rotation,Monday,0,6,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Wednesday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,rotation,Tuesday,1,1,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,rotation,Tuesday,1,2,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Tuesday,1,3,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Tuesday,1,3,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,rotation,Tuesday,1,4,theory,0,ALL,0,0,1,5,0,0,0
+2025-26,odd,BTech CSE,5,A,CSE V,Full Stack Development,Mr. Mukesh Rajput,1122,Tuesday,1,5,lab,1,ALL,0,0,4,5,0,1,0
+2025-26,odd,BTech CSE,5,A,21BTCS582,Full Stack Development Lab,Mr. Mukesh Rajput,1122,Tuesday,1,5,lab,1,ALL,0,0,1,5,0,1,0
+2025-26,odd,BTech CSE,5,A,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,rotation,Wednesday,2,1,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,rotation,Wednesday,2,2,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Wednesday,2,3,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Wednesday,2,3,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,rotation,Wednesday,2,4,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,rotation,Wednesday,2,5,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Wednesday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1126,Thursday,3,1,theory,0,ALL,0,0,4,5,0,1,0
+2025-26,odd,BTech CSE,5,A,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,rotation,Thursday,3,5,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,rotation,Friday,4,1,theory,0,ALL,0,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,Wednesday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,rotation,Friday,4,2,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,rotation,Friday,4,3,theory,0,ALL,0,0,4,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Friday,4,4,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,A,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Friday,4,4,theory,0,ALL,1,0,3,5,0,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1124,Monday,0,1,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1124,Monday,0,2,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1124,Monday,0,3,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1124,Monday,0,4,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,1124,Tuesday,1,1,theory,0,ALL,0,0,1,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1124,Tuesday,1,2,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Tuesday,1,3,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Tuesday,1,3,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,Monday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1124,Tuesday,1,4,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,B,Monday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1126,Tuesday,1,5,theory,0,ALL,0,0,4,5,1,1,0
+2025-26,odd,BTech CSE,5,B,Monday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1124,Wednesday,2,1,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,B,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,1124,Wednesday,2,2,theory,0,ALL,0,0,1,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Wednesday,2,3,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Wednesday,2,3,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1124,Wednesday,2,4,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1124,Wednesday,2,5,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,CSE V,Full Stack Development,Mr. Mukesh Rajput,1122,Thursday,3,1,lab,1,ALL,0,0,4,5,1,1,0
+2025-26,odd,BTech CSE,5,B,21BTCS582,Full Stack Development Lab,Mr. Mukesh Rajput,1122,Thursday,3,1,lab,1,ALL,0,0,1,5,1,1,0
+2025-26,odd,BTech CSE,5,B,Monday,Object Oriented Analysis and Design,Ms. Sarthika Dutt,1124,Thursday,3,3,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1124,Thursday,3,4,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1124,Friday,4,1,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1124,Friday,4,2,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1124,Friday,4,3,theory,0,ALL,0,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1118,Friday,4,4,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS511,Fundamentals of security in IT (Programme Elective-I),TBD,1124,Friday,4,4,theory,0,ALL,1,0,3,5,1,0,0
+2025-26,odd,BTech CSE,5,B,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1124,Friday,4,5,theory,0,ALL,0,0,4,5,1,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1127,Monday,0,1,lab,1,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1127,Monday,0,2,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1127,Monday,0,3,theory,0,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,1127,Monday,0,4,theory,0,ALL,0,0,1,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1126,Monday,0,5,lab,1,ALL,0,0,4,5,2,1,0
+2025-26,odd,BTech CSE,5,C,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,1127,Tuesday,1,1,theory,0,ALL,0,0,1,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1127,Tuesday,1,2,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1127,Tuesday,1,3,lab,1,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1127,Tuesday,1,4,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Tuesday,1,5,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Tuesday,1,5,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1127,Wednesday,2,1,theory,0,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1127,Wednesday,2,2,lab,1,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1127,Wednesday,2,3,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Wednesday,2,4,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Wednesday,2,4,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1127,Thursday,3,1,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Thursday,3,2,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Thursday,3,2,theory,0,ALL,1,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1127,Thursday,3,3,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1127,Thursday,3,4,theory,0,ALL,0,0,4,5,2,0,0
+2025-26,odd,BTech CSE,5,C,CSE V,Full Stack Development,Mr. Mukesh Rajput,1122,Friday,4,1,lab,1,ALL,0,0,4,5,2,1,0
+2025-26,odd,BTech CSE,5,C,21BTCS582,Full Stack Development Lab,Mr. Mukesh Rajput,1122,Friday,4,1,lab,1,ALL,0,0,1,5,2,1,0
+2025-26,odd,BTech CSE,5,C,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1127,Friday,4,3,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1127,Friday,4,4,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,C,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1127,Friday,4,5,theory,0,ALL,0,0,3,5,2,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1113,Monday,0,1,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS581,Object Oriented Analysis and Design Lab,Mr. Jatiendra Singh,1126,Monday,0,3,lab,1,ALL,0,0,1,5,3,1,0
+2025-26,odd,BTech CSE,5,D,CSE V,Full Stack Development,TBD,1122,Monday,0,3,lab,1,ALL,0,0,1,5,3,1,0
+2025-26,odd,BTech CSE,5,D,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1019,Tuesday,1,1,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1019,Tuesday,1,2,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1019,Tuesday,1,3,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,1017,Tuesday,1,4,theory,0,ALL,0,0,1,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Tuesday,1,5,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Tuesday,1,5,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1017,Wednesday,2,1,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,1017,Wednesday,2,2,theory,0,ALL,0,0,1,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1113,Wednesday,2,3,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Wednesday,2,4,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Wednesday,2,4,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1019,Wednesday,2,5,lab,1,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1017,Wednesday,2,6,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1124,Thursday,3,1,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1127,Thursday,3,2,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Thursday,3,2,theory,0,ALL,1,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1112,Thursday,3,3,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1112,Thursday,3,4,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1019,Thursday,3,5,lab,1,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS504,Full Stack Development,Mr. Mukesh Rajput,1017,Thursday,3,6,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS504,Full Stack Development,Ms. Prachi Shriradha Negi,1126,Friday,4,1,theory,0,ALL,0,0,1,5,3,1,0
+2025-26,odd,BTech CSE,5,D,CSE V,Object Oriented Analysis and Design,Mr. Bal Krishna Yadav,1109,Friday,4,1,lab,1,ALL,0,0,1,5,3,1,0
+2025-26,odd,BTech CSE,5,D,21BTCS581,Object Oriented Analysis and Design Lab,Ms. Sarthika Dutt,1019,Friday,4,3,lab,1,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,D,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1020,Friday,4,4,theory,0,ALL,0,0,3,5,3,0,0
+2025-26,odd,BTech CSE,5,E,Wednesday,Object Oriented Analysis and Design,Mr. Jatiendra Singh,1117,Monday,0,1,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS504,Full Stack Development,Ms. Prachi Shriradha Negi,1117,Monday,0,2,theory,0,ALL,0,0,4,5,4,0,0
+2025-26,odd,BTech CSE,5,E,VAM503XX,Value Added Course-V,TBD,1117,Monday,0,3,theory,0,ALL,0,0,1,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1117,Monday,0,5,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Monday,0,5,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1117,Monday,0,6,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,Wednesday,Object Oriented Analysis and Design,Mr. Jatiendra Singh,1117,Tuesday,1,1,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS504,Full Stack Development,Ms. Prachi Shriradha Negi,1117,Tuesday,1,2,theory,0,ALL,0,0,4,5,4,0,0
+2025-26,odd,BTech CSE,5,E,Tuesday,Ability Enhancement Course-III,Mr. Harpreet Singh Cheema,1020,Tuesday,1,4,theory,0,ALL,0,0,1,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1117,Tuesday,1,5,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,Wednesday,Object Oriented Analysis and Design,Mr. Jatiendra Singh,1117,Wednesday,2,1,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1117,Wednesday,2,2,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Wednesday,2,2,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1117,Wednesday,2,3,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1114,Wednesday,2,4,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS581,Object Oriented Analysis and Design Lab,Mr. Jatiendra Singh,1126,Wednesday,2,5,lab,1,ALL,0,0,1,5,4,1,0
+2025-26,odd,BTech CSE,5,E,Tuesday,Ability Enhancement Course-III,Ms. Esha Dogra,1213,Thursday,3,1,theory,0,ALL,0,0,1,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS504,Full Stack Development,Ms. Prachi Shriradha Negi,1117,Thursday,3,2,theory,0,ALL,0,0,4,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1117,Thursday,3,3,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1117,Thursday,3,4,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS504,Full Stack Development,Ms. Prachi Shriradha Negi,1126,Thursday,3,5,theory,0,ALL,0,0,4,5,4,1,0
+2025-26,odd,BTech CSE,5,E,21BTCS511,Fundamentals of security in IT (Programme Elective-I),Ms. Anuja Chaturvedi,1116,Friday,4,2,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS514,Introduction to IOT and Blockchain,Mr. Yudhveer Singh Moudgil,1117,Friday,4,2,theory,0,ALL,1,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS502,Data Warehousing and Data Mining,Mr. Siddhant Nautiyal,1117,Friday,4,4,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS503,Mobile & Adhoc Computing,Mr. Mohit Kumar Sharma,1117,Friday,4,5,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,5,E,21BTCS505,Micro Processor & Embedded Systems,Ms. Nishi Aggarwal,1117,Friday,4,6,theory,0,ALL,0,0,3,5,4,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Asmi Khan,4202,Monday,0,1,theory,0,ALL,0,0,1,7,0,0,0
+2025-26,odd,BTech CSE,7,A,Friday,Industry Oriented DSA Training,TBD,4202,Monday,0,2,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,Monday,Technical Session,TBD,4202,Monday,0,3,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Monday,0,5,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS701,Cryptography and Network Security,TBD,4202,Monday,0,5,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Monday,0,5,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Asmi Khan,4302,Wednesday,2,1,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,Friday,Industry Oriented DSA Training,TBD,4202,Wednesday,2,1,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Anshika Sharma,4202,Wednesday,2,2,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS701,Cryptography and Network Security,TBD,4202,Wednesday,2,3,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Wednesday,2,5,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Wednesday,2,5,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Anshika Sharma,4302,Thursday,3,2,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Asmi Khan,4302,Friday,4,1,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS701,Cryptography and Network Security,TBD,4202,Friday,4,1,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Personality Development Programme,Ms. Anshika Sharma,4302,Friday,4,2,theory,0,ALL,0,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,Monday,Technical Session,TBD,4202,Friday,4,2,theory,0,ALL,0,0,2,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Friday,4,3,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Friday,4,3,theory,0,ALL,1,0,3,7,0,0,0
+2025-26,odd,BTech CSE,7,A,,Major Project,TBD,4202,Friday,4,5,theory,0,ALL,0,0,1,7,0,0,0
+2025-26,odd,BTech CSE,7,B,Monday,Technical Session,TBD,4205,Monday,0,1,theory,0,ALL,0,0,2,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS701,Cryptography and Network Security,TBD,4205,Monday,0,2,theory,0,ALL,0,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,,Major Project,TBD,unknown,Monday,0,3,lab,1,ALL,0,0,1,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Monday,0,5,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Monday,0,5,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,,Personality Development Programme,Ms. Asmi Khan,4205,Wednesday,2,1,theory,0,ALL,0,0,1,7,1,0,0
+2025-26,odd,BTech CSE,7,B,Monday,Technical Session,TBD,4205,Wednesday,2,2,theory,0,ALL,0,0,2,7,1,0,0
+2025-26,odd,BTech CSE,7,B,Friday,Industry Oriented DSA Training,TBD,4205,Wednesday,2,3,theory,0,ALL,0,0,2,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS701,Cryptography and Network Security,TBD,4205,Wednesday,2,4,theory,0,ALL,0,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Wednesday,2,5,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Wednesday,2,5,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,Friday,Industry Oriented DSA Training,TBD,4205,Friday,4,1,theory,0,ALL,0,0,2,7,1,0,0
+2025-26,odd,BTech CSE,7,B,,Personality Development Programme,Ms. Anshika Sharma,4205,Friday,4,2,theory,0,ALL,0,0,1,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4205,Friday,4,3,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4202,Friday,4,3,theory,0,ALL,1,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,B,21BTCS701,Cryptography and Network Security,TBD,4205,Friday,4,4,theory,0,ALL,0,0,3,7,1,0,0
+2025-26,odd,BTech CSE,7,C,Monday,Technical Session,TBD,4202,Tuesday,1,1,theory,0,ALL,0,0,2,7,2,0,0
+2025-26,odd,BTech CSE,7,C,Friday,Industry Oriented DSA Training,TBD,4202,Tuesday,1,2,theory,0,ALL,0,0,2,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS701,Cryptography and Network Security,Mr. Bal Krishna Yadav,4202,Tuesday,1,3,theory,0,ALL,0,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4202,Tuesday,1,4,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4205,Tuesday,1,4,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,,Personality Development Programme,Ms. Asmi Khan,4202,Wednesday,2,1,theory,0,ALL,0,0,1,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS701,Cryptography and Network Security,Mr. Bal Krishna Yadav,4202,Wednesday,2,3,theory,0,ALL,0,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4202,Wednesday,2,4,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4103,Wednesday,2,4,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,,Major Project,TBD,unknown,Wednesday,2,5,lab,1,ALL,0,0,1,7,2,0,0
+2025-26,odd,BTech CSE,7,C,Monday,Technical Session,TBD,4202,Thursday,3,1,theory,0,ALL,0,0,2,7,2,0,0
+2025-26,odd,BTech CSE,7,C,,Personality Development Programme,Ms. Anshika Sharma,4202,Thursday,3,2,theory,0,ALL,0,0,1,7,2,0,0
+2025-26,odd,BTech CSE,7,C,Friday,Industry Oriented DSA Training,TBD,4202,Thursday,3,3,theory,0,ALL,0,0,2,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS701,Cryptography and Network Security,Mr. Bal Krishna Yadav,4202,Thursday,3,4,theory,0,ALL,0,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS714,Sensor Networks & IOT (Programme Elective -III),Mr. Rakesh Arya,4202,Thursday,3,5,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,BTech CSE,7,C,21BTCS711,Wireless Network Security (Programme Elective -III),TBD,4205,Thursday,3,5,theory,0,ALL,1,0,3,7,2,0,0
+2025-26,odd,MCA,1,A,CSE III,Ability Enhancement Course-I,Ms. Asmi Khan,rotation,Wednesday,2,5,theory,0,ALL,0,0,1,1,0,0,3
+2025-26,odd,MCA,1,A,,Design and Analysis of Algorithms Lab,Mr. Dhajvir Singh Rai,4301,Thursday,3,3,lab,1,ALL,0,0,1,1,0,1,3
+2025-26,odd,MCA,1,A,CSE III,Ability Enhancement Course-I,Ms. Arundatti Sati,rotation,Friday,4,1,theory,0,ALL,0,0,1,1,0,0,3
+2025-26,odd,MCA,1,A,MCA I,Advanced Database Management System Lab,Mr. Shubhashish Goswami,4301,Friday,4,3,lab,1,ALL,0,0,1,1,0,1,3
+2025-26,odd,MCA,3,A,MCA III,Big Data Analytics,Ms. Renu Devi,1215,Monday,0,1,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,,Program Elective Cyber Security,Mr. Anubhav Singh Bisht,1215,Monday,0,2,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,MCA,3,A,CSE III,Ability Enhancement Course-I,Ms. Anshika Sharma,rotation,Monday,0,2,theory,0,ALL,0,0,1,3,0,0,3
+2025-26,odd,MCA,3,A,CSE III,Ability Enhancement Course-I,Ms. Asmi Khan,1215,Monday,0,3,theory,0,ALL,0,0,2,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Advanced Computer Networks,Dr. Sudhir Kumar Rathi,1215,Monday,0,4,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Advanced Computer Networks,Dr. Sudhir Kumar Rathi,4301,Monday,0,5,theory,0,ALL,0,0,4,3,0,1,3
+2025-26,odd,MCA,3,A,MCA III,Big Data Analytics,Ms. Renu Devi,1215,Tuesday,1,1,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1215,Tuesday,1,2,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Big Data Analytics,Ms. Renu Devi,4301,Tuesday,1,3,theory,0,ALL,0,0,4,3,0,1,3
+2025-26,odd,MCA,3,A,23PSPR591XX,Minor Project-I,Dr. Ajeet Kumar Vishwakarma,1215,Tuesday,1,5,theory,0,ALL,0,0,1,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Big Data Analytics,Ms. Renu Devi,1215,Wednesday,2,3,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,1215,Wednesday,2,5,theory,0,ALL,0,0,2,3,0,0,3
+2025-26,odd,MCA,3,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1215,Wednesday,2,6,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,MCA,3,A,21BSIT503,Software Project Management,Ms. Vijayshree Khugshal,1215,Thursday,3,2,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Advanced Computer Networks,Dr. Sudhir Kumar Rathi,1215,Thursday,3,4,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,CSE III,Ability Enhancement Course-I,Ms. Asmi Khan,rotation,Thursday,3,5,theory,0,ALL,0,0,2,3,0,0,3
+2025-26,odd,MCA,3,A,,Program Elective Cyber Security,Mr. Anubhav Singh Bisht,1215,Thursday,3,6,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,MCA,3,A,MCA III,Advanced Computer Networks,Dr. Sudhir Kumar Rathi,1215,Friday,4,1,theory,0,ALL,0,0,4,3,0,0,3
+2025-26,odd,MCA,3,A,24COA204,Software Engineering,Ms. Vijayshree Khugshal,1215,Friday,4,2,theory,0,ALL,0,0,2,3,0,0,3
+2025-26,odd,MCA,3,A,,Program Elective Cyber Security,Mr. Anubhav Singh Bisht,1215,Friday,4,6,theory,0,ALL,0,0,3,3,0,0,3
+2025-26,odd,Poly CSE,3,A,,Office Application Lab,Ms. Vaishali Negi,1108,Tuesday,1,1,lab,1,ALL,0,0,1,3,0,1,4
+2025-26,odd,Poly CSE,3,A,,IOT Lab,Ms. Vaishali Negi,1108,Wednesday,2,5,lab,1,ALL,0,0,1,3,0,1,4
+2025-26,odd,Poly CSE,3,A,CSE III,Object Oriented Programming Lab,Ms. Shruti,1108,Thursday,3,5,lab,1,ALL,0,0,1,3,0,1,4
+2025-26,odd,Poly CSE,3,A,,Operating System with Linux Lab,Mr. Rishabh Vashisht,1108,Friday,4,1,lab,1,ALL,0,0,1,3,0,1,4
+2025-26,odd,Poly CSE,5,A,CSE III,Object Oriented Programming Lab,Ms. Shruti,1108,Monday,0,5,lab,1,ALL,0,0,1,5,0,1,4
+2025-26,odd,Poly CSE,5,A,,Android Lab,Ms. Vaishali Yadav,1108,Wednesday,2,5,lab,1,ALL,0,0,1,5,0,1,4
+2025-26,odd,Poly CSE,5,A,BCA III,Computer Networks Lab,Ms. Vaishali Negi,1125,Thursday,3,5,lab,1,ALL,0,0,1,5,0,1,4

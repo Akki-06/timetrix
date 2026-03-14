@@ -91,3 +91,10 @@ htmlcov/
 
 *.swp
 *.swo
+
+# ==============================
+# ML Pipeline
+# ==============================
+server/ml_pipeline/trained/
+*.gpickle
+*.pkl
