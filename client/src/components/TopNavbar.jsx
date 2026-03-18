@@ -1,6 +1,4 @@
-import logo from "../assets/logo/timetrix-logo.png";
-
-function TopNavbar({ selectedTerm, selectedVersion, onToggleSidebar }) {
+function TopNavbar({ onToggleSidebar }) {
   return (
     <header className="top-navbar">
       <div className="top-navbar-left">
@@ -10,31 +8,37 @@ function TopNavbar({ selectedTerm, selectedVersion, onToggleSidebar }) {
           onClick={onToggleSidebar}
           aria-label="Toggle sidebar"
         >
-          Menu
+          ☰
         </button>
-        <img src={logo} alt="TIMETRIX Logo" className="top-navbar-logo" />
+
+        <div>
+          <h2 className="top-navbar-title">TIMETRIX</h2>
+          <p className="top-navbar-subtitle">Smart Timetable Management</p>
+        </div>
       </div>
 
       <div className="top-navbar-controls">
-        <select className="top-select" defaultValue={selectedTerm}>
-          <option>Spring 2024</option>
+        <select className="top-select" defaultValue="Spring 2025">
           <option>Spring 2025</option>
+          <option>Spring 2026</option>
         </select>
 
-        <select className="top-select" defaultValue={selectedVersion}>
+        <select className="top-select" defaultValue="Version 1">
           <option>Version 1</option>
           <option>Version 2</option>
         </select>
 
-        <span className="top-icon" title="Theme">
-          {"\u263D"}
-        </span>
-        <span className="top-icon" title="Notifications">
-          {"\u23F0"}
-        </span>
-        <span className="top-icon" title="Profile">
-          {"\u263A"}
-        </span>
+        <button type="button" className="top-icon" title="Notifications">
+          🔔
+        </button>
+
+        <div className="top-user">
+          <div className="top-user-meta">
+            <div className="top-user-name">Admin User</div>
+            <div className="top-user-role">System Administrator</div>
+          </div>
+          <div className="top-user-avatar">A</div>
+        </div>
       </div>
     </header>
   );
