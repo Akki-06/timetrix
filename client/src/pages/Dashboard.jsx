@@ -33,18 +33,18 @@ function Dashboard() {
 
   return (
     <DashboardLayout>
-      <h1>Dashboard</h1>
-      <p style={{ color: "#6b7280", marginBottom: "24px" }}>
+      <h1 className="dashboard-title">Dashboard</h1>
+      <p className="dashboard-subtitle">
         Overview of your timetable management system
       </p>
 
       <StatsSection stats={stats} />
 
-      <div style={{ display: "flex", gap: "20px", marginTop: "24px" }}>
-        <div style={{ flex: 2 }}>
+      <div className="dashboard-bottom-grid">
+        <div>
           <ActivitySection activities={activities} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div>
           <TermStatusSection term={term} />
         </div>
       </div>

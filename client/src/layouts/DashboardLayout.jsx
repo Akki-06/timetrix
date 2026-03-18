@@ -12,8 +12,6 @@ function DashboardLayout({ children }) {
   return (
     <div className="dashboard-layout">
       <TopNavbar
-        selectedTerm="Spring 2024"
-        selectedVersion="Version 1"
         onToggleSidebar={handleToggleSidebar}
       />
 
