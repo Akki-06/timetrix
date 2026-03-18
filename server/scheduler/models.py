@@ -1,5 +1,5 @@
 from django.db import models
-from academics.models import AcademicTerm, CourseOffering
+from academics.models import AcademicTerm, CourseOffering, StudentGroup
 from faculty.models import Faculty
 from infrastructure.models import Room
 
@@ -16,7 +16,6 @@ class TimeSlot(models.Model):
         WED = "WED", "Wednesday"
         THU = "THU", "Thursday"
         FRI = "FRI", "Friday"
-        SAT = "SAT", "Saturday"
 
     day = models.CharField(max_length=3, choices=DayChoices.choices)
     slot_number = models.PositiveIntegerField()
@@ -93,6 +92,15 @@ class LectureAllocation(models.Model):
         on_delete=models.CASCADE
     )
 
+    student_group = models.ForeignKey(
+        StudentGroup,
+        on_delete=models.CASCADE,
+        related_name="lecture_allocations",
+        editable=False,
+        null=True,
+        blank=True,
+    )
+
     faculty = models.ForeignKey(
         Faculty,
         on_delete=models.CASCADE
@@ -128,7 +136,7 @@ class LectureAllocation(models.Model):
 
             # Student group cannot have two classes at same time
             models.UniqueConstraint(
-                fields=["timetable", "course_offering", "timeslot"],
+                fields=["timetable", "student_group", "timeslot"],
                 name="unique_group_per_slot_per_timetable"
             ),
         ]
@@ -142,3 +150,8 @@ class LectureAllocation(models.Model):
 
     def __str__(self):
         return f"{self.course_offering} - {self.timeslot}"
+
+    def save(self, *args, **kwargs):
+        if self.course_offering_id:
+            self.student_group = self.course_offering.student_group
+        super().save(*args, **kwargs)
