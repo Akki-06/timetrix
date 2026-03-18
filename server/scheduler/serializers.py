@@ -99,3 +99,4 @@ class LectureAllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = LectureAllocation
         fields = "__all__"
+        read_only_fields = ["student_group"]

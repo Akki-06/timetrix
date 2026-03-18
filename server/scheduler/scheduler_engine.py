@@ -49,7 +49,7 @@ ML integration:
 
 import logging
 import pickle
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -90,7 +90,7 @@ DAYS = ["MON", "TUE", "WED", "THU", "FRI"]
 # Day abbreviation → full name for ML scorer
 DAY_FULL = {
     "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
-    "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday"
+    "THU": "Thursday", "FRI": "Friday"
 }
 
 # Canonical slot numbers (1-6, no lunch)
@@ -125,10 +125,17 @@ class MLScorer:
         try:
             with open(RF_MODEL_PATH, "rb") as f:
                 self.rf = pickle.load(f)
-            with open(RF_META_PATH, "rb") as f:
-                meta = pickle.load(f)
-                self.scaler        = meta["scaler"]
-                self.max_hours_map = meta.get("max_hours_map", {})
+
+            if RF_META_PATH.exists():
+                with open(RF_META_PATH, "rb") as f:
+                    meta = pickle.load(f)
+                    self.scaler        = meta.get("scaler")
+                    self.max_hours_map = meta.get("max_hours_map", {})
+            else:
+                log.warning(
+                    "RF metadata file not found. Using RF without scaler metadata."
+                )
+
             with open(EMBED_PATH, "rb") as f:
                 self.embeddings = pickle.load(f)
             log.info("ML scorer: loaded RF + embeddings.")
@@ -141,12 +148,19 @@ class MLScorer:
 
     @property
     def available(self):
-        return self.rf is not None and self.scaler is not None
+        return self.rf is not None
 
     def score(self, faculty_name: str, room_number: str,
               day: str, slot: int, is_lab: bool,
               contact_hours: int, semester: int,
-              current_load: int) -> float:
+              current_load: int,
+              course_name: Optional[str] = None,
+              room_type: Optional[str] = None,
+              room_capacity: Optional[int] = None,
+              requires_consecutive_slots: bool = False,
+              is_elective: bool = False,
+              section_name: Optional[str] = None,
+              program_code: Optional[str] = None) -> float:
         """
         Score a candidate (faculty, room, day, slot).
         Returns float in [0.0, 1.0]. Higher = better assignment.
@@ -154,13 +168,23 @@ class MLScorer:
         if self.available:
             return self._ml_score(
                 faculty_name, room_number, day, slot,
-                is_lab, contact_hours, semester, current_load
+                is_lab, contact_hours, semester, current_load,
+                course_name=course_name,
+                room_type=room_type,
+                room_capacity=room_capacity,
+                requires_consecutive_slots=requires_consecutive_slots,
+                is_elective=is_elective,
+                section_name=section_name,
+                program_code=program_code,
             )
         return self._heuristic_score(day, slot, is_lab, current_load,
                                       self.max_hours_map.get(faculty_name, 18))
 
     def _ml_score(self, faculty_name, room_number, day, slot,
-                  is_lab, contact_hours, semester, current_load) -> float:
+                  is_lab, contact_hours, semester, current_load,
+                  course_name=None, room_type=None, room_capacity=None,
+                  requires_consecutive_slots=False, is_elective=False,
+                  section_name=None, program_code=None) -> float:
         import numpy as np
         EMBED_DIM = 32
         ZERO      = np.zeros(EMBED_DIM, dtype=np.float32)
@@ -170,11 +194,12 @@ class MLScorer:
         ts_emb  = self.embeddings.get(
             f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO
         )
+        crs_emb = self.embeddings.get(f"CRS::{(course_name or '').strip()}", ZERO)
         max_h = self.max_hours_map.get(faculty_name, 18)
         load_remaining = max(0, (max_h - current_load)) / 18.0
 
-        import numpy as np
-        manual = np.array([
+        # Legacy 102-dim feature schema.
+        manual_102 = np.array([
             float(is_lab),
             0.0,
             contact_hours / 8.0,
@@ -183,9 +208,60 @@ class MLScorer:
             1.0 if slot <= 3 else 0.0,
         ], dtype=np.float32)
 
-        feat        = np.concatenate([fac_emb, ts_emb, rm_emb, manual]).reshape(1, -1)
-        feat_scaled = self.scaler.transform(feat)
-        return float(self.rf.predict_proba(feat_scaled)[0][1])
+        # Current 150-dim schema used by random_forest_model.py.
+        day_idx_map = {"MON": 0.0, "TUE": 1.0, "WED": 2.0, "THU": 3.0, "FRI": 4.0}
+        section_norm = 0.0
+        if section_name:
+            sec = str(section_name).strip().upper()
+            if sec and sec[0].isalpha():
+                section_norm = min((ord(sec[0]) - ord("A")) / 5.0, 1.0)
+
+        room_is_lab = 1.0 if str(room_type or "").upper() == "LAB" else 0.0
+        room_cap_norm = min(float(room_capacity or 60) / 120.0, 1.0)
+        is_morning = 1.0 if slot <= 3 else 0.0
+        is_post_lunch = 1.0 if slot >= 5 else 0.0
+        is_pre_lunch = 1.0 if slot == 4 else 0.0
+        sem_norm = float(semester) / 8.0
+        contact_norm = float(contact_hours) / 8.0
+        day_norm = day_idx_map.get(day, 0.0) / 4.0
+        slot_norm = float(slot) / 6.0
+        room_type_match = 1.0 if (float(is_lab) == room_is_lab) else 0.0
+        faculty_teaches_type = 1.0
+
+        manual_150 = np.array([
+            0.2,                    # desig_enc_norm fallback
+            min(max_h / 18.0, 1.0), # max_hours_norm fallback
+            1.0 if is_lab else 0.0, # teaches_lab fallback
+            0.0 if is_lab else 1.0, # teaches_theory fallback
+            1.0,                    # is_fac_known
+            room_is_lab,
+            room_cap_norm,
+            is_morning,
+            is_post_lunch,
+            is_pre_lunch,
+            float(is_lab),
+            1.0 if requires_consecutive_slots else 0.0,
+            1.0 if is_elective else 0.0,
+            sem_norm,
+            section_norm,
+            0.0,                    # program_norm fallback
+            contact_norm,
+            day_norm,
+            slot_norm,
+            room_type_match,
+            float(is_lab and requires_consecutive_slots),
+            faculty_teaches_type,
+        ], dtype=np.float32)
+
+        expected = getattr(self.rf, "n_features_in_", 102)
+        if expected == 150:
+            feat = np.concatenate([fac_emb, crs_emb, rm_emb, ts_emb, manual_150]).reshape(1, -1)
+        else:
+            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual_102]).reshape(1, -1)
+
+        if self.scaler is not None:
+            feat = self.scaler.transform(feat)
+        return float(self.rf.predict_proba(feat)[0][1])
 
     def _heuristic_score(self, day, slot, is_lab,
                           current_load, max_load) -> float:
@@ -340,6 +416,16 @@ class SchedulerEngine:
         # Output buffers
         self.pending_saves: list[dict] = []   # allocations to write to DB
         self.unscheduled  : list[str]  = []   # human-readable unresolved items
+        self.rejection_reasons: dict[str, Counter] = defaultdict(Counter)
+
+    def _offering_label(self, offering: CourseOffering, prefix: str) -> str:
+        return f"{prefix} {offering.course.code} ({offering.student_group.name})"
+
+    def _top_reasons(self, label: str, limit: int = 3) -> list[dict]:
+        return [
+            {"reason": reason, "count": count}
+            for reason, count in self.rejection_reasons.get(label, Counter()).most_common(limit)
+        ]
 
     # ── PHASE 1: DATA LOADING ─────────────────────────────────────────────────
 
@@ -451,6 +537,8 @@ class SchedulerEngine:
     def _score_candidate(self, fac: Faculty, room: Room,
                           day: str, slot: int,
                           is_lab: bool, offering: CourseOffering) -> float:
+        course = offering.course
+        group = offering.student_group
         return self.ml.score(
             faculty_name  = fac.name,
             room_number   = str(room.room_number),
@@ -460,6 +548,13 @@ class SchedulerEngine:
             contact_hours = offering.weekly_load or offering.course.min_weekly_lectures,
             semester      = self.term.semester,
             current_load  = self.tracker.faculty_week_load(fac.id),
+            course_name   = course.name,
+            room_type     = room.room_type,
+            room_capacity = room.capacity,
+            requires_consecutive_slots = bool(course.requires_consecutive_slots),
+            is_elective   = (course.course_type == "ELECTIVE"),
+            section_name  = group.name,
+            program_code  = getattr(self.term.program, "code", None),
         )
 
     # ── PHASE 2: LAB SCHEDULING ───────────────────────────────────────────────
@@ -481,6 +576,7 @@ class SchedulerEngine:
             course   = offering.course
             group    = offering.student_group
             group_id = group.id
+            offering_label = self._offering_label(offering, "LAB")
 
             # Detect G1/G2 split from StudentGroup description or name
             is_split  = (
@@ -491,6 +587,8 @@ class SchedulerEngine:
             )
 
             eligible = self._eligible_faculty(offering)
+            if not eligible:
+                self.rejection_reasons[offering_label]["no_eligible_faculty"] += 1
             scheduled = False
 
             # ── Standard lab (no split) ───────────────────────────────────────
@@ -542,6 +640,7 @@ class SchedulerEngine:
                             for slot in (s1, s2):
                                 self.pending_saves.append({
                                     "offering_id": offering.id,
+                                    "student_group_id": group.id,
                                     "faculty_id" : fac.id,
                                     "room_id"    : room.id,
                                     "timeslot_id": self.slot_map[(day, slot)].id,
@@ -608,6 +707,7 @@ class SchedulerEngine:
                                 )
                                 self.pending_saves.append({
                                     "offering_id": offering.id,
+                                    "student_group_id": group.id,
                                     "faculty_id" : fac.id,
                                     "room_id"    : room_g1.id,
                                     "timeslot_id": self.slot_map[(day, slot)].id,
@@ -617,6 +717,7 @@ class SchedulerEngine:
                                 self.tracker._room_busy[(day, slot)].add(room_g2.id)
                                 self.pending_saves.append({
                                     "offering_id": offering.id,
+                                    "student_group_id": group.id,
                                     "faculty_id" : fac.id,
                                     "room_id"    : room_g2.id,
                                     "timeslot_id": self.slot_map[(day, slot)].id,
@@ -662,6 +763,7 @@ class SchedulerEngine:
             group    = offering.student_group
             group_id = group.id
             needed   = course.min_weekly_lectures
+            offering_label = self._offering_label(offering, "THEORY")
             scheduled_count = 0
 
             # Track which days already have a session of this course
@@ -683,6 +785,7 @@ class SchedulerEngine:
                 for day in meta["avail_days"]:
                     # Don't schedule same course twice on same day
                     if day in days_used:
+                        self.rejection_reasons[offering_label]["same_course_day_distribution_block"] += 1
                         continue
                     avail = meta["avail_slots"].get(day, set())
                     for slot in sorted(avail):
@@ -700,6 +803,7 @@ class SchedulerEngine:
                         best_score = -1.0
                         for room in self.theory_rooms:
                             if room.capacity < group.strength:
+                                self.rejection_reasons[offering_label]["room_capacity_too_small"] += 1
                                 continue
                             s = self._score_candidate(
                                 fac, room, day, slot, False, offering
@@ -708,8 +812,12 @@ class SchedulerEngine:
                                 best_score = s
                                 best_room  = room
                         if best_room is None:
+                            self.rejection_reasons[offering_label]["no_room_fit_for_slot"] += 1
                             continue
                         candidates.append((best_score, day, slot, fac, best_room))
+
+                if not candidates:
+                    self.rejection_reasons[offering_label]["no_candidates_generated_for_faculty"] += 1
 
                 # Best score first
                 candidates.sort(reverse=True)
@@ -738,6 +846,7 @@ class SchedulerEngine:
                         meta_c["max_consec"],
                     )
                     if not ok:
+                        self.rejection_reasons[offering_label][reason] += 1
                         continue   # backtrack — try next candidate
 
                     # Assign
@@ -745,6 +854,7 @@ class SchedulerEngine:
                     ts = self.slot_map[(day, slot)]
                     self.pending_saves.append({
                         "offering_id": offering.id,
+                        "student_group_id": group.id,
                         "faculty_id" : fac_c.id,
                         "room_id"    : room.id,
                         "timeslot_id": ts.id,
@@ -761,6 +871,8 @@ class SchedulerEngine:
                     )
 
             if scheduled_count < needed:
+                if not self.rejection_reasons[offering_label]:
+                    self.rejection_reasons[offering_label]["insufficient_feasible_candidates"] += 1
                 msg = (
                     f"THEORY {course.code} ({group.name}) — "
                     f"only {scheduled_count}/{needed} sessions scheduled"
@@ -784,6 +896,7 @@ class SchedulerEngine:
             LectureAllocation.objects.create(
                 timetable_id           = self.timetable_id,
                 course_offering_id     = alloc["offering_id"],
+                student_group_id       = alloc["student_group_id"],
                 faculty_id             = alloc["faculty_id"],
                 room_id                = alloc["room_id"],
                 timeslot_id            = alloc["timeslot_id"],
@@ -874,6 +987,10 @@ class SchedulerEngine:
             "allocations" : saved,
             "avg_score"   : self.timetable.total_constraint_score,
             "unscheduled" : self.unscheduled,
+            "unscheduled_reasons": {
+                msg.split(" — ")[0]: self._top_reasons(msg.split(" — ")[0])
+                for msg in self.unscheduled
+            },
             "ml_used"     : self.ml.available,
         }
 

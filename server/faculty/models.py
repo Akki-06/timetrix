@@ -53,7 +53,6 @@ class TeacherAvailability(models.Model):
         WED = "WED", "Wednesday"
         THU = "THU", "Thursday"
         FRI = "FRI", "Friday"
-        SAT = "SAT", "Saturday"
 
     faculty = models.ForeignKey(
         Faculty,
