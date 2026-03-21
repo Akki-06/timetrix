@@ -1,10 +1,11 @@
 # ==============================
-# Python / Django
+# Python
 # ==============================
 
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
 
 # Django
 *.log
@@ -12,14 +13,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Media & Static (if generated)
+# Media & Static (generated)
 media/
 staticfiles/
-
-# Migrations (optional — keep if production)
-# */migrations/*
-# !*/migrations/__init__.py
-
 
 # ==============================
 # Virtual Environment
@@ -30,7 +26,6 @@ env/
 ENV/
 .venv/
 
-
 # ==============================
 # Environment Variables
 # ==============================
@@ -39,13 +34,16 @@ ENV/
 .env.*
 *.env
 
-
 # ==============================
 # VS Code
+# Only ignore user-specific files;
+# keep settings.json so Python interpreter
+# path is shared with teammates.
 # ==============================
 
-.vscode/
-
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # ==============================
 # OS Files
@@ -53,10 +51,10 @@ ENV/
 
 .DS_Store
 Thumbs.db
-
+desktop.ini
 
 # ==============================
-# React / Node (Future Client)
+# React / Node
 # ==============================
 
 node_modules/
@@ -68,12 +66,9 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
-
-# React environment
-client/.env
-client/node_modules/
+client/dist/
 client/build/
-
+client/node_modules/
 
 # ==============================
 # Coverage / Testing
@@ -84,6 +79,19 @@ coverage/
 htmlcov/
 .pytest_cache/
 
+# ==============================
+# ML Pipeline — trained artifacts
+# These are large binary files; regenerate
+# by running the training scripts.
+# ==============================
+
+server/ml_pipeline/trained/
+*.pkl
+*.pt
+*.gpickle
+
+# Visualization outputs (generated)
+viz_*.png
 
 # ==============================
 # Misc
@@ -91,10 +99,4 @@ htmlcov/
 
 *.swp
 *.swo
-
-# ==============================
-# ML Pipeline
-# ==============================
-server/ml_pipeline/trained/
-*.gpickle
-*.pkl
+*.bak

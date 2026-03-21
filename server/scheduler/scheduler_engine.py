@@ -11,8 +11,8 @@ Admin flow:
   4. This engine runs, writes LectureAllocation rows, returns result to API
 
 Scheduling order (critical — do not change without understanding why):
-  Phase 1 — Load all data from DB into memory (one DB hit, not N)
-  Phase 2 — Schedule LABS first
+  Phase 1 — Load all data from DB into memoone DB hit, not N)
+  Phase 2 — Schedule LABS firstry (
              Labs need 2 consecutive slots + a lab room — scarcest resource
              G1/G2 splits: both halves assigned simultaneously, same timeslot
              pair, different lab rooms
@@ -119,6 +119,8 @@ class MLScorer:
         self.scaler        = None
         self.embeddings    = {}
         self.max_hours_map = {}
+        self.stats         = {}     # training-time pattern statistics
+        self.threshold     = 0.5    # optimal classification threshold
         self._try_load()
 
     def _try_load(self):
@@ -129,8 +131,14 @@ class MLScorer:
             if RF_META_PATH.exists():
                 with open(RF_META_PATH, "rb") as f:
                     meta = pickle.load(f)
-                    self.scaler        = meta.get("scaler")
-                    self.max_hours_map = meta.get("max_hours_map", {})
+                    self.scaler            = meta.get("scaler")
+                    self.max_hours_map     = meta.get("max_hours_map", {})
+                    # stats dict carries slot/day popularity and faculty-course
+                    # frequencies from training data — used for features 2-5,13-14
+                    self.stats             = meta.get("stats", {})
+                    # Optimal probability threshold from training (F1-maximising).
+                    # Candidates below this score are tried last, not discarded.
+                    self.threshold         = meta.get("optimal_threshold", 0.5)
             else:
                 log.warning(
                     "RF metadata file not found. Using RF without scaler metadata."
@@ -138,7 +146,8 @@ class MLScorer:
 
             with open(EMBED_PATH, "rb") as f:
                 self.embeddings = pickle.load(f)
-            log.info("ML scorer: loaded RF + embeddings.")
+            log.info(f"ML scorer: loaded RF + embeddings "
+                     f"(threshold={self.threshold:.3f}).")
         except FileNotFoundError:
             log.warning(
                 "ML models not found in ml_pipeline/trained/. "
@@ -160,10 +169,16 @@ class MLScorer:
               requires_consecutive_slots: bool = False,
               is_elective: bool = False,
               section_name: Optional[str] = None,
-              program_code: Optional[str] = None) -> float:
+              program_code: Optional[str] = None,
+              current_load_today: int = 0,
+              max_daily: int = 4) -> float:
         """
         Score a candidate (faculty, room, day, slot).
         Returns float in [0.0, 1.0]. Higher = better assignment.
+
+        current_load_today : lectures already assigned to this faculty today
+                             (dynamic state — improves features 13 & 15)
+        max_daily          : faculty's per-day lecture cap
         """
         if self.available:
             return self._ml_score(
@@ -176,6 +191,8 @@ class MLScorer:
                 is_elective=is_elective,
                 section_name=section_name,
                 program_code=program_code,
+                current_load_today=current_load_today,
+                max_daily=max_daily,
             )
         return self._heuristic_score(day, slot, is_lab, current_load,
                                       self.max_hours_map.get(faculty_name, 18))
@@ -184,81 +201,124 @@ class MLScorer:
                   is_lab, contact_hours, semester, current_load,
                   course_name=None, room_type=None, room_capacity=None,
                   requires_consecutive_slots=False, is_elective=False,
-                  section_name=None, program_code=None) -> float:
+                  section_name=None, program_code=None,
+                  current_load_today: int = 0,
+                  max_daily: int = 4) -> float:
         import numpy as np
         EMBED_DIM = 32
         ZERO      = np.zeros(EMBED_DIM, dtype=np.float32)
 
+        # ── Embeddings ────────────────────────────────────────────────────────
         fac_emb = self.embeddings.get(f"FAC::{faculty_name}", ZERO)
         rm_emb  = self.embeddings.get(f"RRM::{room_number}",  ZERO)
         ts_emb  = self.embeddings.get(
             f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO
         )
         crs_emb = self.embeddings.get(f"CRS::{(course_name or '').strip()}", ZERO)
-        max_h = self.max_hours_map.get(faculty_name, 18)
-        load_remaining = max(0, (max_h - current_load)) / 18.0
 
-        # Legacy 102-dim feature schema.
-        manual_102 = np.array([
-            float(is_lab),
-            0.0,
-            contact_hours / 8.0,
-            semester / 8.0,
-            load_remaining,
-            1.0 if slot <= 3 else 0.0,
-        ], dtype=np.float32)
+        # ── Shared scalars ────────────────────────────────────────────────────
+        max_h          = self.max_hours_map.get(faculty_name, 18)
+        load_remaining = max(0.0, (max_h - current_load) / max(float(max_h), 1.0))
+        is_morning     = 1.0 if slot <= 3 else 0.0
+        is_post_lunch  = 1.0 if slot >= 5 else 0.0
+        sem_norm       = float(semester) / 8.0
+        contact_norm   = float(contact_hours) / 8.0
 
-        # Current 150-dim schema used by random_forest_model.py.
-        day_idx_map = {"MON": 0.0, "TUE": 1.0, "WED": 2.0, "THU": 3.0, "FRI": 4.0}
-        section_norm = 0.0
-        if section_name:
-            sec = str(section_name).strip().upper()
-            if sec and sec[0].isalpha():
-                section_norm = min((ord(sec[0]) - ord("A")) / 5.0, 1.0)
+        # ── Stats-based features (requires self.stats loaded from metadata) ──
+        day_full    = DAY_FULL.get(day, day)       # "MON" → "Monday"
+        fac_slots   = self.stats.get("fac_actual_slots",  {}).get(faculty_name, set())
+        is_known_slot = 1.0 if (day_full, slot) in fac_slots else 0.0
 
-        room_is_lab = 1.0 if str(room_type or "").upper() == "LAB" else 0.0
-        room_cap_norm = min(float(room_capacity or 60) / 120.0, 1.0)
-        is_morning = 1.0 if slot <= 3 else 0.0
-        is_post_lunch = 1.0 if slot >= 5 else 0.0
-        is_pre_lunch = 1.0 if slot == 4 else 0.0
-        sem_norm = float(semester) / 8.0
-        contact_norm = float(contact_hours) / 8.0
-        day_norm = day_idx_map.get(day, 0.0) / 4.0
-        slot_norm = float(slot) / 6.0
-        room_type_match = 1.0 if (float(is_lab) == room_is_lab) else 0.0
-        faculty_teaches_type = 1.0
+        fac_course_freq = self.stats.get("fac_course_freq", {})
+        freq      = fac_course_freq.get((faculty_name, (course_name or "").strip()), 0)
+        fac_max   = max(
+            (v for (f, _), v in fac_course_freq.items() if f == faculty_name),
+            default=1
+        )
+        fac_course_affinity = freq / max(fac_max, 1)
 
-        manual_150 = np.array([
-            0.2,                    # desig_enc_norm fallback
-            min(max_h / 18.0, 1.0), # max_hours_norm fallback
-            1.0 if is_lab else 0.0, # teaches_lab fallback
-            0.0 if is_lab else 1.0, # teaches_theory fallback
-            1.0,                    # is_fac_known
-            room_is_lab,
-            room_cap_norm,
-            is_morning,
-            is_post_lunch,
-            is_pre_lunch,
-            float(is_lab),
-            1.0 if requires_consecutive_slots else 0.0,
-            1.0 if is_elective else 0.0,
-            sem_norm,
-            section_norm,
-            0.0,                    # program_norm fallback
-            contact_norm,
-            day_norm,
-            slot_norm,
-            room_type_match,
-            float(is_lab and requires_consecutive_slots),
-            faculty_teaches_type,
-        ], dtype=np.float32)
+        slot_pop = self.stats.get("slot_popularity", {}).get(slot, 0.5)
+        day_pop  = self.stats.get("day_popularity",  {}).get(day_full, 0.5)
 
+        breadth_raw = sum(1 for (f, _) in fac_course_freq if f == faculty_name)
+        breadth_norm = min(breadth_raw / 10.0, 1.0)
+
+        # ── Select feature schema by n_features_in_ ───────────────────────────
+        # Each time the RF is retrained with a new feature dimension, a new
+        # branch is added here so old saved models keep working.
         expected = getattr(self.rf, "n_features_in_", 102)
-        if expected == 150:
-            feat = np.concatenate([fac_emb, crs_emb, rm_emb, ts_emb, manual_150]).reshape(1, -1)
-        else:
-            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual_102]).reshape(1, -1)
 
+        if expected == 111:
+            # ── v3 schema: 111-dim  [fac(32)+ts(32)+rm(32)+manual(15)] ──────
+            # Features 13-15 are the new dynamic state features that the
+            # training pipeline now generates.
+            fac_today_ratio = float(current_load_today) / max(float(max_daily), 1.0)
+
+            adj_left  = self.stats.get("slot_popularity", {}).get(slot - 1, 0.5)
+            adj_right = self.stats.get("slot_popularity", {}).get(slot + 1, 0.5)
+            slot_adjacent_density = (adj_left + adj_right) / 2.0
+
+            near_weekly_cap = 1.0 if current_load >= max_h * 0.85 else 0.0
+
+            manual = np.array([
+                load_remaining, is_known_slot, fac_course_affinity,
+                slot_pop, day_pop,
+                float(is_lab), float(requires_consecutive_slots),
+                is_morning, is_post_lunch,
+                sem_norm, contact_norm, breadth_norm,
+                fac_today_ratio,        # 13 (NEW)
+                slot_adjacent_density,  # 14 (NEW)
+                near_weekly_cap,        # 15 (NEW)
+            ], dtype=np.float32)
+            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual])
+
+        elif expected == 108:
+            # ── v2 schema: 108-dim  [fac(32)+ts(32)+rm(32)+manual(12)] ──────
+            # Exact match to what random_forest_model.py v2 was trained with.
+            manual = np.array([
+                load_remaining, is_known_slot, fac_course_affinity,
+                slot_pop, day_pop,
+                float(is_lab), float(requires_consecutive_slots),
+                is_morning, is_post_lunch,
+                sem_norm, contact_norm, breadth_norm,
+            ], dtype=np.float32)
+            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual])
+
+        elif expected == 150:
+            # ── legacy 150-dim schema (older training run) ────────────────────
+            day_idx_map   = {"MON": 0.0, "TUE": 1.0, "WED": 2.0,
+                             "THU": 3.0, "FRI": 4.0}
+            section_norm  = 0.0
+            if section_name:
+                sec = str(section_name).strip().upper()
+                if sec and sec[0].isalpha():
+                    section_norm = min((ord(sec[0]) - ord("A")) / 5.0, 1.0)
+            room_is_lab     = 1.0 if str(room_type or "").upper() == "LAB" else 0.0
+            room_cap_norm   = min(float(room_capacity or 60) / 120.0, 1.0)
+            is_pre_lunch    = 1.0 if slot == 4 else 0.0
+            room_type_match = 1.0 if float(is_lab) == room_is_lab else 0.0
+            manual_150 = np.array([
+                0.2, min(max_h / 18.0, 1.0),
+                1.0 if is_lab else 0.0, 0.0 if is_lab else 1.0, 1.0,
+                room_is_lab, room_cap_norm,
+                is_morning, is_post_lunch, is_pre_lunch, float(is_lab),
+                1.0 if requires_consecutive_slots else 0.0,
+                1.0 if is_elective else 0.0,
+                sem_norm, section_norm, 0.0, contact_norm,
+                day_idx_map.get(day, 0.0) / 4.0, float(slot) / 6.0,
+                room_type_match, float(is_lab and requires_consecutive_slots), 1.0,
+            ], dtype=np.float32)
+            feat = np.concatenate([fac_emb, crs_emb, rm_emb, ts_emb, manual_150])
+
+        else:
+            # ── legacy 102-dim fallback ───────────────────────────────────────
+            manual_102 = np.array([
+                float(is_lab), 0.0,
+                contact_norm, sem_norm, load_remaining, is_morning,
+            ], dtype=np.float32)
+            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual_102])
+
+        feat = feat.reshape(1, -1)
         if self.scaler is not None:
             feat = self.scaler.transform(feat)
         return float(self.rf.predict_proba(feat)[0][1])
@@ -374,6 +434,10 @@ class ConstraintTracker:
     def faculty_week_load(self, fac_id) -> int:
         return self._fac_week[fac_id]
 
+    def faculty_day_load(self, fac_id, day) -> int:
+        """Return how many sessions fac_id already has on this day."""
+        return self._fac_day[fac_id][day]
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SCHEDULER ENGINE
@@ -414,9 +478,10 @@ class SchedulerEngine:
         self.offerings    = []   # CourseOffering objs for this term
 
         # Output buffers
-        self.pending_saves: list[dict] = []   # allocations to write to DB
-        self.unscheduled  : list[str]  = []   # human-readable unresolved items
-        self.rejection_reasons: dict[str, Counter] = defaultdict(Counter)
+        self.pending_saves        : list[dict]          = []
+        self.unscheduled          : list[str]           = []
+        self.unscheduled_offerings: list[CourseOffering] = []  # for repair pass
+        self.rejection_reasons    : dict[str, Counter]  = defaultdict(Counter)
 
     def _offering_label(self, offering: CourseOffering, prefix: str) -> str:
         return f"{prefix} {offering.course.code} ({offering.student_group.name})"
@@ -499,6 +564,10 @@ class SchedulerEngine:
         )
         log.info(f"  Offerings loaded: {len(self.offerings)}")
 
+        # Reverse map used by the repair pass to recover (day, slot_number)
+        # from a timeslot DB id without making extra queries.
+        self.slot_id_to_key = {ts.id: key for key, ts in self.slot_map.items()}
+
     # ── ELIGIBLE FACULTY HELPER ───────────────────────────────────────────────
 
     def _eligible_faculty(self, offering: CourseOffering) -> list[Faculty]:
@@ -537,24 +606,30 @@ class SchedulerEngine:
     def _score_candidate(self, fac: Faculty, room: Room,
                           day: str, slot: int,
                           is_lab: bool, offering: CourseOffering) -> float:
-        course = offering.course
-        group = offering.student_group
+        course    = offering.course
+        group     = offering.student_group
+        fac_meta  = self.faculty_meta.get(fac.id, {})
+        # Live dynamic state — how many sessions this faculty already has today
+        today_load = self.tracker.faculty_day_load(fac.id, day)
+        max_daily  = fac_meta.get("max_daily", 4)
         return self.ml.score(
-            faculty_name  = fac.name,
-            room_number   = str(room.room_number),
-            day           = day,
-            slot          = slot,
-            is_lab        = is_lab,
-            contact_hours = offering.weekly_load or offering.course.min_weekly_lectures,
-            semester      = self.term.semester,
-            current_load  = self.tracker.faculty_week_load(fac.id),
-            course_name   = course.name,
-            room_type     = room.room_type,
-            room_capacity = room.capacity,
+            faculty_name               = fac.name,
+            room_number                = str(room.room_number),
+            day                        = day,
+            slot                       = slot,
+            is_lab                     = is_lab,
+            contact_hours              = offering.weekly_load or course.min_weekly_lectures,
+            semester                   = self.term.semester,
+            current_load               = self.tracker.faculty_week_load(fac.id),
+            course_name                = course.name,
+            room_type                  = room.room_type,
+            room_capacity              = room.capacity,
             requires_consecutive_slots = bool(course.requires_consecutive_slots),
-            is_elective   = (course.course_type == "ELECTIVE"),
-            section_name  = group.name,
-            program_code  = getattr(self.term.program, "code", None),
+            is_elective                = (course.course_type == "ELECTIVE"),
+            section_name               = group.name,
+            program_code               = getattr(self.term.program, "code", None),
+            current_load_today         = today_load,
+            max_daily                  = max_daily,
         )
 
     # ── PHASE 2: LAB SCHEDULING ───────────────────────────────────────────────
@@ -877,8 +952,145 @@ class SchedulerEngine:
                     f"THEORY {course.code} ({group.name}) — "
                     f"only {scheduled_count}/{needed} sessions scheduled"
                 )
+                # Track the offering object for the repair pass
+                self.unscheduled_offerings.append(offering)
                 self.unscheduled.append(msg)
                 log.warning(f"  UNSCHEDULED: {msg}")
+
+    # ── PHASE 3b: REPAIR PASS ─────────────────────────────────────────────────
+
+    def _repair_unscheduled(self) -> list:
+        """
+        Second-chance pass for theory offerings that were left unscheduled.
+
+        The greedy pass in _schedule_theory enforces two soft rules that can
+        cause unnecessary failures:
+          a) same course not on same day twice (day-distribution)
+          b) only try faculty in their declared avail_days
+
+        The repair pass relaxes BOTH to try harder, while still enforcing
+        every hard constraint (faculty/room/group busy, daily/weekly caps,
+        consecutive limit).
+
+        Returns the list of offerings that were successfully repaired so the
+        caller can remove them from self.unscheduled.
+        """
+        if not self.unscheduled_offerings:
+            return []
+
+        log.info(
+            f"REPAIR PASS: trying to fix "
+            f"{len(self.unscheduled_offerings)} unscheduled offering(s)"
+        )
+
+        fixed = []
+
+        for offering in self.unscheduled_offerings:
+            course   = offering.course
+            group    = offering.student_group
+            group_id = group.id
+            needed   = course.min_weekly_lectures
+
+            # How many sessions of this course are already scheduled
+            # (the greedy pass may have placed some but not all)
+            already = sum(
+                1 for a in self.pending_saves
+                if a["offering_id"] == offering.id
+            )
+            still_need = needed - already
+            if still_need <= 0:
+                fixed.append(offering)
+                continue
+
+            eligible = self._eligible_faculty(offering)
+            scheduled_now = 0
+
+            for fac in eligible:
+                if scheduled_now >= still_need:
+                    break
+                meta = self.faculty_meta.get(fac.id)
+                if not meta:
+                    continue
+
+                # Relaxation: try ALL five days, not just avail_days.
+                # A faculty may have no availability rows (= open all week) or
+                # a restrictive set that the greedy pass couldn't satisfy.
+                candidates = []
+                for day in DAYS:
+                    avail = meta["avail_slots"].get(day, set(TEACHING_SLOTS))
+                    for slot in sorted(avail):
+                        if slot not in TEACHING_SLOTS:
+                            continue
+                        if (day, slot) not in self.slot_map:
+                            continue
+                        best_room  = None
+                        best_score = -1.0
+                        for room in self.theory_rooms:
+                            if room.capacity < group.strength:
+                                continue
+                            s = self._score_candidate(
+                                fac, room, day, slot, False, offering
+                            )
+                            if s > best_score:
+                                best_score = s
+                                best_room  = room
+                        if best_room:
+                            candidates.append((best_score, day, slot, fac, best_room))
+
+                # Best score first — same as greedy pass
+                candidates.sort(reverse=True)
+
+                for score, day, slot, fac_c, room in candidates:
+                    if scheduled_now >= still_need:
+                        break
+                    meta_c = self.faculty_meta.get(fac_c.id)
+                    if not meta_c:
+                        continue
+
+                    ok, reason = self.tracker.check(
+                        fac_c.id, room.id, group_id, day, slot,
+                        meta_c["max_daily"],
+                        meta_c["max_weekly"],
+                        meta_c["max_consec"],
+                    )
+                    if not ok:
+                        continue
+
+                    # Assign
+                    self.tracker.assign(fac_c.id, room.id, group_id, day, slot)
+                    ts = self.slot_map[(day, slot)]
+                    self.pending_saves.append({
+                        "offering_id"     : offering.id,
+                        "student_group_id": group.id,
+                        "faculty_id"      : fac_c.id,
+                        "room_id"         : room.id,
+                        "timeslot_id"     : ts.id,
+                        "score"           : score,
+                    })
+                    scheduled_now += 1
+                    log.info(
+                        f"  REPAIR ✓ {course.code} | {fac_c.name} | "
+                        f"{day} S{slot} | score={score:.3f}"
+                    )
+
+            if scheduled_now >= still_need:
+                fixed.append(offering)
+                log.info(
+                    f"  REPAIR: {course.code} ({group.name}) fully resolved."
+                )
+            elif scheduled_now > 0:
+                # Partially resolved — reduce the unscheduled message
+                fixed.append(offering)   # remove the old message; will re-add partial
+                log.info(
+                    f"  REPAIR: {course.code} ({group.name}) "
+                    f"partially resolved (+{scheduled_now} sessions)."
+                )
+
+        log.info(
+            f"REPAIR PASS done: {len(fixed)}/{len(self.unscheduled_offerings)} "
+            "offerings improved."
+        )
+        return fixed
 
     # ── PHASE 4: DB WRITE ─────────────────────────────────────────────────────
 
@@ -962,6 +1174,26 @@ class SchedulerEngine:
         # Phase 3 — theory
         if theory_offerings:
             self._schedule_theory(theory_offerings)
+
+        # Phase 3b — repair pass
+        # Attempt to recover offerings the greedy pass couldn't schedule by
+        # relaxing the day-distribution soft constraint and trying all days.
+        if self.unscheduled_offerings:
+            fixed = self._repair_unscheduled()
+            if fixed:
+                fixed_ids = {id(o) for o in fixed}
+                # Rebuild unscheduled list: remove entries for repaired offerings
+                self.unscheduled = [
+                    msg for msg in self.unscheduled
+                    if not any(
+                        msg.startswith(f"THEORY {o.course.code} ({o.student_group.name})")
+                        for o in fixed
+                    )
+                ]
+                self.unscheduled_offerings = [
+                    o for o in self.unscheduled_offerings
+                    if id(o) not in fixed_ids
+                ]
 
         # Phase 4 — save
         try:
