@@ -39,13 +39,13 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F 
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau 
 
 # PyTorch Geometric
 from torch_geometric.nn import SAGEConv
-from torch_geometric.utils import negative_sampling
+from torch_geometric.utils import negative_sampling, dropout_edge
 from torch_geometric.data import HeteroData
 import torch_geometric.transforms as T
 
@@ -85,12 +85,13 @@ NEG_RATIO    = 2     # negative samples per positive edge
 SEED         = 42
 
 # Node type → input feature dimension (must match graph_builder.py exactly)
+# timeslot upgraded from 6 → 8 to accommodate sinusoidal cyclic encoding
 NODE_FEAT_DIMS = {
     "faculty"  : 8,
     "course"   : 7,
     "section"  : 5,
     "room"     : 6,
-    "timeslot" : 6,
+    "timeslot" : 8,
 }
 
 # Edge types used for link prediction training
@@ -216,6 +217,10 @@ class TimetrixGNN(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.bn1     = nn.BatchNorm1d(hidden_dim)
+        # Second BatchNorm normalises the final 32-dim embeddings so their
+        # scale stays consistent regardless of graph size — important for
+        # downstream use by the Random Forest scorer.
+        self.bn2     = nn.BatchNorm1d(embed_dim)
 
     def forward(self, x, edge_index, node_type_ids, type_masks):
         """
@@ -244,6 +249,7 @@ class TimetrixGNN(nn.Module):
 
         # Layer 2 — message passing → final 32-dim embedding
         h = self.sage2(h, edge_index)
+        h = self.bn2(h)   # normalise final embeddings for RF stability
 
         return h   # (N, embed_dim) — no activation on final layer
 
@@ -308,10 +314,19 @@ def train(model, x, edge_index, node_type_ids, type_masks,
     for epoch in range(1, EPOCHS + 1):
         optimizer.zero_grad()
 
-        # Forward pass
-        embeddings = model(x, edge_index, node_type_ids, type_masks)
+        # DropEdge regularisation — randomly remove ~10% of edges each epoch.
+        # This prevents the GNN from memorising specific edge patterns and
+        # forces it to learn robust node representations even when some
+        # connections are missing. Only active during training (model.train()).
+        edge_index_drop, _ = dropout_edge(
+            edge_index, p=0.10, force_undirected=False, training=model.training
+        )
 
-        # Positive edges — use all existing edges
+        # Forward pass (uses dropped edges for message passing)
+        embeddings = model(x, edge_index_drop, node_type_ids, type_masks)
+
+        # Positive edges — use the FULL edge set for the link prediction loss
+        # (we want to predict all real edges, even ones that were dropped above)
         pos_edge_index = edge_index
 
         # Negative edges — randomly sample non-edges

@@ -147,15 +147,39 @@ def room_features(row):
 
 
 def timeslot_features(row):
-    """6-dim feature vector for a timeslot node."""
+    """8-dim feature vector for a timeslot node.
+
+    The first 4 dimensions use sinusoidal (cyclic) encoding for day and slot.
+    This allows the model to learn that Monday and Friday are both "boundary"
+    days and that slot 1 and slot 6 are both "edge" slots, which a simple
+    linear 0-1 normalisation cannot express.
+
+    Cyclic encoding maps index i to (sin(2π·i/period), cos(2π·i/period)).
+    Two entries at opposite ends of the linear scale end up close together
+    in the circular space when they share structural properties.
+    """
+    import math
+    day_idx  = float(row.get("day_index",  0))   # 0=Mon … 4=Fri
+    slot_idx = float(row.get("slot_index", 1))   # 1-6
+
+    # Cyclic encoding for day (period = 5 working days)
+    day_sin  = math.sin(2 * math.pi * day_idx  / 5.0)
+    day_cos  = math.cos(2 * math.pi * day_idx  / 5.0)
+
+    # Cyclic encoding for slot (period = 6 slots, zero-indexed so subtract 1)
+    slot_sin = math.sin(2 * math.pi * (slot_idx - 1) / 6.0)
+    slot_cos = math.cos(2 * math.pi * (slot_idx - 1) / 6.0)
+
     return np.array([
-        float(row.get("day_index", 0)) / 4.0,
-        float(row.get("slot_index", 1)) / 6.0,
-        float(row.get("is_morning", 0)),
-        float(row.get("is_post_lunch", 0)),
-        float(row.get("is_pre_lunch", 0)),
+        day_sin,                                          # 1: day cyclic sin
+        day_cos,                                          # 2: day cyclic cos
+        slot_sin,                                         # 3: slot cyclic sin
+        slot_cos,                                         # 4: slot cyclic cos
+        float(row.get("is_morning",    0)),               # 5: morning flag
+        float(row.get("is_post_lunch", 0)),               # 6: post-lunch flag
+        float(row.get("is_pre_lunch",  0)),               # 7: pre-lunch flag
         float(row.get("is_first_slot", 0)) * 0.5 +
-        float(row.get("is_last_slot", 0)),
+        float(row.get("is_last_slot",  0)),               # 8: boundary slot
     ], dtype=np.float32)
 
 
@@ -383,7 +407,7 @@ def validate_graph(G, node_features):
     # Feature vectors must be the right length
     expected_dims = {
         "faculty": 8, "course": 7, "section": 5,
-        "room": 6, "timeslot": 6
+        "room": 6, "timeslot": 8   # upgraded to 8 (sinusoidal encoding)
     }
     dim_errors = 0
     for nid, feat in node_features.items():
@@ -430,6 +454,11 @@ def main():
     faculty_df = pd.read_csv(FACULTY_CSV)
     rooms_df   = pd.read_csv(ROOMS_CSV)
     slots_df   = pd.read_csv(SLOTS_CSV)
+
+    # Strip leading/trailing whitespace from all column names — some CSVs
+    # were saved with spaces before column headers (e.g. " is_lunch").
+    for df in (sessions, faculty_df, rooms_df, slots_df):
+        df.columns = df.columns.str.strip()
 
     # Fill any remaining empty strings defensively
     sessions["course_code"] = sessions["course_code"].fillna("")

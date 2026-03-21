@@ -1,0 +1,19 @@
+{
+  // Point Pylance at the project venv so all installed packages resolve
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+  "python.pythonPath": "${workspaceFolder}/venv/Scripts/python.exe",
+
+  // Pylance type-checking — use basic to avoid noise on 3rd-party stubs
+  "python.analysis.typeCheckingMode": "basic",
+
+  // Tell Pylance where to find the source roots
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/server",
+    "${workspaceFolder}/server/ml_pipeline"
+  ],
+
+  // Django-specific: silence false "unresolved" on dynamic model attrs
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportAttributeAccessIssue": "none"
+  }
+}

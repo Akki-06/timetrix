@@ -35,18 +35,18 @@ room_id,building,floor,room_type,capacity,is_lab,lab_type,is_shared,is_active,no
 4302,Block 4,3,theory,50,0,,1,1,Lecture room,0.4167,0.75,0
 4103,Block 4,1,theory,50,0,,1,1,Lecture room,0.4167,0.25,0
 3201,Block 3,2,theory,50,0,,1,1,Lecture room,0.4167,0.5,0
-FF-101,Old Block FF,1,theory,60,0,,1,1,Main lecture hall (2021-22),0.5,0.25,0
-FF-03,Old Block FF,0,theory,60,0,,1,1,Lecture hall (2021-22),0.5,0.0,0
-FF-04,Old Block FF,0,theory,60,0,,1,1,Lecture hall (2021-22),0.5,0.0,0
-FF-07,Old Block FF,0,theory,60,0,,1,1,Lecture hall (2021-22),0.5,0.0,0
-FF-105,Old Block FF,1,theory,60,0,,1,1,Lecture hall (2021-22),0.5,0.25,0
-FF-106,Old Block FF,1,theory,60,0,,1,1,Lecture hall (2021-22),0.5,0.25,0
-FF-110,Old Block FF,1,theory,60,0,,1,1,MCA lecture hall (2021-22),0.5,0.25,0
-GF-06,Old Block GF,0,theory,50,0,,1,1,Lecture room (2021-22),0.4167,0.0,0
-GF-207,Old Block GF,2,theory,50,0,,1,1,Lecture room (2021-22),0.4167,0.5,0
-SF-110,Old Block SF,1,theory,50,0,,1,1,Lecture room (2021-22),0.4167,0.25,0
-SF-204,Old Block SF,2,theory,50,0,,1,1,Lecture room (2021-22),0.4167,0.5,0
-SF-205,Old Block SF,2,theory,50,0,,1,1,Lecture room (2021-22),0.4167,0.5,0
-SF-207,Old Block SF,2,theory,60,0,,1,1,MCA lecture hall (2021-22),0.5,0.5,0
+FF-101,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
+FF-03,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
+FF-04,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
+FF-07,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
+FF-105,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
+FF-106,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
+FF-110,Old Block FF,1,theory,60,0,,1,0,Lecture room,0.5,0.25,0
+GF-06,Old Block GF,0,theory,50,0,,1,0,Lecture room,0.4167,0.0,0
+GF-207,Old Block GF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
+SF-110,Old Block SF,1,theory,50,0,,1,0,Lecture room,0.4167,0.25,0
+SF-204,Old Block SF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
+SF-205,Old Block SF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
+SF-207,Old Block SF,2,theory,60,0,,1,0,Lecture room,0.5,0.5,0
 rotation,Various,0,theory,60,0,,1,1,Room rotation — no fixed assignment,0.5,0.0,0
 unknown,Unknown,0,theory,60,0,,1,1,Room not recorded in source data,0.5,0.0,0
