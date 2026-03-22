@@ -1,231 +1,365 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
+import { useAuth } from "../contexts/AuthContext";
 import api from "../api/axios";
 import { asList } from "../utils/helpers";
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-
-const TIME_SLOTS = [
-  "09:40-10:35",
-  "10:35-11:30",
-  "11:30-12:25",
-  "12:25-13:20",
-  "14:15-15:10",
-  "15:10-16:05",
+/* ── colour palette (alpha bg works in both light & dark themes) ── */
+const PALETTE = [
+  { bg: "rgba(59,130,246,0.12)",  border: "#3b82f6" },  // blue
+  { bg: "rgba(16,185,129,0.12)",  border: "#10b981" },  // emerald
+  { bg: "rgba(168,85,247,0.12)",  border: "#a855f7" },  // purple
+  { bg: "rgba(6,182,212,0.12)",   border: "#06b6d4" },  // cyan
+  { bg: "rgba(249,115,22,0.12)",  border: "#f97316" },  // orange
+  { bg: "rgba(236,72,153,0.12)",  border: "#ec4899" },  // pink
+  { bg: "rgba(234,179,8,0.12)",   border: "#eab308" },  // yellow
+  { bg: "rgba(99,102,241,0.12)",  border: "#6366f1" },  // indigo
+  { bg: "rgba(251,191,36,0.12)",  border: "#fbbf24" },  // amber
+  { bg: "rgba(244,63,94,0.12)",   border: "#f43f5e" },  // rose
+  { bg: "rgba(20,184,166,0.12)",  border: "#14b8a6" },  // teal
+  { bg: "rgba(217,70,239,0.12)",  border: "#d946ef" },  // fuchsia
+  { bg: "rgba(251,146,60,0.12)",  border: "#fb923c" },  // orange-400
+  { bg: "rgba(56,189,248,0.12)",  border: "#38bdf8" },  // sky
+  { bg: "rgba(52,211,153,0.12)",  border: "#34d399" },  // green-400
 ];
 
-const DAY_CODE_TO_NAME = {
-  MON: "Monday",
-  TUE: "Tuesday",
-  WED: "Wednesday",
-  THU: "Thursday",
-  FRI: "Friday",
+const DAY_LABELS = {
+  MON: "Monday", TUE: "Tuesday", WED: "Wednesday",
+  THU: "Thursday", FRI: "Friday", SAT: "Saturday",
 };
 
-const SLOT_TO_LABEL = {
-  1: "09:40-10:35",
-  2: "10:35-11:30",
-  3: "11:30-12:25",
-  4: "12:25-13:20",
-  5: "14:15-15:10",
-  6: "15:10-16:05",
+/* ── view mode labels ── */
+const VIEW_LABELS = {
+  section: "Program / Section",
+  faculty: "Faculty Schedule",
+  room:    "Room Occupancy",
 };
-
-function lectureColorClass(subject) {
-  const s = (subject || "").toLowerCase();
-  if (s.includes("data")) return "subject-blue";
-  if (s.includes("dbms") || s.includes("database")) return "subject-green";
-  if (s.includes("operating")) return "subject-purple";
-  if (s.includes("web")) return "subject-cyan";
-  if (s.includes("algorithm")) return "subject-orange";
-  if (s.includes("network")) return "subject-pink";
-  return "subject-gray";
-}
 
 function GeneratedTimetablesPage() {
-  const [viewMode, setViewMode] = useState("class");
+  const { user } = useAuth();
+  const role = user?.role || "student";
 
-  const [timetables, setTimetables] = useState([]);
-  const [allocations, setAllocations] = useState([]);
-  const [faculties, setFaculties] = useState([]);
+  /* role → available view modes */
+  const modes =
+    role === "admin"   ? ["section", "faculty", "room"] :
+    role === "teacher" ? ["faculty", "section"]          :
+                         ["section"];
+  const [viewMode, setViewMode] = useState(modes[0]);
+
+  /* ── reference data ── */
+  const [programs, setPrograms]         = useState([]);
+  const [terms, setTerms]               = useState([]);
   const [studentGroups, setStudentGroups] = useState([]);
-  const [programs, setPrograms] = useState([]);
-  const [terms, setTerms] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [courseOfferings, setCourseOfferings] = useState([]);
-  const [rooms, setRooms] = useState([]);
-  const [timeslots, setTimeslots] = useState([]);
+  const [faculties, setFaculties]       = useState([]);
+  const [rooms, setRooms]               = useState([]);
+  const [timetables, setTimetables]     = useState([]);
+  const [timeslots, setTimeslots]       = useState([]);
 
-  const [selectedTimetable, setSelectedTimetable] = useState("");
-  const [selectedProgram, setSelectedProgram] = useState("all");
-  const [selectedFaculty, setSelectedFaculty] = useState("all");
-  const [selectedStudentGroup, setSelectedStudentGroup] = useState("all");
-  const [selectedRoom, setSelectedRoom] = useState("all");
+  /* ── selectors ── */
+  const [selProgram, setSelProgram]       = useState("");
+  const [selSemester, setSelSemester]     = useState("");
+  const [selSection, setSelSection]       = useState("");
+  const [selTimetable, setSelTimetable]   = useState("");
+  const [selFaculty, setSelFaculty]       = useState("");
+  const [selRoom, setSelRoom]             = useState("");
 
-  const [pageLoading, setPageLoading] = useState(true);
-  const [allocLoading, setAllocLoading] = useState(false);
-  const [error, setError] = useState("");
+  /* ── data ── */
+  const [allocations, setAllocations] = useState([]);
+  const [ttInfo, setTtInfo]           = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [schedLoading, setSchedLoading] = useState(false);
+  const [error, setError]             = useState("");
 
+  /* tracks whether the initial auto-select mount has completed */
+  const mounted = useRef(false);
+
+  /* ── derived: semesters that have terms for the selected program ── */
+  const semesterOptions = useMemo(() => {
+    if (!selProgram) return [];
+    const prog = programs.find((p) => String(p.id) === selProgram);
+    if (!prog) return [];
+    const progTerms = terms.filter((t) => t.program === prog.id);
+    const sems = [...new Set(progTerms.map((t) => t.semester))].sort((a, b) => a - b);
+    return sems.length > 0 ? sems : Array.from({ length: prog.total_semesters }, (_, i) => i + 1);
+  }, [selProgram, programs, terms]);
+
+  /* ── derived: sections for selected program + semester ── */
+  const sectionOptions = useMemo(() => {
+    if (!selProgram || !selSemester) return [];
+    const term = terms.find(
+      (t) => t.program === Number(selProgram) && t.semester === Number(selSemester),
+    );
+    if (!term) return [];
+    return studentGroups.filter((sg) => sg.term === term.id);
+  }, [selProgram, selSemester, terms, studentGroups]);
+
+  /* ── derived: timetable versions for the selected term ── */
+  const versionOptions = useMemo(() => {
+    if (!selProgram || !selSemester) return [];
+    const term = terms.find(
+      (t) => t.program === Number(selProgram) && t.semester === Number(selSemester),
+    );
+    if (!term) return [];
+    return timetables
+      .filter((tt) => tt.term === term.id)
+      .sort((a, b) => b.version - a.version);
+  }, [selProgram, selSemester, terms, timetables]);
+
+  /* ────────────────────────── load reference data ────────────────────────── */
   useEffect(() => {
-    const loadBase = async () => {
+    (async () => {
       try {
-        setPageLoading(true);
-        setError("");
-        const [
-          timetableResp,
-          facultyResp,
-          groupResp,
-          programResp,
-          termResp,
-          courseResp,
-          offeringResp,
-          roomResp,
-          timeslotResp,
-        ] = await Promise.all([
-          api.get("scheduler/timetables/"),
-          api.get("faculty/faculty/"),
-          api.get("academics/student-groups/"),
+        setLoading(true);
+        const [progR, termR, sgR, facR, roomR, ttR, tsR] = await Promise.all([
           api.get("academics/programs/"),
           api.get("academics/terms/"),
-          api.get("academics/courses/"),
-          api.get("academics/course-offerings/"),
+          api.get("academics/student-groups/"),
+          api.get("faculty/faculty/"),
           api.get("infrastructure/room/"),
+          api.get("scheduler/timetables/"),
           api.get("scheduler/timeslots/"),
         ]);
 
-        const tt = asList(timetableResp.data);
-        setTimetables(tt);
-        setFaculties(asList(facultyResp.data));
-        setStudentGroups(asList(groupResp.data));
-        setPrograms(asList(programResp.data));
-        setTerms(asList(termResp.data));
-        setCourses(asList(courseResp.data));
-        setCourseOfferings(asList(offeringResp.data));
-        setRooms(asList(roomResp.data));
-        setTimeslots(asList(timeslotResp.data));
+        const progs = asList(progR.data);
+        const trms  = asList(termR.data);
+        const sgs   = asList(sgR.data);
+        const facs  = asList(facR.data);
+        const rms   = asList(roomR.data);
+        const tts   = asList(ttR.data);
+        const tss   = asList(tsR.data);
 
-        if (tt.length) setSelectedTimetable(String(tt[0].id));
-      } catch (err) {
-        console.error("Failed to load timetable data:", err);
+        setPrograms(progs);
+        setTerms(trms);
+        setStudentGroups(sgs);
+        setFaculties(facs);
+        setRooms(rms);
+        setTimetables(tts);
+        setTimeslots(tss);
+
+        /* auto-select context of the most recently generated timetable */
+        if (tts.length > 0) {
+          const sorted = [...tts].sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at),
+          );
+          const latest = sorted[0];
+          const term = trms.find((t) => t.id === latest.term);
+          if (term) {
+            const prog = progs.find((p) => p.id === term.program);
+            if (prog) {
+              setSelProgram(String(prog.id));
+              setSelSemester(String(term.semester));
+              const sections = sgs.filter((sg) => sg.term === term.id);
+              if (sections.length > 0) setSelSection(String(sections[0].id));
+            }
+          }
+          /* teacher default: first faculty */
+          if (role === "teacher" && facs.length > 0) {
+            setSelFaculty(String(facs[0].id));
+          }
+        }
+      } catch {
         setError("Failed to load data. Please check backend connection.");
       } finally {
-        setPageLoading(false);
+        setLoading(false);
+        mounted.current = true; // cascade resets are safe to run from here on
       }
-    };
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    loadBase();
-  }, []);
-
+  /* ── cascade resets — only after mount auto-select has settled ── */
   useEffect(() => {
-    if (!selectedTimetable) return;
+    if (!mounted.current) return;
+    setSelSemester(""); setSelSection(""); setSelTimetable("");
+  }, [selProgram]);
+  useEffect(() => {
+    if (!mounted.current) return;
+    setSelSection(""); setSelTimetable("");
+  }, [selSemester]);
 
-    const loadAllocations = async () => {
-      try {
-        setAllocLoading(true);
-        const response = await api.get("scheduler/allocations/", {
-          params: { timetable: selectedTimetable },
-        });
-        setAllocations(asList(response.data));
-      } catch (err) {
-        console.error("Failed to load allocations:", err);
-        setAllocations([]);
-      } finally {
-        setAllocLoading(false);
-      }
-    };
+  /* ────────────────────────── load schedule ────────────────────────── */
+  const loadSchedule = useCallback(async () => {
+    let url = "scheduler/schedule/?";
 
-    loadAllocations();
-  }, [selectedTimetable]);
+    if (viewMode === "section") {
+      if (!selSection) { setAllocations([]); setTtInfo(null); return; }
+      url += `view=section&student_group_id=${selSection}`;
+      if (selTimetable) url += `&timetable_id=${selTimetable}`;
+    } else if (viewMode === "faculty") {
+      if (!selFaculty) { setAllocations([]); setTtInfo(null); return; }
+      url += `view=faculty&faculty_id=${selFaculty}`;
+    } else if (viewMode === "room") {
+      if (!selRoom) { setAllocations([]); setTtInfo(null); return; }
+      url += `view=room&room_id=${selRoom}`;
+    }
 
-  const maps = useMemo(() => {
-    return {
-      facultyById: Object.fromEntries(faculties.map((f) => [f.id, f])),
-      groupById: Object.fromEntries(studentGroups.map((g) => [g.id, g])),
-      programById: Object.fromEntries(programs.map((p) => [p.id, p])),
-      termById: Object.fromEntries(terms.map((t) => [t.id, t])),
-      courseById: Object.fromEntries(courses.map((c) => [c.id, c])),
-      offeringById: Object.fromEntries(courseOfferings.map((o) => [o.id, o])),
-      roomById: Object.fromEntries(rooms.map((r) => [r.id, r])),
-      timeslotById: Object.fromEntries(timeslots.map((t) => [t.id, t])),
-    };
-  }, [faculties, studentGroups, programs, terms, courses, courseOfferings, rooms, timeslots]);
+    try {
+      setSchedLoading(true);
+      const resp = await api.get(url);
+      setAllocations(resp.data.allocations || []);
+      setTtInfo(resp.data.timetable || null);
+    } catch {
+      setAllocations([]);
+      setTtInfo(null);
+    } finally {
+      setSchedLoading(false);
+    }
+  }, [viewMode, selSection, selFaculty, selRoom, selTimetable]);
 
-  const rows = useMemo(() => {
-    const enriched = allocations.map((alloc) => {
-      const faculty = maps.facultyById[alloc.faculty];
-      const group = maps.groupById[alloc.student_group];
-      const offering = maps.offeringById[alloc.course_offering];
-      const course = maps.courseById[offering?.course];
-      const room = maps.roomById[alloc.room];
-      const timeslot = maps.timeslotById[alloc.timeslot];
-      const term = maps.termById[group?.term];
-      const program = maps.programById[term?.program];
+  useEffect(() => { loadSchedule(); }, [loadSchedule]);
 
+  /* ────────────────────────── dynamic colour map ────────────────────────── */
+  const { colorMap, legend } = useMemo(() => {
+    const codes = [...new Set(allocations.map((a) => a.course_code))].sort();
+    const map = {};
+    codes.forEach((code, i) => { map[code] = PALETTE[i % PALETTE.length]; });
+    const items = codes.map((code) => {
+      const sample = allocations.find((a) => a.course_code === code);
       return {
-        id: alloc.id,
-        facultyId: faculty?.id,
-        facultyName: faculty?.name || "-",
-        studentGroupId: group?.id,
-        studentGroupName: group?.name || "-",
-        programId: program?.id,
-        programCode: program?.code || "-",
-        courseCode: course?.code || "-",
-        courseName: course?.name || "-",
-        courseType: course?.course_type || "",
-        roomId: room?.id,
-        roomLabel: room ? `${room.room_number}` : "-",
-        roomType: room?.room_type || "",
-        dayName: DAY_CODE_TO_NAME[timeslot?.day] || "-",
-        slotLabel: SLOT_TO_LABEL[timeslot?.slot_number] || "-",
-        rawDay: timeslot?.day,
-        rawSlot: timeslot?.slot_number,
+        code,
+        name: sample?.course_name || code,
+        type: sample?.course_type || "",
+        color: map[code],
       };
     });
+    return { colorMap: map, legend: items };
+  }, [allocations]);
 
-    return enriched
-      .filter((row) => selectedProgram === "all" || String(row.programId) === selectedProgram)
-      .filter((row) => selectedFaculty === "all" || String(row.facultyId) === selectedFaculty)
-      .filter((row) => selectedStudentGroup === "all" || String(row.studentGroupId) === selectedStudentGroup)
-      .filter((row) => selectedRoom === "all" || String(row.roomId) === selectedRoom);
-  }, [allocations, maps, selectedProgram, selectedFaculty, selectedStudentGroup, selectedRoom]);
+  /* ────────────────────────── build grid helpers ────────────────────────── */
+  const { days, slotsBeforeLunch, slotsAfterLunch, lunchLabel } = useMemo(() => {
+    /* separate lunch vs lecture timeslots */
+    const lunchSlots = timeslots.filter((ts) => ts.is_lunch);
+    const lectureSlots = timeslots
+      .filter((ts) => !ts.is_lunch)
+      .reduce((acc, ts) => {
+        if (!acc.find((s) => s.slot_number === ts.slot_number)) {
+          acc.push({
+            number: ts.slot_number,
+            label: `${String(ts.start_time).slice(0, 5)}-${String(ts.end_time).slice(0, 5)}`,
+          });
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => a.number - b.number);
 
+    /* determine lunch position */
+    let lunchPos = 4;
+    let lLabel = "13:20-14:15";
+    if (lunchSlots.length > 0) {
+      const ls = lunchSlots[0];
+      lunchPos = ls.slot_number;
+      lLabel = `${String(ls.start_time).slice(0, 5)}-${String(ls.end_time).slice(0, 5)}`;
+    }
+
+    const before = lectureSlots.filter((s) => s.number < lunchPos);
+    const after  = lectureSlots.filter((s) => s.number >= lunchPos);
+
+    /* active days — always Mon-Fri, add Sat only if allocations have it */
+    const activeDays = ["MON", "TUE", "WED", "THU", "FRI"];
+    if (allocations.some((a) => a.day === "SAT")) activeDays.push("SAT");
+
+    return {
+      days: activeDays,
+      slotsBeforeLunch: before.length > 0 ? before : lectureSlots.slice(0, 4),
+      slotsAfterLunch:  after.length > 0  ? after  : lectureSlots.slice(4),
+      lunchLabel: lLabel,
+    };
+  }, [timeslots, allocations]);
+
+  /* grid: day → slot_number → [allocations] */
   const gridData = useMemo(() => {
     const grid = {};
-    DAYS.forEach((day) => {
+    const allSlots = [...slotsBeforeLunch, ...slotsAfterLunch];
+    days.forEach((day) => {
       grid[day] = {};
-      TIME_SLOTS.forEach((slot) => {
-        grid[day][slot] = null;
-      });
+      allSlots.forEach((s) => { grid[day][s.number] = []; });
     });
-
-    rows.forEach((r) => {
-      const day = r.dayName;
-      const slot = r.slotLabel;
-      if (!grid[day] || grid[day][slot] === undefined) return;
-      if (!grid[day][slot]) {
-        grid[day][slot] = {
-          subject: r.courseName,
-          faculty: r.facultyName,
-          room: r.roomLabel,
-          type: r.roomType === "LAB" || r.courseType === "LAB" ? "lab" : "theory",
-        };
+    allocations.forEach((a) => {
+      if (grid[a.day]?.[a.slot_number]) {
+        grid[a.day][a.slot_number].push(a);
       }
     });
-
     return grid;
-  }, [rows]);
+  }, [allocations, days, slotsBeforeLunch, slotsAfterLunch]);
 
-  const handleDownloadPdf = () => {
-    window.print();
+  /* ────────────────────────── cell renderer ────────────────────────── */
+  const renderCell = (entries, key) => {
+    if (!entries || entries.length === 0) {
+      return <td key={key} className="empty-cell">&mdash;</td>;
+    }
+    return (
+      <td key={key}>
+        {entries.map((a) => {
+          const c = colorMap[a.course_code] || PALETTE[0];
+          return (
+            <div
+              key={a.id}
+              className="lecture-chip"
+              style={{ background: c.bg, borderLeftColor: c.border }}
+            >
+              <div className="lecture-subject">
+                {a.course_name}
+                {(a.room_type === "LAB" || a.course_type === "PR") && (
+                  <span className="lab-tag">Lab</span>
+                )}
+              </div>
+              {viewMode === "section" && (
+                <>
+                  <div className="lecture-meta">{a.faculty_name}</div>
+                  <div className="lecture-meta">Room: {a.room_number}</div>
+                </>
+              )}
+              {viewMode === "faculty" && (
+                <>
+                  <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                  <div className="lecture-meta">Room: {a.room_number}</div>
+                </>
+              )}
+              {viewMode === "room" && (
+                <>
+                  <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                  <div className="lecture-meta">{a.faculty_name}</div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </td>
+    );
   };
 
-  const hasData = selectedTimetable && allocations.length > 0;
+  /* ────────────────────────── print ────────────────────────── */
+  const handlePrint = () => window.print();
 
-  if (pageLoading) {
+  /* ────────────────────────── selector heading based on view context ── */
+  const viewBannerText = useMemo(() => {
+    if (viewMode === "section") {
+      const prog = programs.find((p) => String(p.id) === selProgram);
+      const sec  = studentGroups.find((sg) => String(sg.id) === selSection);
+      if (prog && selSemester && sec) {
+        const vLabel = ttInfo ? ` (v${ttInfo.version}${ttInfo.is_finalized ? " - Published" : ""})` : "";
+        return `${prog.code} — Semester ${selSemester} — Section ${sec.name}${vLabel}`;
+      }
+      return "Select program, semester, and section to view timetable";
+    }
+    if (viewMode === "faculty") {
+      const fac = faculties.find((f) => String(f.id) === selFaculty);
+      return fac ? `Schedule for ${fac.name}` : "Select a faculty member";
+    }
+    if (viewMode === "room") {
+      const rm = rooms.find((r) => String(r.id) === selRoom);
+      return rm ? `Room ${rm.room_number} — ${rm.room_type}` : "Select a room";
+    }
+    return "";
+  }, [viewMode, selProgram, selSemester, selSection, selFaculty, selRoom,
+      programs, studentGroups, faculties, rooms, ttInfo]);
+
+  /* ────────────────────────── render ────────────────────────── */
+
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="page-head">
-          <h1>Generated Timetables</h1>
+          <h1>Timetables</h1>
           <p className="upload-help">Loading timetable data...</p>
         </div>
       </DashboardLayout>
@@ -236,147 +370,176 @@ function GeneratedTimetablesPage() {
     return (
       <DashboardLayout>
         <div className="page-head">
-          <h1>Generated Timetables</h1>
+          <h1>Timetables</h1>
           <p className="upload-error">{error}</p>
         </div>
       </DashboardLayout>
     );
   }
 
+  const hasData = allocations.length > 0;
+
   return (
     <DashboardLayout>
+      {/* ── Header ── */}
       <div className="page-head no-print">
-        <h1>Generated Timetables</h1>
-        <p>Class-wise, Faculty-wise, Room-wise views with Program/Faculty/Student filters.</p>
+        <h1>Timetables</h1>
+        <p>View class schedules, faculty workload, and room occupancy.</p>
       </div>
 
-      <section className="data-card no-print">
-        <h3>Filters</h3>
+      {/* ── View mode tabs ── */}
+      {modes.length > 1 && (
+        <div className="pill-tabs no-print" style={{ marginBottom: 16 }}>
+          {modes.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={viewMode === m ? "active" : ""}
+              onClick={() => setViewMode(m)}
+            >
+              {VIEW_LABELS[m]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Selectors ── */}
+      <section className="data-card no-print" style={{ marginBottom: 16 }}>
         <div className="manual-form">
-          <div className="form-group">
-            <label className="form-label">Program</label>
-            <select
-              className="input"
-              value={selectedProgram}
-              onChange={(e) => setSelectedProgram(e.target.value)}
-            >
-              <option value="all">All Programs</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* SECTION VIEW selectors */}
+          {viewMode === "section" && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Program</label>
+                <select
+                  className="input"
+                  value={selProgram}
+                  onChange={(e) => setSelProgram(e.target.value)}
+                >
+                  <option value="">Select Program</option>
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.code} — {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">Faculty</label>
-            <select
-              className="input"
-              value={selectedFaculty}
-              onChange={(e) => setSelectedFaculty(e.target.value)}
-            >
-              <option value="all">All Faculty</option>
-              {faculties.map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
-          </div>
+              <div className="form-group">
+                <label className="form-label">Semester</label>
+                <select
+                  className="input"
+                  value={selSemester}
+                  onChange={(e) => setSelSemester(e.target.value)}
+                  disabled={!selProgram}
+                >
+                  <option value="">Select Semester</option>
+                  {semesterOptions.map((s) => (
+                    <option key={s} value={s}>Semester {s}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">Student Group</label>
-            <select
-              className="input"
-              value={selectedStudentGroup}
-              onChange={(e) => setSelectedStudentGroup(e.target.value)}
-            >
-              <option value="all">All Student Groups</option>
-              {studentGroups.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
+              <div className="form-group">
+                <label className="form-label">Section</label>
+                <select
+                  className="input"
+                  value={selSection}
+                  onChange={(e) => setSelSection(e.target.value)}
+                  disabled={sectionOptions.length === 0}
+                >
+                  <option value="">Select Section</option>
+                  {sectionOptions.map((sg) => (
+                    <option key={sg.id} value={sg.id}>
+                      {sg.name} (Strength: {sg.strength})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">Room</label>
-            <select
-              className="input"
-              value={selectedRoom}
-              onChange={(e) => setSelectedRoom(e.target.value)}
-            >
-              <option value="all">All Rooms</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.room_number} ({room.room_type})
-                </option>
-              ))}
-            </select>
-          </div>
+              {role === "admin" && versionOptions.length > 1 && (
+                <div className="form-group">
+                  <label className="form-label">Version</label>
+                  <select
+                    className="input"
+                    value={selTimetable}
+                    onChange={(e) => setSelTimetable(e.target.value)}
+                  >
+                    <option value="">Latest</option>
+                    {versionOptions.map((tt) => (
+                      <option key={tt.id} value={tt.id}>
+                        v{tt.version} {tt.is_finalized ? "(Published)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* FACULTY VIEW selector */}
+          {viewMode === "faculty" && (
+            <div className="form-group" style={{ minWidth: 280 }}>
+              <label className="form-label">Faculty</label>
+              <select
+                className="input"
+                value={selFaculty}
+                onChange={(e) => setSelFaculty(e.target.value)}
+              >
+                <option value="">Select Faculty</option>
+                {faculties.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* ROOM VIEW selector */}
+          {viewMode === "room" && (
+            <div className="form-group" style={{ minWidth: 280 }}>
+              <label className="form-label">Room</label>
+              <select
+                className="input"
+                value={selRoom}
+                onChange={(e) => setSelRoom(e.target.value)}
+              >
+                <option value="">Select Room</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.room_number} ({r.room_type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </section>
 
+      {/* ── Timetable card ── */}
       <section className="timetable-card">
+        {/* banner */}
         <div className="timetable-top no-print">
-          <div>
-            <h3>Select Timetable</h3>
-            <div className="pill-tabs">
-              <button
-                type="button"
-                className={viewMode === "class" ? "active" : ""}
-                onClick={() => setViewMode("class")}
-              >
-                Class-wise
-              </button>
-              <button
-                type="button"
-                className={viewMode === "faculty" ? "active" : ""}
-                onClick={() => setViewMode("faculty")}
-              >
-                Faculty-wise
-              </button>
-              <button
-                type="button"
-                className={viewMode === "room" ? "active" : ""}
-                onClick={() => setViewMode("room")}
-              >
-                Room-wise
-              </button>
-            </div>
+          <div className="view-banner" style={{ flex: 1 }}>
+            {viewBannerText}
+            {schedLoading && " — Loading..."}
           </div>
-
-          <div className="timetable-actions">
-            <select
-              className="input"
-              value={selectedTimetable}
-              onChange={(e) => setSelectedTimetable(e.target.value)}
-            >
-              {timetables.length === 0 && (
-                <option value="">No timetables available</option>
-              )}
-              {timetables.map((tt) => (
-                <option key={tt.id} value={tt.id}>
-                  Timetable #{tt.id} (V{tt.version})
-                </option>
-              ))}
-            </select>
-            <button type="button" className="btn-primary" onClick={handleDownloadPdf}>
+          {hasData && (
+            <button type="button" className="btn-primary" onClick={handlePrint}>
               Download PDF
             </button>
-          </div>
+          )}
         </div>
 
-        <div className="view-banner">
-          Viewing: {viewMode === "class" ? "Class-wise" : viewMode === "faculty" ? "Faculty-wise" : "Room-wise"}
-          {allocLoading && " — Loading..."}
-        </div>
-
-        {allocLoading ? (
+        {/* grid */}
+        {schedLoading ? (
           <div style={{ padding: "3rem", textAlign: "center", color: "var(--muted)" }}>
-            Loading allocations...
+            Loading schedule...
           </div>
         ) : !hasData ? (
           <div style={{ padding: "3rem", textAlign: "center", color: "var(--muted)" }}>
             {timetables.length === 0
-              ? "No timetables generated yet. Use the Timetable Generator to create one."
-              : "Select a timetable to view."}
+              ? "No timetables generated yet. Use the Generator page to create one."
+              : "Select filters above to view a timetable."}
           </div>
         ) : (
           <div className="timetable-grid-wrap">
@@ -384,56 +547,26 @@ function GeneratedTimetablesPage() {
               <thead>
                 <tr>
                   <th className="sticky-col">Day / Time</th>
-                  {TIME_SLOTS.slice(0, 4).map((slot) => (
-                    <th key={slot}>{slot}</th>
+                  {slotsBeforeLunch.map((s) => (
+                    <th key={s.number}>{s.label}</th>
                   ))}
-                  <th className="lunch-col">13:20-14:15</th>
-                  {TIME_SLOTS.slice(4).map((slot) => (
-                    <th key={slot}>{slot}</th>
+                  <th className="lunch-col">{lunchLabel}</th>
+                  {slotsAfterLunch.map((s) => (
+                    <th key={s.number}>{s.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {DAYS.map((day) => (
+                {days.map((day) => (
                   <tr key={day}>
-                    <td className="sticky-col day-cell">{day}</td>
-                    {TIME_SLOTS.slice(0, 4).map((slot) => {
-                      const lecture = gridData[day]?.[slot];
-                      if (!lecture) {
-                        return <td key={slot} className="empty-cell">&mdash;</td>;
-                      }
-                      return (
-                        <td key={slot}>
-                          <div className={`lecture-chip ${lectureColorClass(lecture.subject)}`}>
-                            <div className="lecture-subject">
-                              {lecture.subject}
-                              {lecture.type === "lab" ? <span className="lab-tag">Lab</span> : null}
-                            </div>
-                            <div className="lecture-meta">{lecture.faculty}</div>
-                            <div className="lecture-meta">Room: {lecture.room}</div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                    <td className="lunch-col lunch-cell">LUNCH BREAK</td>
-                    {TIME_SLOTS.slice(4).map((slot) => {
-                      const lecture = gridData[day]?.[slot];
-                      if (!lecture) {
-                        return <td key={slot} className="empty-cell">&mdash;</td>;
-                      }
-                      return (
-                        <td key={slot}>
-                          <div className={`lecture-chip ${lectureColorClass(lecture.subject)}`}>
-                            <div className="lecture-subject">
-                              {lecture.subject}
-                              {lecture.type === "lab" ? <span className="lab-tag">Lab</span> : null}
-                            </div>
-                            <div className="lecture-meta">{lecture.faculty}</div>
-                            <div className="lecture-meta">Room: {lecture.room}</div>
-                          </div>
-                        </td>
-                      );
-                    })}
+                    <td className="sticky-col day-cell">{DAY_LABELS[day]}</td>
+                    {slotsBeforeLunch.map((s) =>
+                      renderCell(gridData[day]?.[s.number], s.number)
+                    )}
+                    <td className="lunch-col lunch-cell">LUNCH</td>
+                    {slotsAfterLunch.map((s) =>
+                      renderCell(gridData[day]?.[s.number], s.number)
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -441,13 +574,25 @@ function GeneratedTimetablesPage() {
           </div>
         )}
 
-        <div className="legend-row no-print">
-          <div className="legend-item"><span className="legend-box subject-blue" /> Data Structures</div>
-          <div className="legend-item"><span className="legend-box subject-green" /> DBMS</div>
-          <div className="legend-item"><span className="legend-box subject-purple" /> Operating Systems</div>
-          <div className="legend-item"><span className="legend-box subject-cyan" /> Web Development</div>
-          <div className="legend-item"><span className="legend-box lunch-col" /> Lunch Break</div>
-        </div>
+        {/* ── Legend ── */}
+        {hasData && (
+          <div className="legend-row no-print">
+            {legend.map((item) => (
+              <div key={item.code} className="legend-item">
+                <span
+                  className="legend-box"
+                  style={{ background: item.color.border }}
+                />
+                {item.name}
+                {item.type === "PR" && " (Lab)"}
+              </div>
+            ))}
+            <div className="legend-item">
+              <span className="legend-box" style={{ background: "var(--warning)" }} />
+              Lunch Break
+            </div>
+          </div>
+        )}
       </section>
     </DashboardLayout>
   );

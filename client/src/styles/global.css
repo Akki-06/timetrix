@@ -1585,42 +1585,7 @@ tr:hover td {
   text-transform: uppercase;
 }
 
-/* Subject color chips */
-.subject-blue {
-  background: rgba(59, 130, 246, 0.08);
-  border-left-color: #3b82f6;
-}
-.subject-green {
-  background: rgba(16, 185, 129, 0.08);
-  border-left-color: #10b981;
-}
-.subject-purple {
-  background: rgba(139, 92, 246, 0.08);
-  border-left-color: #8b5cf6;
-}
-.subject-cyan {
-  background: rgba(6, 182, 212, 0.08);
-  border-left-color: #06b6d4;
-}
-.subject-orange {
-  background: rgba(249, 115, 22, 0.08);
-  border-left-color: #f97316;
-}
-.subject-pink {
-  background: rgba(236, 72, 153, 0.08);
-  border-left-color: #ec4899;
-}
-.subject-gray {
-  background: var(--bg);
-  border-left-color: var(--muted);
-}
-
-[data-theme="dark"] .subject-blue { background: rgba(59, 130, 246, 0.12); }
-[data-theme="dark"] .subject-green { background: rgba(16, 185, 129, 0.12); }
-[data-theme="dark"] .subject-purple { background: rgba(139, 92, 246, 0.12); }
-[data-theme="dark"] .subject-cyan { background: rgba(6, 182, 212, 0.12); }
-[data-theme="dark"] .subject-orange { background: rgba(249, 115, 22, 0.12); }
-[data-theme="dark"] .subject-pink { background: rgba(236, 72, 153, 0.12); }
+/* Subject colours are now applied via inline styles (dynamic palette) */
 
 /* ===== LEGEND ===== */
 .legend-row {
@@ -1689,30 +1654,16 @@ tr:hover td {
   }
 }
 
+/* ===== MOBILE SIDEBAR OVERLAY ===== */
+.sidebar-backdrop {
+  display: none;
+}
+
 /* ===== RESPONSIVE ===== */
-@media (max-width: 900px) {
-  :root {
-    --sidebar-width: var(--sidebar-width-collapsed);
-  }
 
-  .top-navbar {
-    padding: 0 12px;
-  }
-
-  .top-navbar-title,
-  .top-navbar-subtitle {
-    display: none;
-  }
-
-  .top-user-meta {
-    display: none;
-  }
-
+/* ── Tablet landscape / small desktop (≤1200px) ────────────────────────── */
+@media (max-width: 1200px) {
   .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .manual-form {
     grid-template-columns: 1fr;
   }
 
@@ -1720,6 +1671,18 @@ tr:hover td {
     grid-template-columns: 1fr;
   }
 
+  .generator-params-card,
+  .generator-history-card {
+    min-height: auto;
+  }
+
+  .history-list {
+    max-height: none;
+  }
+}
+
+/* ── Tablet portrait (≤900px) ──────────────────────────────────────────── */
+@media (max-width: 900px) {
   .settings-stats-grid,
   .settings-grid {
     grid-template-columns: 1fr;
@@ -1730,7 +1693,7 @@ tr:hover td {
   }
 
   .settings-actions-row {
-    justify-content: stretch;
+    flex-direction: column;
   }
 
   .settings-actions-row .btn-secondary,
@@ -1738,13 +1701,8 @@ tr:hover td {
     width: 100%;
   }
 
-  .generator-params-card,
-  .generator-history-card {
-    min-height: auto;
-  }
-
-  .history-list {
-    max-height: none;
+  .faculty-two-col {
+    grid-template-columns: 1fr !important;
   }
 
   .timetable-top {
@@ -1764,16 +1722,322 @@ tr:hover td {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .demo-grid {
+  .manual-form {
     grid-template-columns: 1fr;
   }
 
+  .top-navbar-subtitle {
+    display: none;
+  }
+}
+
+/* ── Mobile (≤768px) — sidebar becomes overlay drawer ──────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 56px;
+  }
+
+  /* Sidebar: hidden off-screen by default, slides in as overlay */
+  .sidebar {
+    position: fixed;
+    top: var(--nav-height);
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform var(--transition);
+    box-shadow: none;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Collapsed state is irrelevant on mobile — always show full */
+  .sidebar.collapsed {
+    width: 260px;
+  }
+
+  .sidebar.collapsed .sidebar-brand-text,
+  .sidebar.collapsed .sidebar-item-text {
+    display: initial;
+  }
+
+  .sidebar.collapsed .sidebar-brand {
+    justify-content: flex-start;
+    padding: 4px 8px 16px;
+  }
+
+  .sidebar.collapsed .sidebar-item {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  /* Dark backdrop behind mobile sidebar */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: var(--nav-height);
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 45;
+  }
+
+  /* Navbar adjustments */
+  .top-navbar {
+    padding: 0 12px;
+    height: var(--nav-height);
+  }
+
+  .top-navbar-title {
+    font-size: 17px;
+  }
+
+  .top-navbar-subtitle {
+    display: none;
+  }
+
+  .top-user-meta {
+    display: none;
+  }
+
+  .top-navbar-controls {
+    gap: 8px;
+  }
+
+  .top-user {
+    padding-left: 8px;
+  }
+
+  /* Content area takes full width */
+  .dashboard-content {
+    padding: 16px;
+  }
+
+  .page-head h1 {
+    font-size: 22px;
+  }
+
+  .page-head p {
+    font-size: 13px;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stats-card {
+    padding: 14px;
+  }
+
+  .stats-card-content h2 {
+    font-size: 22px;
+  }
+
+  .stats-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+
+  /* Quick actions */
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Upload grid */
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Login */
   .login-card {
     padding: 28px 20px;
   }
 
-  .faculty-two-col {
-    grid-template-columns: 1fr !important;
+  .demo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Generator */
+  .generator-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .generator-result {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Tables: ensure horizontal scroll works */
+  .table-wrap {
+    margin: 0 -18px;
+    padding: 0 18px;
+  }
+}
+
+/* ── Small phone (≤480px) ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  :root {
+    --nav-height: 52px;
+  }
+
+  .dashboard-content {
+    padding: 12px;
+  }
+
+  .page-head {
+    margin-bottom: 14px;
+  }
+
+  .page-head h1 {
+    font-size: 19px;
+  }
+
+  /* Stack stats to single column */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stats-card {
+    padding: 12px 14px;
+  }
+
+  .stats-card-content h2 {
+    font-size: 20px;
+  }
+
+  /* Quick actions: full width */
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Navbar: only show hamburger + brand + avatar */
+  .top-navbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .top-navbar-title {
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+
+  .top-navbar-left {
+    gap: 10px;
+  }
+
+  .top-user-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .theme-btn,
+  .logout-btn,
+  .sidebar-toggle {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* Cards: tighter padding */
+  .upload-card,
+  .data-card {
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .upload-card h3,
+  .data-card h3 {
+    font-size: 14px;
+  }
+
+  /* Forms */
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .mini-stats strong {
+    font-size: 18px;
+  }
+
+  /* Buttons: full width on mobile */
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Generator result */
+  .generator-result {
+    grid-template-columns: 1fr;
+  }
+
+  /* Pill tabs: 2-column on very small */
+  .pill-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pill-tabs button {
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+
+  /* Settings toggles */
+  .settings-toggle-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .settings-toggle-item strong {
+    font-size: 13px;
+  }
+
+  .settings-toggle-item p {
+    font-size: 11px;
+  }
+
+  /* History items */
+  .history-item {
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .history-meta {
+    text-align: left;
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Login */
+  .login-card {
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+
+  .login-header h1 {
+    font-size: 24px;
+  }
+
+  /* Availability config */
+  .avail-day-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 

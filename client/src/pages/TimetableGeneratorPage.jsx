@@ -1,252 +1,153 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import { asList, extractError } from "../utils/helpers";
+import { FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+
+// Derive academic year from semester: sem 1-2 → Year 1, sem 3-4 → Year 2 …
+function yearFromSemester(sem) {
+  return Math.ceil(sem / 2);
+}
 
 function TimetableGeneratorPage() {
-  const [departments, setDepartments] = useState([]);
-  const [terms, setTerms] = useState([]);
-  const [programs, setPrograms] = useState([]);
-  const [timetables, setTimetables] = useState([]);
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+  const [programs, setPrograms]       = useState([]);
+  const [timetables, setTimetables]   = useState([]);
+  const [sections, setSections]       = useState([]);   // preview for selected prog+sem
+
   const [selectedProgramId, setSelectedProgramId] = useState("");
-  const [selectedYear, setSelectedYear] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const [selectedSemester,  setSelectedSemester]  = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setPageLoading(true);
-        const [departmentsResp, termsResp, programsResp, timetableResp] = await Promise.all([
-          api.get("academics/departments/"),
-          api.get("academics/terms/"),
-          api.get("academics/programs/"),
-          api.get("scheduler/timetables/", {
-            params: { ordering: "-created_at" },
-          }),
-        ]);
+  const [pageLoading,    setPageLoading]    = useState(true);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [generating,     setGenerating]     = useState(false);
+  const [result,         setResult]         = useState(null);
+  const [error,          setError]          = useState("");
 
-        const departmentList = asList(departmentsResp.data);
-        const termList = asList(termsResp.data);
-        const programList = asList(programsResp.data);
-
-        setDepartments(departmentList);
-        setTerms(termList);
-        setPrograms(programList);
-        setTimetables(asList(timetableResp.data));
-
-        if (departmentList.length) {
-          const defaultDepartmentId = String(departmentList[0].id);
-          setSelectedDepartmentId(defaultDepartmentId);
-
-          const defaultPrograms = programList.filter(
-            (program) => String(program.department) === defaultDepartmentId
-          );
-          const defaultProgramId = defaultPrograms.length
-            ? String(defaultPrograms[0].id)
-            : "";
-          setSelectedProgramId(defaultProgramId);
-
-          const defaultTerms = termList.filter(
-            (term) => String(term.program) === defaultProgramId
-          );
-          setSelectedYear(defaultTerms.length ? String(defaultTerms[0].year) : "");
-          setSelectedSemester(defaultTerms.length ? String(defaultTerms[0].semester) : "");
-        }
-      } catch (err) {
-        console.error("Failed to load generator data:", err);
-        setError("Failed to load data. Please check backend connection.");
-      } finally {
-        setPageLoading(false);
-      }
-    };
-
-    load();
+  // ── initial load ────────────────────────────────────────────────────────
+  const loadBase = useCallback(async () => {
+    try {
+      setPageLoading(true);
+      const [progResp, ttResp] = await Promise.all([
+        api.get("academics/programs/"),
+        api.get("scheduler/timetables/", { params: { ordering: "-created_at" } }),
+      ]);
+      setPrograms(asList(progResp.data));
+      setTimetables(asList(ttResp.data));
+    } catch {
+      setError("Failed to load data. Check backend connection.");
+    } finally {
+      setPageLoading(false);
+    }
   }, []);
 
-  const filteredPrograms = useMemo(() => {
-    if (!selectedDepartmentId) return [];
-    return programs.filter(
-      (program) => String(program.department) === selectedDepartmentId
-    );
-  }, [programs, selectedDepartmentId]);
+  useEffect(() => { loadBase(); }, [loadBase]);
 
-  const filteredTerms = useMemo(() => {
-    if (!selectedProgramId) return [];
-    return terms.filter((term) => String(term.program) === selectedProgramId);
-  }, [terms, selectedProgramId]);
+  // ── load sections preview whenever program+semester changes ─────────────
+  useEffect(() => {
+    if (!selectedProgramId || !selectedSemester) {
+      setSections([]);
+      return;
+    }
+    const load = async () => {
+      setSectionsLoading(true);
+      try {
+        const resp = await api.get("academics/student-groups/", {
+          params: {
+            "term__program":  selectedProgramId,
+            "term__semester": selectedSemester,
+          },
+        });
+        setSections(asList(resp.data).sort((a, b) => a.name.localeCompare(b.name)));
+      } catch {
+        setSections([]);
+      } finally {
+        setSectionsLoading(false);
+      }
+    };
+    load();
+  }, [selectedProgramId, selectedSemester]);
 
-  const availableYears = useMemo(() => {
-    const unique = [...new Set(filteredTerms.map((term) => String(term.year)))];
-    return unique.sort((a, b) => Number(a) - Number(b));
-  }, [filteredTerms]);
+  // ── selected program object ──────────────────────────────────────────────
+  const selectedProgram = useMemo(
+    () => programs.find((p) => String(p.id) === String(selectedProgramId)) || null,
+    [programs, selectedProgramId]
+  );
 
-  const availableSemesters = useMemo(() => {
-    if (!selectedYear) return [];
-    const unique = [
-      ...new Set(
-        filteredTerms
-          .filter((term) => String(term.year) === selectedYear)
-          .map((term) => String(term.semester))
-      ),
-    ];
-    return unique.sort((a, b) => Number(a) - Number(b));
-  }, [filteredTerms, selectedYear]);
+  // Semester options: 1 … total_semesters of selected program
+  const semesterOptions = useMemo(() => {
+    if (!selectedProgram) return [];
+    return Array.from({ length: selectedProgram.total_semesters || 8 }, (_, i) => i + 1);
+  }, [selectedProgram]);
 
-  const resolvedTermId = useMemo(() => {
-    const term = filteredTerms.find(
-      (item) =>
-        String(item.year) === selectedYear &&
-        String(item.semester) === selectedSemester
-    );
-    return term ? String(term.id) : "";
-  }, [filteredTerms, selectedYear, selectedSemester]);
-
-  const handleDepartmentChange = (value) => {
-    setSelectedDepartmentId(value);
-    setResult(null);
-    setError("");
-
-    const nextPrograms = programs.filter(
-      (program) => String(program.department) === value
-    );
-    const nextProgramId = nextPrograms.length ? String(nextPrograms[0].id) : "";
-    setSelectedProgramId(nextProgramId);
-
-    const nextTerms = terms.filter((term) => String(term.program) === nextProgramId);
-    setSelectedYear(nextTerms.length ? String(nextTerms[0].year) : "");
-    setSelectedSemester(nextTerms.length ? String(nextTerms[0].semester) : "");
-  };
-
-  const handleProgramChange = (value) => {
-    setSelectedProgramId(value);
-    setResult(null);
-    setError("");
-
-    const nextTerms = terms.filter((term) => String(term.program) === value);
-    setSelectedYear(nextTerms.length ? String(nextTerms[0].year) : "");
-    setSelectedSemester(nextTerms.length ? String(nextTerms[0].semester) : "");
-  };
-
-  const handleYearChange = (value) => {
-    setSelectedYear(value);
-    setResult(null);
-    setError("");
-
-    const semesterValues = filteredTerms
-      .filter((term) => String(term.year) === value)
-      .map((term) => String(term.semester));
-    setSelectedSemester(semesterValues.length ? semesterValues[0] : "");
-  };
-
+  // ── generate ─────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
-    if (!resolvedTermId) return;
-    setLoading(true);
+    if (!selectedProgramId || !selectedSemester || sections.length === 0) return;
+    setGenerating(true);
     setError("");
     setResult(null);
 
     try {
-      const response = await api.post("scheduler/generate/", {
-        term_id: Number(resolvedTermId),
+      const resp = await api.post("scheduler/generate/", {
+        program_id: Number(selectedProgramId),
+        semester:   Number(selectedSemester),
       });
-      setResult(response.data);
+      setResult(resp.data);
 
-      const timetableResp = await api.get("scheduler/timetables/", {
-        params: { ordering: "-created_at" },
-      });
-      setTimetables(asList(timetableResp.data));
+      // Refresh history
+      const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
+      setTimetables(asList(ttResp.data));
     } catch (err) {
-      setError(extractError(err, "Failed to generate timetable."));
+      setError(extractError(err, "Generation failed."));
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
-  const termMap = useMemo(() => Object.fromEntries(terms.map((t) => [t.id, t])), [terms]);
+  const handleProgramChange = (val) => {
+    setSelectedProgramId(val);
+    setSelectedSemester("");
+    setResult(null);
+    setError("");
+    setSections([]);
+  };
+
+  // ── timetable history enriched with program name ─────────────────────────
   const programMap = useMemo(
     () => Object.fromEntries(programs.map((p) => [p.id, p])),
     [programs]
   );
-
-  const departmentMap = useMemo(
-    () => Object.fromEntries(departments.map((d) => [d.id, d])),
-    [departments]
-  );
-
-  const historyRows = useMemo(() => {
-    return timetables.map((tt) => {
-      const term = termMap[tt.term];
-      const program = programMap[term?.program];
-      const department = departmentMap[program?.department];
-      const createdAt = tt.created_at ? new Date(tt.created_at) : null;
-
-      return {
-        id: tt.id,
-        version: tt.version,
-        departmentCode: department?.code || "DEP",
-        programCode: program?.code || "PRG",
-        programName: program?.name || "Unknown Program",
-        year: term?.year || "-",
-        semester: term?.semester || "-",
-        createdDate: createdAt
-          ? createdAt.toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "-",
-        createdTime: createdAt
-          ? createdAt.toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "-",
-      };
-    });
-  }, [timetables, termMap, programMap, departmentMap]);
 
   if (pageLoading) {
     return (
       <DashboardLayout>
         <div className="page-head">
           <h1>Timetable Generator</h1>
-          <p className="upload-help">Loading generation parameters...</p>
+          <p className="upload-help">Loading...</p>
         </div>
       </DashboardLayout>
     );
   }
 
+  const canGenerate = selectedProgramId && selectedSemester && sections.length > 0 && !generating;
+  const derivedYear = selectedSemester ? yearFromSemester(Number(selectedSemester)) : null;
+
   return (
     <DashboardLayout>
       <div className="page-head">
         <h1>Timetable Generator</h1>
-        <p>Configure generation parameters and create constraint-aware academic timetables.</p>
+        <p>
+          Select a program and semester — the scheduler will assign rooms, time slots,
+          and faculty for every registered section automatically.
+        </p>
       </div>
 
       <div className="generator-grid">
+
+        {/* ── LEFT: Parameters ─────────────────────────────────────────────── */}
         <section className="data-card generator-params-card">
           <h3>Generation Parameters</h3>
 
-          <div className="generator-fields">
-            <label className="generator-label">Department / School *</label>
-            <select
-              className="input"
-              value={selectedDepartmentId}
-              onChange={(e) => handleDepartmentChange(e.target.value)}
-            >
-              <option value="">Select department</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>
-                  {department.code} - {department.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
+          {/* Program */}
           <div className="generator-fields">
             <label className="generator-label">Program *</label>
             <select
@@ -255,99 +156,215 @@ function TimetableGeneratorPage() {
               onChange={(e) => handleProgramChange(e.target.value)}
             >
               <option value="">Select program</option>
-              {filteredPrograms.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.code} - {program.name}
+              {programs.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.display_name || p.name} ({p.code})
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="generator-fields">
-            <label className="generator-label">Year *</label>
-            <select
-              className="input"
-              value={selectedYear}
-              onChange={(e) => handleYearChange(e.target.value)}
-            >
-              <option value="">Select year</option>
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  Year {year}
-                </option>
-              ))}
-            </select>
-          </div>
-
+          {/* Semester — shown as "Semester 1", "Semester 2" … based on program duration */}
           <div className="generator-fields">
             <label className="generator-label">Semester *</label>
             <select
               className="input"
               value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
+              onChange={(e) => { setSelectedSemester(e.target.value); setResult(null); setError(""); }}
+              disabled={!selectedProgramId}
             >
-              <option value="">Select semester</option>
-              {availableSemesters.map((semester) => (
-                <option key={semester} value={semester}>
-                  Semester {semester}
+              <option value="">
+                {selectedProgramId ? "Select semester" : "Select program first"}
+              </option>
+              {semesterOptions.map((s) => (
+                <option key={s} value={s}>
+                  Semester {s}  (Year {yearFromSemester(s)})
                 </option>
               ))}
             </select>
           </div>
 
-          {!resolvedTermId && selectedProgramId && selectedYear ? (
-            <p className="upload-help">No academic term exists for this Program/Year/Semester selection.</p>
-          ) : null}
+          {/* Year derived info */}
+          {selectedSemester && (
+            <p className="input-hint" style={{ marginBottom: 12 }}>
+              Academic year <strong>Year {derivedYear}</strong> of{" "}
+              {selectedProgram?.display_name || selectedProgram?.name}
+            </p>
+          )}
+
+          {/* Sections preview */}
+          {selectedProgramId && selectedSemester && (
+            <div style={{
+              background: "var(--sidebar-bg, rgba(0,0,0,0.04))",
+              borderRadius: 8, padding: 12, marginBottom: 16,
+              border: "1px solid var(--border)",
+            }}>
+              <p style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6, color: "var(--muted)" }}>
+                SECTIONS TO BE SCHEDULED
+              </p>
+              {sectionsLoading ? (
+                <p className="upload-help" style={{ margin: 0 }}>Loading sections...</p>
+              ) : sections.length === 0 ? (
+                <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: 0 }}>
+                  No sections registered for{" "}
+                  {selectedProgram?.display_name} Sem {selectedSemester}.{" "}
+                  <a href="/sections" style={{ color: "var(--brand)" }}>Register sections first →</a>
+                </p>
+              ) : (
+                <>
+                  <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: 8 }}>
+                    {sections.length} section{sections.length > 1 ? "s" : ""} found — all will be scheduled in this run
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {sections.map((s) => (
+                      <div key={s.id} style={{
+                        background: "var(--card-bg)", border: "1px solid var(--border)",
+                        borderRadius: 6, padding: "4px 10px", fontSize: "0.82rem",
+                        display: "flex", alignItems: "center", gap: 6,
+                      }}>
+                        <FaUsers style={{ color: "var(--brand)", fontSize: 11 }} />
+                        <strong>Section {s.name}</strong>
+                        <span style={{ color: "var(--muted)" }}>{s.strength} students</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <button
             type="button"
             className="btn-primary generator-btn"
             onClick={handleGenerate}
-            disabled={!resolvedTermId || loading}
+            disabled={!canGenerate}
           >
-            {loading ? "Generating..." : "Generate Baseline Timetable"}
+            <FaMagic style={{ marginRight: 6 }} />
+            {generating
+              ? `Scheduling ${sections.length} section${sections.length > 1 ? "s" : ""}...`
+              : "Generate Timetable"}
           </button>
 
-          {error ? <p className="upload-error generator-error">{error}</p> : null}
+          {error && <p className="upload-error generator-error">{error}</p>}
 
-          {result ? (
-            <div className="generator-result">
-              <div><span>Status</span><strong>{result.status}</strong></div>
-              <div><span>Allocations</span><strong>{result.allocations ?? 0}</strong></div>
-              <div><span>Avg Score</span><strong>{result.avg_score != null ? Number(result.avg_score).toFixed(3) : "N/A"}</strong></div>
-              <div><span>ML Used</span><strong>{String(result.ml_used ?? false)}</strong></div>
+          {/* Result card */}
+          {result && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+                color: result.status === "success" ? "var(--brand)" : "#f59e0b",
+                fontWeight: 600, fontSize: "0.9rem",
+              }}>
+                {result.status === "success"
+                  ? <FaCheckCircle />
+                  : <FaExclamationTriangle />}
+                {result.status === "success" ? "Fully Scheduled" : "Partially Scheduled"}
+              </div>
+
+              <div className="generator-result">
+                <div><span>Allocations</span><strong>{result.allocations ?? 0}</strong></div>
+                <div><span>Avg Score</span><strong>
+                  {result.avg_score != null ? Number(result.avg_score).toFixed(3) : "N/A"}
+                </strong></div>
+                <div><span>ML Used</span><strong>{result.ml_used ? "Yes" : "No"}</strong></div>
+              </div>
+
+              {/* Per-section breakdown */}
+              {Array.isArray(result.sections) && result.sections.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>
+                    PER-SECTION RESULT
+                  </p>
+                  <div className="table-wrap" style={{ fontSize: "0.85rem" }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Section</th>
+                          <th>Strength</th>
+                          <th>Sessions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.sections.map((s) => (
+                          <tr key={s.section}>
+                            <td><strong>Section {s.section}</strong></td>
+                            <td>{s.strength}</td>
+                            <td>
+                              <span style={{ color: s.allocated > 0 ? "var(--brand)" : "#ef4444" }}>
+                                {s.allocated} scheduled
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : null}
+          )}
         </section>
 
+        {/* ── RIGHT: Generation History ────────────────────────────────────── */}
         <section className="data-card generator-history-card">
           <h3>Generation History</h3>
-          <p className="upload-help">Programs and terms for previously generated timetables.</p>
+          <p className="upload-help">Previously generated timetables.</p>
 
-          {historyRows.length ? (
-            <div className="history-list">
-              {historyRows.map((item) => (
-                <article key={item.id} className="history-item">
-                  <div className="history-main">
-                    <h4>{item.departmentCode} / {item.programCode} - Year {item.year} Sem {item.semester}</h4>
-                    <p>{item.programName}</p>
-                  </div>
-                  <div className="history-meta">
-                    <small>{item.createdDate} {item.createdTime}</small>
-                    <span>V{item.version}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
+          {timetables.length === 0 ? (
+            <p className="upload-help">No generation history yet.</p>
           ) : (
-            <p className="upload-help">No generation history yet. Generate your first timetable.</p>
+            <div className="history-list">
+              {timetables.map((tt) => {
+                // Enrich from known programs (best-effort — term info not always in list)
+                const createdAt = tt.created_at ? new Date(tt.created_at) : null;
+                return (
+                  <article key={tt.id} className="history-item">
+                    <div className="history-main">
+                      <h4>
+                        Term #{tt.term} — Version {tt.version}
+                        {tt.is_finalized && (
+                          <span style={{
+                            marginLeft: 8, fontSize: "0.7rem", background: "var(--brand)",
+                            color: "#fff", borderRadius: 4, padding: "1px 6px",
+                          }}>
+                            FINAL
+                          </span>
+                        )}
+                      </h4>
+                      <p style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
+                        Score: {tt.total_constraint_score?.toFixed(3) ?? "—"}
+                      </p>
+                    </div>
+                    <div className="history-meta">
+                      <small>
+                        {createdAt
+                          ? createdAt.toLocaleDateString("en-IN", {
+                              day: "2-digit", month: "short", year: "numeric",
+                            })
+                          : "—"}
+                      </small>
+                      <small style={{ color: "var(--muted)" }}>
+                        {createdAt
+                          ? createdAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                          : ""}
+                      </small>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
         </section>
       </div>
 
-      {result && Array.isArray(result.unscheduled) && result.unscheduled.length ? (
-        <section className="data-card">
-          <h3>Unscheduled Items</h3>
+      {/* Unscheduled items */}
+      {result && Array.isArray(result.unscheduled) && result.unscheduled.length > 0 && (
+        <section className="data-card" style={{ marginTop: 0 }}>
+          <h3>Unscheduled Items ({result.unscheduled.length})</h3>
+          <p className="upload-help">
+            These could not be placed due to room/faculty/slot conflicts.
+            Check that rooms, faculty, and course offerings are properly configured.
+          </p>
           <div className="upload-partial">
             <ul>
               {result.unscheduled.map((item, idx) => (
@@ -356,7 +373,7 @@ function TimetableGeneratorPage() {
             </ul>
           </div>
         </section>
-      ) : null}
+      )}
     </DashboardLayout>
   );
 }

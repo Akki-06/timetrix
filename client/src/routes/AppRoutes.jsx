@@ -4,6 +4,8 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import LoginPage from "../pages/LoginPage";
 import Dashboard from "../pages/Dashboard";
 import FacultyPage from "../pages/FacultyPage";
+import ProgramsPage from "../pages/ProgramsPage";
+import SectionsPage from "../pages/SectionsPage";
 import CoursesPage from "../pages/CoursesPage";
 import InfrastructurePage from "../pages/InfrastructurePage";
 import TimetableGeneratorPage from "../pages/TimetableGeneratorPage";
@@ -26,6 +28,18 @@ function AppRoutes() {
         <Route path="/faculty" element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <FacultyPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/programs" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <ProgramsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/sections" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <SectionsPage />
           </ProtectedRoute>
         } />
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Timetable, TimeSlot, LectureAllocation
+from .models import Timetable, TimeSlot, LectureAllocation, SchedulerConfig, Notification
 
 
 # ----------------------------
@@ -100,3 +100,25 @@ class LectureAllocationSerializer(serializers.ModelSerializer):
         model = LectureAllocation
         fields = "__all__"
         read_only_fields = ["student_group"]
+
+
+# ----------------------------
+# SCHEDULER CONFIG
+# ----------------------------
+
+class SchedulerConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = SchedulerConfig
+        fields = "__all__"
+        read_only_fields = ["id"]
+
+
+# ----------------------------
+# NOTIFICATION
+# ----------------------------
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Notification
+        fields = "__all__"
+        read_only_fields = ["created_at"]

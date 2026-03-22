@@ -70,6 +70,18 @@ client/dist/
 client/build/
 client/node_modules/
 
+# Vite & tooling caches
+.vite/
+client/.vite/
+.eslintcache
+*.tsbuildinfo
+
+# Local env overrides
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # ==============================
 # Coverage / Testing
 # ==============================
@@ -101,5 +113,5 @@ viz_*.png
 *.swp
 *.swo
 *.bak
-.vscode
-.claude
+.vscode/
+.claude/

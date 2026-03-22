@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { toBoolean, toNumber } from "../utils/spreadsheet";
+import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
 import { FaBook, FaTrash } from "react-icons/fa";
 
@@ -158,29 +158,23 @@ function CoursesPage() {
           name: "Advanced Algorithms",
           credits: 3,
           course_type: "PC",
-          min_weekly_lectures: 3,
-          max_weekly_lectures: 3,
-          priority: 1,
-          requires_lab_room: false,
-          requires_consecutive_slots: false,
+          program: "BCA",
+          semester: 5,
         }}
         mapRow={(row) => {
           const credits = toNumber(row.credits, 3);
           const ct = String(row.course_type || "PC").toUpperCase();
-          const lectures = lecturesFromCredits(credits, ct);
+          const progCode = String(row.program || "").trim();
+          const prog = programs.find(
+            (p) => p.code.toLowerCase() === progCode.toLowerCase()
+          );
           return {
             code: row.code,
             name: row.name,
             credits,
             course_type: ct,
-            min_weekly_lectures: toNumber(row.min_weekly_lectures, lectures),
-            max_weekly_lectures: toNumber(row.max_weekly_lectures, lectures),
-            priority: toNumber(row.priority, 1),
-            requires_lab_room: ct === "PR" || toBoolean(row.requires_lab_room, false),
-            requires_consecutive_slots: toBoolean(
-              row.requires_consecutive_slots,
-              ct === "PR"
-            ),
+            program: prog?.id || null,
+            semester: toNumber(row.semester, null),
           };
         }}
         onUploadComplete={loadAll}
@@ -211,7 +205,7 @@ function CoursesPage() {
                 <option value="">Choose program</option>
                 {programs.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
+                    {p.display_name || p.name} ({p.code})
                   </option>
                 ))}
               </select>
@@ -228,7 +222,13 @@ function CoursesPage() {
                 }
               >
                 <option value="">Choose semester</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                {Array.from(
+                  { length: (() => {
+                    const sel = programs.find((p) => String(p.id) === String(form.program));
+                    return sel?.total_semesters || 8;
+                  })() },
+                  (_, i) => i + 1
+                ).map((s) => (
                   <option key={s} value={s}>
                     Semester {s}
                   </option>
