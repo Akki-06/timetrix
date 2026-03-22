@@ -353,7 +353,8 @@ def train(model, x, edge_index, node_type_ids, type_masks,
             log.info(f"  Epoch {epoch:3d}/{EPOCHS} | "
                      f"loss={loss_val:.4f} | acc={acc:.4f}")
 
-        # Early stopping
+        # Early stopping: if loss hasn't improved for PATIENCE epochs, stop.
+        # Saves the best model weights so we can restore them after stopping.
         if loss_val < best_loss - 1e-4:
             best_loss     = loss_val
             patience_left = PATIENCE
