@@ -252,7 +252,7 @@ class MLScorer:
 
             # 6-7: session type flags
             is_lab_f = float(is_lab)
-            is_consecutive_lab = 1.0 if (is_lab and requires_consecutive_slots) else 0.0
+            is_consecutive_lab = 1.0 if requires_consecutive_slots else 0.0
 
             # 8-9: time-of-day indicators
             is_morning = 1.0 if slot <= 3 else 0.0
@@ -611,7 +611,7 @@ class SchedulerEngine:
             room_type                  = room.room_type,
             room_capacity              = room.capacity,
             requires_consecutive_slots = bool(course.requires_consecutive_slots),
-            is_elective                = (course.course_type == "ELECTIVE"),
+            is_elective                = course.course_type in {"OE", "PE"},
             section_name               = group.name,
             program_code               = getattr(self.term.program, "code", None),
             current_load_today         = today_load,
@@ -661,7 +661,8 @@ class SchedulerEngine:
                     if not meta:
                         continue
 
-                    for room in self.lab_rooms:
+                    room_pool = self.lab_rooms if course.requires_lab_room else self.theory_rooms
+                    for room in room_pool:
                         if scheduled:
                             break
                         if room.capacity < group.strength:
@@ -737,9 +738,10 @@ class SchedulerEngine:
                             if s1 not in avail or s2 not in avail:
                                 continue
 
-                            # Need 2 free lab rooms at this pair
+                            # Need 2 free rooms at this pair
+                            room_pool = self.lab_rooms if course.requires_lab_room else self.theory_rooms
                             free_rooms = []
-                            for room in self.lab_rooms:
+                            for room in room_pool:
                                 if room.capacity < group.strength // 2:
                                     continue
                                 ok, _ = self.tracker.check_pair(
@@ -1141,7 +1143,6 @@ class SchedulerEngine:
             o for o in self.offerings
             if o.course.requires_lab_room
             or o.course.requires_consecutive_slots
-            or o.course.course_type == "LAB"
         ]
         theory_offerings = [
             o for o in self.offerings

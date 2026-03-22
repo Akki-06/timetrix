@@ -47,10 +47,6 @@ class CourseSerializer(serializers.ModelSerializer):
     program_name = serializers.CharField(source="program.name", read_only=True, default=None)
 
     def validate(self, data):
-        if data["min_weekly_lectures"] > data["max_weekly_lectures"]:
-            raise serializers.ValidationError(
-                "Minimum lectures cannot exceed maximum lectures."
-            )
         return data
 
     class Meta:
@@ -83,16 +79,6 @@ class StudentGroupSerializer(serializers.ModelSerializer):
 class CourseOfferingSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
-        course = data["course"]
-        student_group = data["student_group"]
-
-        # Optional logical validation:
-        # Prevent assigning LAB course without lab requirement
-        if course.requires_lab_room and course.course_type != "LAB":
-            raise serializers.ValidationError(
-                "Course marked as requiring lab must be of LAB type."
-            )
-
         return data
 
     class Meta:

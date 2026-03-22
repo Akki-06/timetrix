@@ -101,3 +101,5 @@ viz_*.png
 *.swp
 *.swo
 *.bak
+.vscode
+.claude
