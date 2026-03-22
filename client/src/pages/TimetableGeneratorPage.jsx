@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
-
-function asList(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
-}
+import { asList, extractError } from "../utils/helpers";
 
 function TimetableGeneratorPage() {
   const [departments, setDepartments] = useState([]);
@@ -18,46 +13,55 @@ function TimetableGeneratorPage() {
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const load = async () => {
-      const [departmentsResp, termsResp, programsResp, timetableResp] = await Promise.all([
-        api.get("academics/departments/"),
-        api.get("academics/terms/"),
-        api.get("academics/programs/"),
-        api.get("scheduler/timetables/", {
-          params: { ordering: "-created_at" },
-        }),
-      ]);
+      try {
+        setPageLoading(true);
+        const [departmentsResp, termsResp, programsResp, timetableResp] = await Promise.all([
+          api.get("academics/departments/"),
+          api.get("academics/terms/"),
+          api.get("academics/programs/"),
+          api.get("scheduler/timetables/", {
+            params: { ordering: "-created_at" },
+          }),
+        ]);
 
-      const departmentList = asList(departmentsResp.data);
-      const termList = asList(termsResp.data);
-      const programList = asList(programsResp.data);
+        const departmentList = asList(departmentsResp.data);
+        const termList = asList(termsResp.data);
+        const programList = asList(programsResp.data);
 
-      setDepartments(departmentList);
-      setTerms(termList);
-      setPrograms(programList);
-      setTimetables(asList(timetableResp.data));
+        setDepartments(departmentList);
+        setTerms(termList);
+        setPrograms(programList);
+        setTimetables(asList(timetableResp.data));
 
-      if (departmentList.length) {
-        const defaultDepartmentId = String(departmentList[0].id);
-        setSelectedDepartmentId(defaultDepartmentId);
+        if (departmentList.length) {
+          const defaultDepartmentId = String(departmentList[0].id);
+          setSelectedDepartmentId(defaultDepartmentId);
 
-        const defaultPrograms = programList.filter(
-          (program) => String(program.department) === defaultDepartmentId
-        );
-        const defaultProgramId = defaultPrograms.length
-          ? String(defaultPrograms[0].id)
-          : "";
-        setSelectedProgramId(defaultProgramId);
+          const defaultPrograms = programList.filter(
+            (program) => String(program.department) === defaultDepartmentId
+          );
+          const defaultProgramId = defaultPrograms.length
+            ? String(defaultPrograms[0].id)
+            : "";
+          setSelectedProgramId(defaultProgramId);
 
-        const defaultTerms = termList.filter(
-          (term) => String(term.program) === defaultProgramId
-        );
-        setSelectedYear(defaultTerms.length ? String(defaultTerms[0].year) : "");
-        setSelectedSemester(defaultTerms.length ? String(defaultTerms[0].semester) : "");
+          const defaultTerms = termList.filter(
+            (term) => String(term.program) === defaultProgramId
+          );
+          setSelectedYear(defaultTerms.length ? String(defaultTerms[0].year) : "");
+          setSelectedSemester(defaultTerms.length ? String(defaultTerms[0].semester) : "");
+        }
+      } catch (err) {
+        console.error("Failed to load generator data:", err);
+        setError("Failed to load data. Please check backend connection.");
+      } finally {
+        setPageLoading(false);
       }
     };
 
@@ -156,8 +160,7 @@ function TimetableGeneratorPage() {
       });
       setTimetables(asList(timetableResp.data));
     } catch (err) {
-      const message = err?.response?.data?.error || err?.message || "Failed to generate timetable.";
-      setError(message);
+      setError(extractError(err, "Failed to generate timetable."));
     } finally {
       setLoading(false);
     }
@@ -205,6 +208,17 @@ function TimetableGeneratorPage() {
       };
     });
   }, [timetables, termMap, programMap, departmentMap]);
+
+  if (pageLoading) {
+    return (
+      <DashboardLayout>
+        <div className="page-head">
+          <h1>Timetable Generator</h1>
+          <p className="upload-help">Loading generation parameters...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -281,7 +295,7 @@ function TimetableGeneratorPage() {
             </select>
           </div>
 
-          {!resolvedTermId ? (
+          {!resolvedTermId && selectedProgramId && selectedYear ? (
             <p className="upload-help">No academic term exists for this Program/Year/Semester selection.</p>
           ) : null}
 
@@ -300,8 +314,8 @@ function TimetableGeneratorPage() {
             <div className="generator-result">
               <div><span>Status</span><strong>{result.status}</strong></div>
               <div><span>Allocations</span><strong>{result.allocations ?? 0}</strong></div>
-              <div><span>Avg Score</span><strong>{result.avg_score ?? 0}</strong></div>
-              <div><span>ML Used</span><strong>{String(result.ml_used)}</strong></div>
+              <div><span>Avg Score</span><strong>{result.avg_score != null ? Number(result.avg_score).toFixed(3) : "N/A"}</strong></div>
+              <div><span>ML Used</span><strong>{String(result.ml_used ?? false)}</strong></div>
             </div>
           ) : null}
         </section>
@@ -336,8 +350,8 @@ function TimetableGeneratorPage() {
           <h3>Unscheduled Items</h3>
           <div className="upload-partial">
             <ul>
-              {result.unscheduled.map((item) => (
-                <li key={item}>{item}</li>
+              {result.unscheduled.map((item, idx) => (
+                <li key={idx}>{item}</li>
               ))}
             </ul>
           </div>

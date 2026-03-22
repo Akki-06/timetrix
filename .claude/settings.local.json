@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py check)",
+      "Bash(python -c \"from faculty.views import *\")",
+      "Bash(python manage.py runserver)"
+    ]
+  }
+}

@@ -1,4 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import ProtectedRoute from "../components/ProtectedRoute";
+import LoginPage from "../pages/LoginPage";
 import Dashboard from "../pages/Dashboard";
 import FacultyPage from "../pages/FacultyPage";
 import CoursesPage from "../pages/CoursesPage";
@@ -8,16 +11,55 @@ import GeneratedTimetablesPage from "../pages/GeneratedTimetablesPage";
 import SettingsPage from "../pages/SettingsPage";
 
 function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/faculty" element={<FacultyPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/infrastructure" element={<InfrastructurePage />} />
-        <Route path="/generator" element={<TimetableGeneratorPage />} />
-        <Route path="/generated" element={<GeneratedTimetablesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        />
+
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+        <Route path="/faculty" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <FacultyPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/courses" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <CoursesPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/infrastructure" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <InfrastructurePage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/generator" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <TimetableGeneratorPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/generated" element={
+          <ProtectedRoute allowedRoles={["admin", "teacher", "student"]}>
+            <GeneratedTimetablesPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
       </Routes>
     </BrowserRouter>
   );
