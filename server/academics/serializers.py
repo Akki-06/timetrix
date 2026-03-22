@@ -24,6 +24,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class ProgramSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source="department.name", read_only=True, default=None)
+    display_name = serializers.CharField(read_only=True)
+
     class Meta:
         model = Program
         fields = "__all__"
@@ -34,6 +37,9 @@ class ProgramSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class AcademicTermSerializer(serializers.ModelSerializer):
+    program_name = serializers.CharField(source="program.display_name", read_only=True, default=None)
+    program_code = serializers.CharField(source="program.code", read_only=True, default=None)
+
     class Meta:
         model = AcademicTerm
         fields = "__all__"
@@ -44,7 +50,7 @@ class AcademicTermSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class CourseSerializer(serializers.ModelSerializer):
-    program_name = serializers.CharField(source="program.name", read_only=True, default=None)
+    program_name = serializers.CharField(source="program.display_name", read_only=True, default=None)
 
     def validate(self, data):
         return data
@@ -59,12 +65,16 @@ class CourseSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class StudentGroupSerializer(serializers.ModelSerializer):
+    # Read-only context fields so the frontend can display program/semester without extra calls
+    program_id   = serializers.IntegerField(source="term.program.id",           read_only=True)
+    program_name = serializers.CharField(source="term.program.display_name",    read_only=True)
+    program_code = serializers.CharField(source="term.program.code",            read_only=True)
+    semester     = serializers.IntegerField(source="term.semester",             read_only=True)
+    year         = serializers.IntegerField(source="term.year",                 read_only=True)
 
     def validate(self, data):
-        if data["strength"] <= 0:
-            raise serializers.ValidationError(
-                "Student group strength must be greater than zero."
-            )
+        if data.get("strength", 1) <= 0:
+            raise serializers.ValidationError("Student group strength must be greater than zero.")
         return data
 
     class Meta:

@@ -58,7 +58,7 @@ from django.db import transaction
 from academics.models    import AcademicTerm, CourseOffering, Course
 from faculty.models      import Faculty, FacultySubjectEligibility, TeacherAvailability
 from infrastructure.models import Room
-from scheduler.models    import Timetable, TimeSlot, LectureAllocation
+from scheduler.models    import Timetable, TimeSlot, LectureAllocation, SchedulerConfig
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ DAYS = ["MON", "TUE", "WED", "THU", "FRI"]
 # Day abbreviation → full name for ML scorer
 DAY_FULL = {
     "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
-    "THU": "Thursday", "FRI": "Friday"
+    "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday",
 }
 
 # Canonical slot numbers (1-6, no lunch)
@@ -230,8 +230,10 @@ class MLScorer:
             load_remaining = max(0.0, (max_h - cur_load) / max(max_h, 1))
 
             # 2: did this faculty actually teach at this (day, slot) in training data?
+            #    Training stats use full day names ("Monday"), engine uses abbreviations ("MON")
+            day_full = DAY_FULL.get(day, day)
             actual_slots = self.stats.get("fac_actual_slots", {}).get(faculty_name, set())
-            is_known_slot = 1.0 if (day, slot) in actual_slots else 0.0
+            is_known_slot = 1.0 if (day_full, slot) in actual_slots else 0.0
 
             # 3: how often this faculty teaches this specific course (normalized)
             freq = self.stats.get("fac_course_freq", {}).get(
@@ -248,7 +250,8 @@ class MLScorer:
             slot_pop = self.stats.get("slot_popularity", {}).get(slot, 0.5)
 
             # 5: how popular this day is in the training data
-            day_pop = self.stats.get("day_popularity", {}).get(day, 0.5)
+            #    day_popularity keys are full names ("Monday") from training CSV
+            day_pop = self.stats.get("day_popularity", {}).get(day_full, 0.5)
 
             # 6-7: session type flags
             is_lab_f = float(is_lab)
@@ -455,6 +458,8 @@ class SchedulerEngine:
         self.term    = self.timetable.term
         self.ml      = MLScorer()
         self.tracker = ConstraintTracker()
+        # Load admin-configurable settings once per run
+        self.config  = SchedulerConfig.get()
 
         # Populated in _load()
         self.slot_map     = {}   # (day, slot_number) → TimeSlot obj
@@ -505,6 +510,9 @@ class SchedulerEngine:
             f"{len(self.theory_rooms)} theory"
         )
 
+        # Effective day list — include Saturday if admin enabled weekend classes
+        active_days = DAYS + (["SAT"] if self.config.allow_weekend_classes else [])
+
         # Faculty availability + constraints
         for fac in Faculty.objects.filter(is_active=True).prefetch_related(
             "availabilities"
@@ -512,19 +520,20 @@ class SchedulerEngine:
             avail_days        = set()
             avail_slots_by_day = defaultdict(set)
 
-            for av in fac.availabilities.all():
-                avail_days.add(av.day)
-                for s in range(av.start_slot, av.end_slot + 1):
-                    avail_slots_by_day[av.day].add(s)
+            if self.config.enforce_faculty_availability:
+                for av in fac.availabilities.all():
+                    avail_days.add(av.day)
+                    for s in range(av.start_slot, av.end_slot + 1):
+                        avail_slots_by_day[av.day].add(s)
 
-            # No availability rows → available all days, all slots
+            # No availability rows (or enforcement disabled) → open all active days
             if not avail_days:
-                avail_days = set(DAYS)
-                for d in DAYS:
+                avail_days = set(active_days)
+                for d in active_days:
                     avail_slots_by_day[d] = set(TEACHING_SLOTS)
 
-            # Hard cap is min of model field and role cap
-            role_cap  = MAX_HOURS_BY_ROLE.get(fac.role, 18)
+            # Hard cap is min of model field and admin-configured role cap
+            role_cap  = self.config.role_cap(fac.role)
             max_weekly = min(fac.max_weekly_load, role_cap)
 
             self.faculty_meta[fac.id] = {
@@ -584,6 +593,18 @@ class SchedulerEngine:
                 f"Using all active faculty as fallback."
             )
             result = list(Faculty.objects.filter(is_active=True))
+
+        # If admin enabled senior-priority, bubble HOD/SENIOR to the top
+        # (assigned_faculty already at front, so we only re-sort the rest)
+        if self.config.prioritize_senior_faculty:
+            _senior_roles = {"DEAN", "HOD", "SENIOR"}
+            assigned = result[0] if result and offering.assigned_faculty == result[0] else None
+            rest = result[1:] if assigned else result
+            rest_sorted = sorted(
+                rest,
+                key=lambda f: (0 if f.role in _senior_roles else 1),
+            )
+            result = ([assigned] + rest_sorted) if assigned else rest_sorted
 
         return result
 

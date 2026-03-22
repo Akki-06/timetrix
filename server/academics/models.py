@@ -24,22 +24,26 @@ class Program(models.Model):
         on_delete=models.CASCADE,
         related_name="programs"
     )
-    name = models.CharField(max_length=200)
-    code = models.CharField(max_length=20)
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=50, unique=True)
+    specialization = models.CharField(max_length=150, blank=True, default="")
+    total_years = models.PositiveIntegerField(default=4)
+    total_semesters = models.PositiveIntegerField(default=8)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["department", "code"],
-                name="unique_program_per_department"
-            )
-        ]
         indexes = [
             models.Index(fields=["code"]),
+            models.Index(fields=["department"]),
         ]
 
+    @property
+    def display_name(self):
+        if self.specialization:
+            return f"{self.name} ({self.specialization})"
+        return self.name
+
     def __str__(self):
-        return f"{self.name} ({self.code})"
+        return self.display_name
 
 
 class WorkingDay(models.Model):

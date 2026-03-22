@@ -8,11 +8,15 @@ import {
   FaCalendarAlt,
   FaGraduationCap,
   FaMagic,
+  FaUniversity,
+  FaUsers,
 } from "react-icons/fa";
 
 const MENU_ITEMS = [
   { label: "Dashboard", to: "/", icon: FaChartPie, roles: ["admin", "teacher", "student"] },
   { label: "Faculty", to: "/faculty", icon: FaChalkboardTeacher, roles: ["admin"] },
+  { label: "Programs", to: "/programs", icon: FaUniversity, roles: ["admin"] },
+  { label: "Sections", to: "/sections", icon: FaUsers, roles: ["admin"] },
   { label: "Courses", to: "/courses", icon: FaGraduationCap, roles: ["admin"] },
   { label: "Infrastructure", to: "/infrastructure", icon: FaBuilding, roles: ["admin"] },
   { label: "Generator", to: "/generator", icon: FaMagic, roles: ["admin"] },
@@ -20,13 +24,19 @@ const MENU_ITEMS = [
   { label: "Settings", to: "/settings", icon: FaCog, roles: ["admin"] },
 ];
 
-function Sidebar({ collapsed }) {
+function Sidebar({ collapsed, mobileOpen, onMobileClose }) {
   const { user } = useAuth();
   const role = user?.role || "student";
   const visibleItems = MENU_ITEMS.filter((item) => item.roles.includes(role));
 
+  const cls = [
+    "sidebar",
+    collapsed ? "collapsed" : "",
+    mobileOpen ? "mobile-open" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={cls}>
       <div className="sidebar-brand">
         <div className="sidebar-logo">
           <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
@@ -53,6 +63,7 @@ function Sidebar({ collapsed }) {
               `sidebar-item ${isActive ? "active" : ""}`
             }
             title={item.label}
+            onClick={onMobileClose}
           >
             <span className="sidebar-item-icon"><item.icon /></span>
             {!collapsed && <span className="sidebar-item-text">{item.label}</span>}
