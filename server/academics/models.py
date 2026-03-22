@@ -111,6 +111,11 @@ class CourseType(models.TextChoices):
     RND = "RND", "Research"
 
 
+_NOT_SCHEDULED     = {"DIS", "INT", "RND"}
+_CONSECUTIVE_TYPES = {"PR", "PRJ"}
+_LAB_ROOM_TYPES    = {"PR"}
+
+
 class Course(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=150)
@@ -131,13 +136,38 @@ class Course(models.Model):
         default=CourseType.PC
     )
 
-    min_weekly_lectures = models.PositiveIntegerField()
-    max_weekly_lectures = models.PositiveIntegerField()
+    min_weekly_lectures = models.PositiveIntegerField(default=0)
+    max_weekly_lectures = models.PositiveIntegerField(default=0)
 
     # Constraint Support
     priority = models.PositiveIntegerField(default=1)
     requires_lab_room = models.BooleanField(default=False)
     requires_consecutive_slots = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        ct = self.course_type
+        if ct in _CONSECUTIVE_TYPES:
+            lectures = 1
+        elif ct in _NOT_SCHEDULED:
+            lectures = 0
+        else:
+            lectures = min(self.credits, 4)
+
+        self.min_weekly_lectures        = lectures
+        self.max_weekly_lectures        = lectures
+        self.requires_lab_room          = (ct in _LAB_ROOM_TYPES)
+        self.requires_consecutive_slots = (ct in _CONSECUTIVE_TYPES)
+
+        # Priority: PR=5, PC/BSC/ESC=4, PE/OE/HUM=3, LS/VAM/AEC=2, rest=1
+        _priority = {
+            "PR": 5,
+            "PC": 4, "BSC": 4, "ESC": 4,
+            "PE": 3, "OE": 3, "HUM": 3,
+            "LS": 2, "VAM": 2, "AEC": 2,
+        }
+        self.priority = _priority.get(ct, 1)
+
+        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [

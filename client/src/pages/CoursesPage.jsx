@@ -24,7 +24,7 @@ const COURSE_TYPES = [
   // Schedulable: lab
   { value: "PR",  label: "Practical (Lab)",           group: "lab" },
   // Not schedulable
-  { value: "PRJ", label: "Project",                   group: "none" },
+  { value: "PRJ", label: "Project",                   group: "project" },
   { value: "DIS", label: "Dissertation",              group: "none" },
   { value: "INT", label: "Internship",                group: "none" },
   { value: "RND", label: "Research",                  group: "none" },
@@ -38,17 +38,12 @@ COURSE_TYPES.forEach((t) => { TYPE_MAP[t.value] = t; });
    (derived from 743-course DBUU syllabus data)
    ──────────────────────────────────────────── */
 function lecturesFromCredits(credits, courseType) {
-  const c = Number(credits) || 0;
-  const info = TYPE_MAP[courseType];
-  if (!info) return c;
-
-  switch (info.group) {
-    case "theory": return c;                    // 1 credit = 1 lecture
-    case "lab":    return c * 2;                // 1 credit = 2 practical hrs
-    case "fixed":  return c >= 4 ? 1 : Math.max(c, 1); // mentoring: capped
-    case "none":   return 0;                    // not schedulable
-    default:       return c;
-  }
+  // PRJ and PR: always 1 session/week (scheduler handles 2 consecutive slots)
+  if (courseType === "PR" || courseType === "PRJ") return 1;
+  // Truly non-schedulable
+  if (courseType === "DIS" || courseType === "INT" || courseType === "RND") return 0;
+  // Everything else (PC, PE, OE, BSC, ESC, HUM, LS, VAM, AEC): credit-mapped
+  return Math.min(Number(credits) || 0, 4);
 }
 
 function isLabType(ct) {
@@ -56,8 +51,7 @@ function isLabType(ct) {
 }
 
 function isNonSchedulable(ct) {
-  const info = TYPE_MAP[ct];
-  return info?.group === "none";
+  return ct === "DIS" || ct === "INT" || ct === "RND";
 }
 
 const INITIAL_FORM = {
@@ -108,19 +102,20 @@ function CoursesPage() {
     setSuccess("");
     setSubmitting(true);
 
-    const lectures = lecturesFromCredits(form.credits, form.course_type);
+    const courseType = form.course_type;
+    const lectures = lecturesFromCredits(form.credits, courseType);
 
     try {
       const payload = {
         code: form.code,
         name: form.name,
         credits: Number(form.credits),
-        course_type: form.course_type,
+        course_type: courseType,
         min_weekly_lectures: lectures,
         max_weekly_lectures: lectures,
         priority: 1,
         requires_lab_room: lab,
-        requires_consecutive_slots: lab,
+        requires_consecutive_slots: lab || courseType === "PRJ",
       };
       if (form.program) payload.program = Number(form.program);
       if (form.semester) payload.semester = Number(form.semester);
@@ -303,12 +298,14 @@ function CoursesPage() {
                 required
               />
               <span className="input-hint">
-                {nonSched ? (
-                  <>Not schedulable (self-directed / off-campus)</>
+                {form.course_type === "PRJ" ? (
+                  <>1 guided session / week (2 consecutive slots in lecture hall)</>
+                ) : nonSched ? (
+                  <>Not scheduled — self-directed / off-campus</>
                 ) : (
                   <>
                     Weekly lectures: <strong>{weeklyLectures} hrs</strong>
-                    {" "}(auto-derived from credits &amp; type)
+                    {" "}(from credits)
                   </>
                 )}
               </span>
