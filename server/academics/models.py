@@ -91,20 +91,44 @@ class AcademicTerm(models.Model):
 # ----------------------------
 
 class CourseType(models.TextChoices):
-    THEORY = "THEORY", "Theory"
-    LAB = "LAB", "Lab"
-    ELECTIVE = "ELECTIVE", "Elective"
-    VAM = "VAM", "VAM"
+    # Schedulable: theory-style, credit-mapped
+    PC  = "PC",  "Program Core"
+    PE  = "PE",  "Program Elective"
+    OE  = "OE",  "Open Elective"
+    BSC = "BSC", "Basic Sciences Course"
+    ESC = "ESC", "Engineering Sciences Course"
+    HUM = "HUM", "Humanities"
+    # Schedulable: fixed 1 slot regardless of credits
+    LS  = "LS",  "Life Skills"
+    VAM = "VAM", "Value Added Module"
+    AEC = "AEC", "Ability Enhancement Course"
+    # Schedulable: lab (2 consecutive slots, lab room required)
+    PR  = "PR",  "Practical (Lab)"
+    # Not schedulable: self-directed / off-campus
+    PRJ = "PRJ", "Project"
+    DIS = "DIS", "Dissertation"
+    INT = "INT", "Internship"
+    RND = "RND", "Research"
 
 
 class Course(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=150)
+    credits = models.PositiveIntegerField(default=3)
+
+    program = models.ForeignKey(
+        Program,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="courses"
+    )
+    semester = models.PositiveIntegerField(null=True, blank=True)
 
     course_type = models.CharField(
         max_length=20,
         choices=CourseType.choices,
-        default=CourseType.THEORY
+        default=CourseType.PC
     )
 
     min_weekly_lectures = models.PositiveIntegerField()
@@ -152,33 +176,6 @@ class StudentGroup(models.Model):
 
     def __str__(self):
         return f"{self.term} - {self.name}"
-
-
-# ----------------------------
-# ROOM MANAGEMENT
-# ----------------------------
-
-class RoomType(models.TextChoices):
-    THEORY = "THEORY", "Theory"
-    LAB = "LAB", "Lab"
-
-
-class Room(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    capacity = models.PositiveIntegerField()
-    room_type = models.CharField(
-        max_length=20,
-        choices=RoomType.choices,
-        default=RoomType.THEORY
-    )
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["room_type"]),
-        ]
-
-    def __str__(self):
-        return f"{self.name} ({self.room_type})"
 
 
 # ----------------------------

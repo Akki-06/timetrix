@@ -44,6 +44,7 @@ class AcademicTermSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class CourseSerializer(serializers.ModelSerializer):
+    program_name = serializers.CharField(source="program.name", read_only=True, default=None)
 
     def validate(self, data):
         if data["min_weekly_lectures"] > data["max_weekly_lectures"]:

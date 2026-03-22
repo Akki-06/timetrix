@@ -86,6 +86,7 @@ htmlcov/
 # ==============================
 
 server/ml_pipeline/trained/
+server/ml_pipeline/data/
 *.pkl
 *.pt
 *.gpickle

@@ -3,10 +3,19 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toBoolean, toNumber } from "../utils/spreadsheet";
+import { asList, extractError } from "../utils/helpers";
 
 function InfrastructurePage() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [buildingError, setBuildingError] = useState("");
+  const [buildingSuccess, setBuildingSuccess] = useState("");
+  const [roomError, setRoomError] = useState("");
+  const [roomSuccess, setRoomSuccess] = useState("");
+  const [submittingBuilding, setSubmittingBuilding] = useState(false);
+  const [submittingRoom, setSubmittingRoom] = useState(false);
+
   const [buildingForm, setBuildingForm] = useState({
     name: "",
     code: "",
@@ -25,13 +34,19 @@ function InfrastructurePage() {
   });
 
   const loadData = useCallback(async () => {
-    const [buildingsResponse, roomsResponse] = await Promise.all([
-      api.get("infrastructure/building/"),
-      api.get("infrastructure/room/"),
-    ]);
-
-    setBuildings(buildingsResponse.data);
-    setRooms(roomsResponse.data);
+    try {
+      setLoading(true);
+      const [buildingsResponse, roomsResponse] = await Promise.all([
+        api.get("infrastructure/building/"),
+        api.get("infrastructure/room/"),
+      ]);
+      setBuildings(asList(buildingsResponse.data));
+      setRooms(asList(roomsResponse.data));
+    } catch (err) {
+      console.error("Failed to load infrastructure:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -48,41 +63,63 @@ function InfrastructurePage() {
 
   const handleBuildingSubmit = async (event) => {
     event.preventDefault();
-    await api.post("infrastructure/building/", {
-      ...buildingForm,
-      floors: Number(buildingForm.floors),
-    });
-    setBuildingForm({ name: "", code: "", floors: 1, is_active: true });
-    loadData();
+    setBuildingError("");
+    setBuildingSuccess("");
+    setSubmittingBuilding(true);
+
+    try {
+      await api.post("infrastructure/building/", {
+        ...buildingForm,
+        floors: Number(buildingForm.floors),
+      });
+      setBuildingForm({ name: "", code: "", floors: 1, is_active: true });
+      setBuildingSuccess("Building added successfully.");
+      loadData();
+    } catch (err) {
+      setBuildingError(extractError(err, "Failed to add building."));
+    } finally {
+      setSubmittingBuilding(false);
+    }
   };
 
   const handleRoomSubmit = async (event) => {
     event.preventDefault();
-    await api.post("infrastructure/room/", {
-      ...roomForm,
-      building: Number(roomForm.building),
-      floor: Number(roomForm.floor),
-      capacity: Number(roomForm.capacity),
-      priority_weight: Number(roomForm.priority_weight),
-    });
-    setRoomForm({
-      building: "",
-      room_number: "",
-      floor: 1,
-      capacity: 40,
-      room_type: "THEORY",
-      is_active: true,
-      is_shared: true,
-      priority_weight: 1,
-    });
-    loadData();
+    setRoomError("");
+    setRoomSuccess("");
+    setSubmittingRoom(true);
+
+    try {
+      await api.post("infrastructure/room/", {
+        ...roomForm,
+        building: Number(roomForm.building),
+        floor: Number(roomForm.floor),
+        capacity: Number(roomForm.capacity),
+        priority_weight: Number(roomForm.priority_weight),
+      });
+      setRoomForm({
+        building: "",
+        room_number: "",
+        floor: 1,
+        capacity: 40,
+        room_type: "THEORY",
+        is_active: true,
+        is_shared: true,
+        priority_weight: 1,
+      });
+      setRoomSuccess("Room added successfully.");
+      loadData();
+    } catch (err) {
+      setRoomError(extractError(err, "Failed to add room."));
+    } finally {
+      setSubmittingRoom(false);
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="page-head">
         <h1>Infrastructure Management</h1>
-        <p>Upload building and room data from CSV/Excel files.</p>
+        <p>Manage buildings and rooms for timetable scheduling.</p>
       </div>
 
       <div className="upload-grid">
@@ -152,136 +189,214 @@ function InfrastructurePage() {
       <div className="upload-grid">
         <section className="data-card">
           <h3>Add Building Manually</h3>
+
+          {buildingError && <p className="upload-error">{buildingError}</p>}
+          {buildingSuccess && <p className="upload-success">{buildingSuccess}</p>}
+
           <form className="manual-form" onSubmit={handleBuildingSubmit}>
-            <input
-              className="input"
-              placeholder="Building Name"
-              value={buildingForm.name}
-              onChange={(e) =>
-                setBuildingForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="input"
-              placeholder="Building Code"
-              value={buildingForm.code}
-              onChange={(e) =>
-                setBuildingForm((prev) => ({ ...prev, code: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="input"
-              type="number"
-              min="1"
-              placeholder="Floors"
-              value={buildingForm.floors}
-              onChange={(e) =>
-                setBuildingForm((prev) => ({ ...prev, floors: e.target.value }))
-              }
-            />
-            <label className="checkbox-inline">
+            <div className="form-group">
+              <label className="form-label">Building Name</label>
               <input
-                type="checkbox"
-                checked={buildingForm.is_active}
+                className="input"
+                placeholder="e.g. Main Block"
+                value={buildingForm.name}
                 onChange={(e) =>
-                  setBuildingForm((prev) => ({
-                    ...prev,
-                    is_active: e.target.checked,
-                  }))
+                  setBuildingForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Building Code</label>
+              <input
+                className="input"
+                placeholder="e.g. MB"
+                value={buildingForm.code}
+                onChange={(e) =>
+                  setBuildingForm((prev) => ({ ...prev, code: e.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">No. of Floors</label>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                value={buildingForm.floors}
+                onChange={(e) =>
+                  setBuildingForm((prev) => ({ ...prev, floors: e.target.value }))
                 }
               />
-              Active
-            </label>
-            <button type="submit" className="btn-primary">Add Building</button>
+            </div>
+            <div className="form-group">
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={buildingForm.is_active}
+                  onChange={(e) =>
+                    setBuildingForm((prev) => ({
+                      ...prev,
+                      is_active: e.target.checked,
+                    }))
+                  }
+                />
+                Active
+              </label>
+            </div>
+            <div className="form-group form-group-btn">
+              <button type="submit" className="btn-primary" disabled={submittingBuilding}>
+                {submittingBuilding ? "Adding..." : "Add Building"}
+              </button>
+            </div>
           </form>
         </section>
 
         <section className="data-card">
           <h3>Add Room Manually</h3>
+
+          {roomError && <p className="upload-error">{roomError}</p>}
+          {roomSuccess && <p className="upload-success">{roomSuccess}</p>}
+
           <form className="manual-form" onSubmit={handleRoomSubmit}>
-            <select
-              className="input"
-              value={roomForm.building}
-              onChange={(e) =>
-                setRoomForm((prev) => ({ ...prev, building: e.target.value }))
-              }
-              required
-            >
-              <option value="">Select Building</option>
-              {buildings.map((building) => (
-                <option key={building.id} value={building.id}>
-                  {building.name} ({building.code})
-                </option>
-              ))}
-            </select>
-            <input
-              className="input"
-              placeholder="Room Number"
-              value={roomForm.room_number}
-              onChange={(e) =>
-                setRoomForm((prev) => ({ ...prev, room_number: e.target.value }))
-              }
-              required
-            />
-            <input
-              className="input"
-              type="number"
-              min="0"
-              placeholder="Floor"
-              value={roomForm.floor}
-              onChange={(e) =>
-                setRoomForm((prev) => ({ ...prev, floor: e.target.value }))
-              }
-            />
-            <input
-              className="input"
-              type="number"
-              min="1"
-              placeholder="Capacity"
-              value={roomForm.capacity}
-              onChange={(e) =>
-                setRoomForm((prev) => ({ ...prev, capacity: e.target.value }))
-              }
-            />
-            <select
-              className="input"
-              value={roomForm.room_type}
-              onChange={(e) =>
-                setRoomForm((prev) => ({ ...prev, room_type: e.target.value }))
-              }
-            >
-              <option value="THEORY">THEORY</option>
-              <option value="LAB">LAB</option>
-            </select>
-            <label className="checkbox-inline">
-              <input
-                type="checkbox"
-                checked={roomForm.is_shared}
+            <div className="form-group">
+              <label className="form-label">Building</label>
+              <select
+                className="input"
+                value={roomForm.building}
                 onChange={(e) =>
-                  setRoomForm((prev) => ({ ...prev, is_shared: e.target.checked }))
+                  setRoomForm((prev) => ({ ...prev, building: e.target.value }))
+                }
+                required
+              >
+                <option value="">-- Select Building --</option>
+                {buildings.map((building) => (
+                  <option key={building.id} value={building.id}>
+                    {building.name} ({building.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Room Number</label>
+              <input
+                className="input"
+                placeholder="e.g. A201"
+                value={roomForm.room_number}
+                onChange={(e) =>
+                  setRoomForm((prev) => ({ ...prev, room_number: e.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Floor</label>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                value={roomForm.floor}
+                onChange={(e) =>
+                  setRoomForm((prev) => ({ ...prev, floor: e.target.value }))
                 }
               />
-              Shared
-            </label>
-            <button type="submit" className="btn-primary">Add Room</button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Seating Capacity</label>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                value={roomForm.capacity}
+                onChange={(e) =>
+                  setRoomForm((prev) => ({ ...prev, capacity: e.target.value }))
+                }
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Room Type</label>
+              <select
+                className="input"
+                value={roomForm.room_type}
+                onChange={(e) =>
+                  setRoomForm((prev) => ({ ...prev, room_type: e.target.value }))
+                }
+              >
+                <option value="THEORY">Theory Room</option>
+                <option value="LAB">Laboratory</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Priority Weight</label>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                max="10"
+                value={roomForm.priority_weight}
+                onChange={(e) =>
+                  setRoomForm((prev) => ({ ...prev, priority_weight: e.target.value }))
+                }
+              />
+            </div>
+            <div className="form-group">
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={roomForm.is_shared}
+                  onChange={(e) =>
+                    setRoomForm((prev) => ({ ...prev, is_shared: e.target.checked }))
+                  }
+                />
+                Shared Room
+              </label>
+            </div>
+            <div className="form-group">
+              <label className="checkbox-inline">
+                <input
+                  type="checkbox"
+                  checked={roomForm.is_active}
+                  onChange={(e) =>
+                    setRoomForm((prev) => ({ ...prev, is_active: e.target.checked }))
+                  }
+                />
+                Active
+              </label>
+            </div>
+            <div className="form-group form-group-btn">
+              <button type="submit" className="btn-primary" disabled={submittingRoom}>
+                {submittingRoom ? "Adding..." : "Add Room"}
+              </button>
+            </div>
           </form>
         </section>
       </div>
 
       <section className="data-card">
         <h3>Infrastructure Snapshot</h3>
-        <div className="mini-stats">
-          <div>
-            <span>Buildings</span>
-            <strong>{buildings.length}</strong>
+        {loading ? (
+          <p className="upload-help">Loading infrastructure data...</p>
+        ) : (
+          <div className="mini-stats">
+            <div>
+              <span>Buildings</span>
+              <strong>{buildings.length}</strong>
+            </div>
+            <div>
+              <span>Rooms</span>
+              <strong>{rooms.length}</strong>
+            </div>
+            <div>
+              <span>Theory Rooms</span>
+              <strong>{rooms.filter((r) => r.room_type === "THEORY").length}</strong>
+            </div>
+            <div>
+              <span>Labs</span>
+              <strong>{rooms.filter((r) => r.room_type === "LAB").length}</strong>
+            </div>
           </div>
-          <div>
-            <span>Rooms</span>
-            <strong>{rooms.length}</strong>
-          </div>
-        </div>
+        )}
       </section>
     </DashboardLayout>
   );

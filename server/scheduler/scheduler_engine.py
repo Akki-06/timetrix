@@ -204,124 +204,97 @@ class MLScorer:
                   section_name=None, program_code=None,
                   current_load_today: int = 0,
                   max_daily: int = 4) -> float:
-        import numpy as np
-        EMBED_DIM = 32
-        ZERO      = np.zeros(EMBED_DIM, dtype=np.float32)
+        """
+        Build a 108-dim feature vector and score via the trained RF model.
+        Layout: fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[12] = 108
+        Falls back to _heuristic_score() on any error.
+        """
+        try:
+            import numpy as np
+            EMBED_DIM = 32
+            ZERO = np.zeros(EMBED_DIM, dtype=np.float32)
 
-        # ── Embeddings ────────────────────────────────────────────────────────
-        fac_emb = self.embeddings.get(f"FAC::{faculty_name}", ZERO)
-        rm_emb  = self.embeddings.get(f"RRM::{room_number}",  ZERO)
-        ts_emb  = self.embeddings.get(
-            f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO
-        )
-        crs_emb = self.embeddings.get(f"CRS::{(course_name or '').strip()}", ZERO)
+            # ── Embeddings ──────────────────────────────────────────────────
+            fac_emb = self.embeddings.get(f"FAC::{faculty_name}", ZERO)
+            ts_emb  = self.embeddings.get(
+                f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO
+            )
+            rm_emb  = self.embeddings.get(f"RRM::{room_number}", ZERO)
 
-        # ── Shared scalars ────────────────────────────────────────────────────
-        max_h          = self.max_hours_map.get(faculty_name, 18)
-        load_remaining = max(0.0, (max_h - current_load) / max(float(max_h), 1.0))
-        is_morning     = 1.0 if slot <= 3 else 0.0
-        is_post_lunch  = 1.0 if slot >= 5 else 0.0
-        sem_norm       = float(semester) / 8.0
-        contact_norm   = float(contact_hours) / 8.0
+            # ── Manual features (12) ────────────────────────────────────────
+            max_h = self.max_hours_map.get(faculty_name, 18)
 
-        # ── Stats-based features (requires self.stats loaded from metadata) ──
-        day_full    = DAY_FULL.get(day, day)       # "MON" → "Monday"
-        fac_slots   = self.stats.get("fac_actual_slots",  {}).get(faculty_name, set())
-        is_known_slot = 1.0 if (day_full, slot) in fac_slots else 0.0
+            #  0  load_remaining
+            load_remaining = max(0, max_h - current_load) / 18.0
 
-        fac_course_freq = self.stats.get("fac_course_freq", {})
-        freq      = fac_course_freq.get((faculty_name, (course_name or "").strip()), 0)
-        fac_max   = max(
-            (v for (f, _), v in fac_course_freq.items() if f == faculty_name),
-            default=1
-        )
-        fac_course_affinity = freq / max(fac_max, 1)
+            #  1  is_known_slot
+            if hasattr(self, "fac_slot_history"):
+                is_known_slot = 1.0 if (faculty_name, day, slot) in self.fac_slot_history else 0.0
+            else:
+                is_known_slot = 0.5
 
-        slot_pop = self.stats.get("slot_popularity", {}).get(slot, 0.5)
-        day_pop  = self.stats.get("day_popularity",  {}).get(day_full, 0.5)
+            #  2  fac_today_load_ratio
+            fac_today_load = self.tracker.faculty_day_load(faculty_name, day) if hasattr(self, "tracker") and hasattr(self.tracker, "faculty_day_load") else 0
+            max_daily_for_fac = self.max_daily_map.get(faculty_name, 4) if hasattr(self, "max_daily_map") else max_daily
+            fac_today_load_ratio = float(fac_today_load) / max(float(max_daily_for_fac), 1.0)
 
-        breadth_raw = sum(1 for (f, _) in fac_course_freq if f == faculty_name)
-        breadth_norm = min(breadth_raw / 10.0, 1.0)
+            #  3  fac_course_affinity
+            if hasattr(self, "fac_course_history"):
+                fac_course_affinity = 1.0 if (course_name or "").strip() in self.fac_course_history.get(faculty_name, set()) else 0.0
+            else:
+                fac_course_affinity = 0.0
 
-        # ── Select feature schema by n_features_in_ ───────────────────────────
-        # Each time the RF is retrained with a new feature dimension, a new
-        # branch is added here so old saved models keep working.
-        expected = getattr(self.rf, "n_features_in_", 102)
+            #  4  near_weekly_cap
+            near_weekly_cap = 1.0 if (max_h - current_load) <= 2 else 0.0
 
-        if expected == 111:
-            # ── v3 schema: 111-dim  [fac(32)+ts(32)+rm(32)+manual(15)] ──────
-            # Features 13-15 are the new dynamic state features that the
-            # training pipeline now generates.
-            fac_today_ratio = float(current_load_today) / max(float(max_daily), 1.0)
+            #  5  is_lab
+            is_lab_f = float(is_lab)
 
-            adj_left  = self.stats.get("slot_popularity", {}).get(slot - 1, 0.5)
-            adj_right = self.stats.get("slot_popularity", {}).get(slot + 1, 0.5)
-            slot_adjacent_density = (adj_left + adj_right) / 2.0
+            #  6  room_type_match
+            room_is_lab = str(room_type or "").upper() == "LAB"
+            room_type_match = 1.0 if (bool(is_lab) == room_is_lab) else 0.0
 
-            near_weekly_cap = 1.0 if current_load >= max_h * 0.85 else 0.0
+            #  7  is_morning
+            is_morning = 1.0 if slot <= 3 else 0.0
+
+            #  8  is_post_lunch
+            is_post_lunch = 1.0 if slot >= 5 else 0.0
+
+            #  9  is_consecutive_lab
+            is_consecutive_lab = 1.0 if (is_lab and requires_consecutive_slots) else 0.0
+
+            # 10  sem_norm
+            sem_norm = float(semester) / 8.0
+
+            # 11  contact_norm
+            contact_norm = float(contact_hours) / 8.0
 
             manual = np.array([
-                load_remaining, is_known_slot, fac_course_affinity,
-                slot_pop, day_pop,
-                float(is_lab), float(requires_consecutive_slots),
-                is_morning, is_post_lunch,
-                sem_norm, contact_norm, breadth_norm,
-                fac_today_ratio,        # 13 (NEW)
-                slot_adjacent_density,  # 14 (NEW)
-                near_weekly_cap,        # 15 (NEW)
+                load_remaining,         # 0
+                is_known_slot,          # 1
+                fac_today_load_ratio,   # 2
+                fac_course_affinity,    # 3
+                near_weekly_cap,        # 4
+                is_lab_f,               # 5
+                room_type_match,        # 6
+                is_morning,             # 7
+                is_post_lunch,          # 8
+                is_consecutive_lab,     # 9
+                sem_norm,               # 10
+                contact_norm,           # 11
             ], dtype=np.float32)
-            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual])
 
-        elif expected == 108:
-            # ── v2 schema: 108-dim  [fac(32)+ts(32)+rm(32)+manual(12)] ──────
-            # Exact match to what random_forest_model.py v2 was trained with.
-            manual = np.array([
-                load_remaining, is_known_slot, fac_course_affinity,
-                slot_pop, day_pop,
-                float(is_lab), float(requires_consecutive_slots),
-                is_morning, is_post_lunch,
-                sem_norm, contact_norm, breadth_norm,
-            ], dtype=np.float32)
-            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual])
+            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual]).reshape(1, -1)
 
-        elif expected == 150:
-            # ── legacy 150-dim schema (older training run) ────────────────────
-            day_idx_map   = {"MON": 0.0, "TUE": 1.0, "WED": 2.0,
-                             "THU": 3.0, "FRI": 4.0}
-            section_norm  = 0.0
-            if section_name:
-                sec = str(section_name).strip().upper()
-                if sec and sec[0].isalpha():
-                    section_norm = min((ord(sec[0]) - ord("A")) / 5.0, 1.0)
-            room_is_lab     = 1.0 if str(room_type or "").upper() == "LAB" else 0.0
-            room_cap_norm   = min(float(room_capacity or 60) / 120.0, 1.0)
-            is_pre_lunch    = 1.0 if slot == 4 else 0.0
-            room_type_match = 1.0 if float(is_lab) == room_is_lab else 0.0
-            manual_150 = np.array([
-                0.2, min(max_h / 18.0, 1.0),
-                1.0 if is_lab else 0.0, 0.0 if is_lab else 1.0, 1.0,
-                room_is_lab, room_cap_norm,
-                is_morning, is_post_lunch, is_pre_lunch, float(is_lab),
-                1.0 if requires_consecutive_slots else 0.0,
-                1.0 if is_elective else 0.0,
-                sem_norm, section_norm, 0.0, contact_norm,
-                day_idx_map.get(day, 0.0) / 4.0, float(slot) / 6.0,
-                room_type_match, float(is_lab and requires_consecutive_slots), 1.0,
-            ], dtype=np.float32)
-            feat = np.concatenate([fac_emb, crs_emb, rm_emb, ts_emb, manual_150])
+            if self.scaler is not None:
+                feat = self.scaler.transform(feat)
 
-        else:
-            # ── legacy 102-dim fallback ───────────────────────────────────────
-            manual_102 = np.array([
-                float(is_lab), 0.0,
-                contact_norm, sem_norm, load_remaining, is_morning,
-            ], dtype=np.float32)
-            feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual_102])
+            return float(self.rf.predict_proba(feat)[0][1])
 
-        feat = feat.reshape(1, -1)
-        if self.scaler is not None:
-            feat = self.scaler.transform(feat)
-        return float(self.rf.predict_proba(feat)[0][1])
+        except Exception as e:
+            log.warning(f"ML scoring failed, falling back to heuristic: {e}")
+            return self._heuristic_score(day, slot, is_lab, current_load,
+                                         self.max_hours_map.get(faculty_name, 18))
 
     def _heuristic_score(self, day, slot, is_lab,
                           current_load, max_load) -> float:

@@ -7,6 +7,7 @@ from .models import Faculty, TeacherAvailability, FacultySubjectEligibility
 # ----------------------------
 
 class FacultySerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source="department.name", read_only=True, default=None)
 
     def validate(self, data):
         if data["max_consecutive_lectures"] > data["max_lectures_per_day"]:

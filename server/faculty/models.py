@@ -1,5 +1,5 @@
 from django.db import models
-from academics.models import Course
+from academics.models import Course, Department
 
 
 # ----------------------------
@@ -22,6 +22,14 @@ class Faculty(models.Model):
         max_length=10,
         choices=RoleChoices.choices,
         default=RoleChoices.REGULAR
+    )
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="faculty_members"
     )
 
     # Constraint Parameters

@@ -5,8 +5,21 @@ function ActivitySection({ activities }) {
 
       {activities.map((item, index) => (
         <div key={index} className="activity-item">
-          <div className="activity-message">{item.message}</div>
-          <small>{item.time}</small>
+          <div className="activity-dot-wrap">
+            <span
+              className="activity-dot"
+              style={{
+                background: item.type === "error" ? "var(--danger)" : "var(--success)",
+              }}
+            />
+          </div>
+          <div className="activity-body">
+            <div className="activity-title">{item.title || item.message}</div>
+            {item.description && (
+              <div className="activity-desc">{item.description}</div>
+            )}
+            <small className="activity-time">{item.time}</small>
+          </div>
         </div>
       ))}
     </div>
