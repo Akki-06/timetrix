@@ -208,6 +208,8 @@ def build_graph(sessions, faculty_df, rooms_df, slots_df):
         slot_lookup[(r["day"], int(r["slot_index"]))] = r
 
     # ── PASS 1: Add all nodes ─────────────────────────────────────────────────
+    # Two passes: first create all nodes, then all edges.
+    # We track "seen" sets to avoid creating duplicate nodes from repeated CSV rows.
     log.info("Pass 1: Building nodes...")
 
     faculty_seen  = set()

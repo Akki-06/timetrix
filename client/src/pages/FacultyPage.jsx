@@ -8,7 +8,6 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaTrash,
-  FaEdit,
   FaUserTie,
 } from "react-icons/fa";
 

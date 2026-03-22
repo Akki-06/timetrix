@@ -205,8 +205,9 @@ class MLScorer:
                   current_load_today: int = 0,
                   max_daily: int = 4) -> float:
         """
-        Build a 108-dim feature vector and score via the trained RF model.
-        Layout: fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[12] = 108
+        Build a 111-dim feature vector and score via the trained RF model.
+        Layout must match random_forest_model.py exactly:
+          fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[15] = 111
         Falls back to _heuristic_score() on any error.
         """
         try:
@@ -214,74 +215,86 @@ class MLScorer:
             EMBED_DIM = 32
             ZERO = np.zeros(EMBED_DIM, dtype=np.float32)
 
-            # ── Embeddings ──────────────────────────────────────────────────
+            # GNN embeddings keyed by node ID (same format as graph_builder.py)
             fac_emb = self.embeddings.get(f"FAC::{faculty_name}", ZERO)
             ts_emb  = self.embeddings.get(
                 f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO
             )
             rm_emb  = self.embeddings.get(f"RRM::{room_number}", ZERO)
 
-            # ── Manual features (12) ────────────────────────────────────────
+            # --- 15 manual features (must match training order exactly) ---
             max_h = self.max_hours_map.get(faculty_name, 18)
+            cur_load = current_load
 
-            #  0  load_remaining
-            load_remaining = max(0, max_h - current_load) / 18.0
+            # 1: how much capacity the faculty has left this week
+            load_remaining = max(0.0, (max_h - cur_load) / max(max_h, 1))
 
-            #  1  is_known_slot
-            if hasattr(self, "fac_slot_history"):
-                is_known_slot = 1.0 if (faculty_name, day, slot) in self.fac_slot_history else 0.0
-            else:
-                is_known_slot = 0.5
+            # 2: did this faculty actually teach at this (day, slot) in training data?
+            actual_slots = self.stats.get("fac_actual_slots", {}).get(faculty_name, set())
+            is_known_slot = 1.0 if (day, slot) in actual_slots else 0.0
 
-            #  2  fac_today_load_ratio
-            fac_today_load = self.tracker.faculty_day_load(faculty_name, day) if hasattr(self, "tracker") and hasattr(self.tracker, "faculty_day_load") else 0
-            max_daily_for_fac = self.max_daily_map.get(faculty_name, 4) if hasattr(self, "max_daily_map") else max_daily
-            fac_today_load_ratio = float(fac_today_load) / max(float(max_daily_for_fac), 1.0)
+            # 3: how often this faculty teaches this specific course (normalized)
+            freq = self.stats.get("fac_course_freq", {}).get(
+                (faculty_name, course_name or ""), 0
+            )
+            fac_max_freq = max(
+                (v for (f, _), v in self.stats.get("fac_course_freq", {}).items()
+                 if f == faculty_name),
+                default=1,
+            )
+            fac_course_affinity = freq / max(fac_max_freq, 1)
 
-            #  3  fac_course_affinity
-            if hasattr(self, "fac_course_history"):
-                fac_course_affinity = 1.0 if (course_name or "").strip() in self.fac_course_history.get(faculty_name, set()) else 0.0
-            else:
-                fac_course_affinity = 0.0
+            # 4: how popular this slot number is in the training data
+            slot_pop = self.stats.get("slot_popularity", {}).get(slot, 0.5)
 
-            #  4  near_weekly_cap
-            near_weekly_cap = 1.0 if (max_h - current_load) <= 2 else 0.0
+            # 5: how popular this day is in the training data
+            day_pop = self.stats.get("day_popularity", {}).get(day, 0.5)
 
-            #  5  is_lab
+            # 6-7: session type flags
             is_lab_f = float(is_lab)
-
-            #  6  room_type_match
-            room_is_lab = str(room_type or "").upper() == "LAB"
-            room_type_match = 1.0 if (bool(is_lab) == room_is_lab) else 0.0
-
-            #  7  is_morning
-            is_morning = 1.0 if slot <= 3 else 0.0
-
-            #  8  is_post_lunch
-            is_post_lunch = 1.0 if slot >= 5 else 0.0
-
-            #  9  is_consecutive_lab
             is_consecutive_lab = 1.0 if (is_lab and requires_consecutive_slots) else 0.0
 
-            # 10  sem_norm
+            # 8-9: time-of-day indicators
+            is_morning = 1.0 if slot <= 3 else 0.0
+            is_post_lunch = 1.0 if slot >= 5 else 0.0
+
+            # 10: semester context (higher sem = more advanced course)
             sem_norm = float(semester) / 8.0
 
-            # 11  contact_norm
+            # 11: how heavy the course is (weekly contact hours)
             contact_norm = float(contact_hours) / 8.0
 
+            # 12: how many different courses this faculty teaches (versatility)
+            breadth = self.stats.get("fac_course_count", {}).get(faculty_name, 1)
+            breadth_norm = min(breadth / 10.0, 1.0)
+
+            # 13: how full the faculty's day already is (live state from tracker)
+            fac_today_ratio = float(current_load_today) / max(float(max_daily), 1.0)
+
+            # 14: busyness of neighbouring slots (slot-1 and slot+1)
+            adj_left = self.stats.get("slot_popularity", {}).get(slot - 1, 0.5)
+            adj_right = self.stats.get("slot_popularity", {}).get(slot + 1, 0.5)
+            slot_adjacent_density = (adj_left + adj_right) / 2.0
+
+            # 15: early warning when faculty is close to their weekly cap
+            near_weekly_cap = 1.0 if cur_load >= max_h * 0.85 else 0.0
+
             manual = np.array([
-                load_remaining,         # 0
-                is_known_slot,          # 1
-                fac_today_load_ratio,   # 2
-                fac_course_affinity,    # 3
-                near_weekly_cap,        # 4
-                is_lab_f,               # 5
-                room_type_match,        # 6
-                is_morning,             # 7
-                is_post_lunch,          # 8
-                is_consecutive_lab,     # 9
-                sem_norm,               # 10
-                contact_norm,           # 11
+                load_remaining,           # 1
+                is_known_slot,            # 2
+                fac_course_affinity,      # 3
+                slot_pop,                 # 4
+                day_pop,                  # 5
+                is_lab_f,                 # 6
+                is_consecutive_lab,       # 7
+                is_morning,               # 8
+                is_post_lunch,            # 9
+                sem_norm,                 # 10
+                contact_norm,             # 11
+                breadth_norm,             # 12
+                fac_today_ratio,          # 13
+                slot_adjacent_density,    # 14
+                near_weekly_cap,          # 15
             ], dtype=np.float32)
 
             feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual]).reshape(1, -1)

@@ -101,14 +101,17 @@ def new_fig(rows, cols, title, figsize):
 # LOAD SHARED ARTIFACTS
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Load the graph, embeddings, and metadata saved by graph_builder + gnn_model.
+# embeddings is a dict: node_id string -> 32-dim numpy array
 print("Loading artifacts...")
 with open(GRAPH_PATH, "rb") as f:   G          = pickle.load(f)
 with open(EMBED_PATH,  "rb") as f:  embeddings = pickle.load(f)
 with open(META_PATH,   "rb") as f:  node_meta  = pickle.load(f)
 
+# Only keep nodes that have both a graph entry and a learned embedding
 all_ids    = [n for n in G.nodes() if n in embeddings]
 node_types = [G.nodes[n].get("node_type", "?") for n in all_ids]
-embed_mat  = np.array([embeddings[n] for n in all_ids])
+embed_mat  = np.array([embeddings[n] for n in all_ids])   # shape: (N, 32)
 print(f"  Nodes with embeddings : {len(all_ids)}")
 print(f"  Embedding shape       : {embed_mat.shape}")
 
@@ -124,6 +127,8 @@ fig1 = new_fig(2, 2, "TIMETRIX — Knowledge Graph Structure", (22, 14))
 gs   = gridspec.GridSpec(2, 2, figure=fig1, hspace=0.38, wspace=0.32)
 
 # ── Panel 1-A: Subgraph (sections + 1-hop) ───────────────────────────────────
+# Pick 3 Sem-4 sections and grab their direct neighbours (faculty, courses,
+# rooms, timeslots). This gives a small readable slice of the full graph.
 ax_sg = fig1.add_subplot(gs[0, 0])
 ax_sg.set_facecolor(PANEL)
 ax_sg.set_title("Schedule Subgraph\n(3 sections + 1-hop neighbours)",
@@ -285,6 +290,9 @@ fig2 = new_fig(2, 2, "TIMETRIX — GNN Node Embeddings (32-dim)", (22, 14))
 gs2  = gridspec.GridSpec(2, 2, figure=fig2, hspace=0.38, wspace=0.32)
 
 # ── Panel 2-A: t-SNE all nodes ────────────────────────────────────────────────
+# t-SNE squashes 32-dim embeddings down to 2D so we can see clusters.
+# If the GNN learned well, same-type nodes should clump together.
+# Perplexity must be < number of samples, so we cap it.
 ax_tsne = fig2.add_subplot(gs2[0, 0])
 style_ax(ax_tsne, "t-SNE: All Nodes  (colour = node type)",
          "t-SNE dim 1", "t-SNE dim 2")
@@ -365,6 +373,9 @@ ax_fac.legend(handles=dept_patches, facecolor=PANEL, edgecolor=GRID,
               labelcolor=TEXT, fontsize=7, loc="upper right")
 
 # ── Panel 2-C: PCA scree plot (explained variance) ────────────────────────────
+# Shows how much info is packed into each principal component.
+# If the first few PCs cover 80%+ variance, the embeddings are efficient —
+# the GNN compressed the graph structure into a small number of dimensions.
 ax_pca = fig2.add_subplot(gs2[1, 0])
 style_ax(ax_pca, "PCA Scree Plot\n(how much info each principal component holds)",
          "Principal Component", "Explained Variance (%)")
@@ -469,8 +480,9 @@ with open(RF_REPORT) as fh:
     report = json.load(fh)
 
 # ── Reconstruct feature vectors from training CSVs for visualization ──────────
-# We need actual predictions to draw the score distribution, PR curve, and
-# calibration diagram. We rebuild the same feature vectors used in training.
+# The RF model only stores weights, not the original data. To draw score
+# histograms, PR curves, and calibration plots we need to re-score every row
+# from the training CSV through the saved model. Same feature builder as training.
 
 ZERO = np.zeros(embed_dim, dtype=np.float32)
 
@@ -612,6 +624,8 @@ else:
     print(f"  Scored {len(y_scores)} samples (padded to {n_feats})")
 
 # ── Extract feature importances from RF inside the VotingClassifier ───────────
+# The ensemble wraps RF in CalibratedClassifierCV, so we dig into the chain:
+# VotingClassifier -> CalibratedClassifierCV -> RandomForestClassifier
 try:
     rf_inner = rf_model.estimators_[0]                             # CalibratedClassifierCV
     inner_rf = rf_inner.calibrated_classifiers_[0].estimator      # RandomForestClassifier
