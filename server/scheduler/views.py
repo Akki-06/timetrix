@@ -174,16 +174,16 @@ class GenerateTimetableView(APIView):
         config = SchedulerConfig.get()
         if result["status"] in ("success", "partial") and config.notify_on_generation_complete:
             msg = (
-                f"Timetable generated: {result.get('scheduled', 0)} sessions scheduled"
-                + (f", {result.get('unscheduled_count', 0)} unscheduled." if result["status"] == "partial" else ".")
+                f"Timetable generated: {result.get('allocations', 0)} sessions scheduled"
+                + (f", {len(result.get('unscheduled', []))} unscheduled." if result["status"] == "partial" else ".")
             )
             Notification.objects.create(
                 message=msg,
                 type="success" if result["status"] == "success" else "warning",
             )
-        elif result["status"] == "error" and config.notify_on_failed_generation:
+        elif result["status"] == "failed" and config.notify_on_failed_generation:
             Notification.objects.create(
-                message=f"Timetable generation failed: {result.get('error', 'Unknown error')}",
+                message=f"Timetable generation failed: {result.get('reason', 'Unknown error')}",
                 type="error",
             )
 

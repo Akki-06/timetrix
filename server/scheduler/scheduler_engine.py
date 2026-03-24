@@ -514,7 +514,7 @@ class SchedulerEngine:
             if self.config.enforce_faculty_availability:
                 for av in fac.availabilities.all():
                     avail_days.add(av.day)
-                    for s in range(av.start_slot, av.end_slot + 1):
+                    for s in range(av.start_slot, av.end_slot):
                         avail_slots_by_day[av.day].add(s)
 
             # No availability rows (or enforcement disabled) → open all active days
@@ -585,10 +585,10 @@ class SchedulerEngine:
             )
             result = list(Faculty.objects.filter(is_active=True))
 
-        # If admin enabled senior-priority, bubble HOD/SENIOR to the top
+        # If admin enabled senior-priority, bubble PVC/DEAN/HOD to the top
         # (assigned_faculty already at front, so we only re-sort the rest)
         if self.config.prioritize_senior_faculty:
-            _senior_roles = {"DEAN", "HOD", "SENIOR"}
+            _senior_roles = {"PVC", "DEAN", "HOD"}
             assigned = result[0] if result and offering.assigned_faculty == result[0] else None
             rest = result[1:] if assigned else result
             rest_sorted = sorted(

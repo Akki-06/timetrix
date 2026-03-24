@@ -38,7 +38,6 @@ const DEFAULT_CONFIG = {
   academic_year: "2025-26",
   max_hours_dean: 6,
   max_hours_hod: 12,
-  max_hours_senior: 16,
   max_hours_regular: 18,
   max_hours_visiting: 8,
   max_lectures_per_day: 4,
@@ -182,9 +181,8 @@ function SettingsPage() {
             Maximum teaching hours per week by designation. Scheduler enforces these as hard caps.
           </p>
           <div className="settings-form-grid">
-            <NumInput label="Dean"       value={config.max_hours_dean}     onChange={(v) => set("max_hours_dean", v)}     min={1} max={40} />
+            <NumInput label="PVC / Dean"  value={config.max_hours_dean}     onChange={(v) => set("max_hours_dean", v)}     min={1} max={40} />
             <NumInput label="HoD"        value={config.max_hours_hod}      onChange={(v) => set("max_hours_hod", v)}      min={1} max={40} />
-            <NumInput label="Senior"     value={config.max_hours_senior}   onChange={(v) => set("max_hours_senior", v)}   min={1} max={40} />
             <NumInput label="Regular"    value={config.max_hours_regular}  onChange={(v) => set("max_hours_regular", v)}  min={1} max={40} />
             <NumInput label="Visiting"   value={config.max_hours_visiting} onChange={(v) => set("max_hours_visiting", v)} min={1} max={40} />
           </div>
@@ -300,7 +298,7 @@ function SettingsPage() {
             />
             <Toggle
               label="Prioritize Senior Faculty"
-              description="Dean, HoD, and Senior faculty are tried first as candidates for each course."
+              description="PVC, Dean, and HoD are tried first as candidates for each course."
               checked={config.prioritize_senior_faculty}
               onChange={(v) => set("prioritize_senior_faculty", v)}
             />

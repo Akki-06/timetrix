@@ -97,7 +97,7 @@ def faculty_features(row):
         min(float(row.get("num_unique_courses", 1)) / 10.0, 1.0),
         min(float(row.get("num_programs_taught", 1)) / 4.0, 1.0),
         emp_enc.get(str(row.get("employment_type","")), 1.0),
-        float(row.get("is_hod", 0)) * 0.5 + float(row.get("is_dean", 0)),
+        desig_enc.get(str(row.get("designation", "")), 0.25),
     ], dtype=np.float32)
 
 
