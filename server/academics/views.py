@@ -150,3 +150,104 @@ class CourseOfferingViewSet(viewsets.ModelViewSet):
     serializer_class = CourseOfferingSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["course", "student_group", "assigned_faculty"]
+
+    @action(detail=False, methods=["post"], url_path="quick-assign")
+    def quick_assign(self, request):
+        """
+        Assign a course to a section by human-readable codes.
+        Accepts: course_code, program_code, semester, section,
+                 assigned_faculty_employee_id (optional), weekly_load (optional).
+        Creates the CourseOffering if it doesn't exist, updates it if it does.
+        """
+        from faculty.models import Faculty as FacultyModel
+
+        course_code = str(request.data.get("course_code", "")).strip().upper()
+        program_code = str(request.data.get("program_code", "")).strip()
+        section = str(request.data.get("section", "")).strip().upper()
+        faculty_emp_id = str(request.data.get("assigned_faculty_employee_id", "")).strip()
+
+        try:
+            semester = int(request.data.get("semester", 0))
+            weekly_load = int(request.data.get("weekly_load", 0))
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "semester and weekly_load must be integers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all([course_code, program_code, semester, section]):
+            return Response(
+                {"error": "course_code, program_code, semester, and section are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            course = Course.objects.get(code=course_code)
+        except Course.DoesNotExist:
+            return Response(
+                {"error": f"Course '{course_code}' not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            program = Program.objects.get(code=program_code)
+        except Program.DoesNotExist:
+            return Response(
+                {"error": f"Program '{program_code}' not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        term = AcademicTerm.objects.filter(
+            program=program, semester=semester
+        ).first()
+        if not term:
+            return Response(
+                {"error": (
+                    f"No term found for program '{program_code}' semester {semester}. "
+                    "Register the section first from the Sections page."
+                )},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        student_group = StudentGroup.objects.filter(
+            term=term, name=section
+        ).first()
+        if not student_group:
+            return Response(
+                {"error": (
+                    f"Section '{section}' not found for {program_code} Sem {semester}. "
+                    "Register the section first from the Sections page."
+                )},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        assigned_faculty = None
+        if faculty_emp_id:
+            assigned_faculty = FacultyModel.objects.filter(
+                employee_id=faculty_emp_id
+            ).first()
+            if not assigned_faculty:
+                return Response(
+                    {"error": f"Faculty with employee_id '{faculty_emp_id}' not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        offering, created = CourseOffering.objects.get_or_create(
+            course=course,
+            student_group=student_group,
+            defaults={
+                "assigned_faculty": assigned_faculty,
+                "weekly_load": weekly_load,
+            },
+        )
+        if not created:
+            if assigned_faculty is not None:
+                offering.assigned_faculty = assigned_faculty
+            if weekly_load:
+                offering.weekly_load = weekly_load
+            offering.save()
+
+        return Response(
+            CourseOfferingSerializer(offering).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )

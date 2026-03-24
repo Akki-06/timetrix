@@ -149,6 +149,31 @@ function CoursesPage() {
       </div>
 
       <BulkUploadCard
+        title="Assign Courses to Sections"
+        endpoint="academics/course-offerings/quick-assign/"
+        requiredColumns={["course_code", "program_code", "semester", "section"]}
+        helperText="Assigns a course to a section so the scheduler can timetable it. course_code and program_code must already exist."
+        templateFileName="course-offerings-template.xlsx"
+        templateSampleRow={{
+          course_code: "BCA501",
+          program_code: "BCA",
+          semester: 5,
+          section: "A",
+          assigned_faculty_employee_id: "",
+          weekly_load: 0,
+        }}
+        mapRow={(row) => ({
+          course_code: String(row.course_code || "").trim().toUpperCase(),
+          program_code: String(row.program_code || "").trim(),
+          semester: toNumber(row.semester, 1),
+          section: String(row.section || "").trim().toUpperCase(),
+          assigned_faculty_employee_id: String(row.assigned_faculty_employee_id || "").trim(),
+          weekly_load: toNumber(row.weekly_load, 0),
+        })}
+        onUploadComplete={loadAll}
+      />
+
+      <BulkUploadCard
         title="Upload Courses"
         endpoint="academics/courses/"
         requiredColumns={["code", "name", "credits"]}
@@ -165,16 +190,17 @@ function CoursesPage() {
           const credits = toNumber(row.credits, 3);
           const ct = String(row.course_type || "PC").toUpperCase();
           const progCode = String(row.program || "").trim();
-          const prog = programs.find(
-            (p) => p.code.toLowerCase() === progCode.toLowerCase()
-          );
+          const prog = progCode
+            ? programs.find((p) => p.code.toLowerCase() === progCode.toLowerCase())
+            : null;
+          const semRaw = row.semester;
           return {
             code: row.code,
             name: row.name,
             credits,
             course_type: ct,
-            program: prog?.id || null,
-            semester: toNumber(row.semester, null),
+            program: prog?.id ?? null,
+            semester: (semRaw !== "" && semRaw != null) ? toNumber(semRaw, 1) : null,
           };
         }}
         onUploadComplete={loadAll}

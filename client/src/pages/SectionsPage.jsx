@@ -128,8 +128,13 @@ function SectionsPage() {
           const prog = programs.find(
             (p) => p.code.toLowerCase() === progCode.toLowerCase()
           );
+          if (!prog) {
+            throw new Error(
+              `Program code '${progCode}' not found. Add the program first.`
+            );
+          }
           return {
-            program:     prog?.id || null,
+            program:     prog.id,
             semester:    toNumber(row.semester, 1),
             section:     String(row.section || "").trim().toUpperCase(),
             strength:    toNumber(row.strength, 45),

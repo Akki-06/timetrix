@@ -110,8 +110,11 @@ function BulkUploadCard({
   };
 
   const handleTemplateDownload = () => {
+    const templateHeaders = templateSampleRow
+      ? Object.keys(templateSampleRow)
+      : requiredColumns;
     downloadTemplateFile({
-      headers: requiredColumns,
+      headers: templateHeaders,
       sampleRow: templateSampleRow,
       fileName: templateFileName || `${title.toLowerCase().replace(/\s+/g, "-")}-template.xlsx`,
     });

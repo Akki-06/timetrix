@@ -107,13 +107,18 @@ function ProgramsPage() {
           const dept = departments.find(
             (d) => d.code.toUpperCase() === deptCode
           );
+          if (!dept) {
+            throw new Error(
+              `Department code '${deptCode}' not found. Add the department first.`
+            );
+          }
           return {
             name: String(row.name || "").trim(),
             code: String(row.code || "").trim(),
             specialization: String(row.specialization || "").trim(),
             total_years: toNumber(row.total_years, 4),
             total_semesters: toNumber(row.total_semesters, 8),
-            department: dept?.id || null,
+            department: dept.id,
           };
         }}
         onUploadComplete={loadAll}

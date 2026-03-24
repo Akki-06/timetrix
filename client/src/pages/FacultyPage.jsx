@@ -296,23 +296,33 @@ function FacultyPage() {
           name: "Dr. John Doe",
           employee_id: "FAC1001",
           role: "REGULAR",
+          department_code: "CSE",
           max_lectures_per_day: 4,
           max_consecutive_lectures: 2,
           max_weekly_load: 18,
           is_active: true,
         }}
-        mapRow={(row) => ({
-          name: row.name,
-          employee_id: row.employee_id,
-          role: String(row.role || "REGULAR").toUpperCase(),
-          max_lectures_per_day: toNumber(row.max_lectures_per_day,
-              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_lectures_per_day ?? 4),
-          max_consecutive_lectures: toNumber(row.max_consecutive_lectures,
-              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_consecutive_lectures ?? 2),
-          max_weekly_load: toNumber(row.max_weekly_load,
-              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_weekly_load ?? 18),
-          is_active: toBoolean(row.is_active, true),
-        })}
+        mapRow={(row) => {
+          const roleKey = String(row.role || "REGULAR").toUpperCase();
+          const deptCode = String(row.department_code || "").toUpperCase().trim();
+          const dept = deptCode
+            ? departments.find((d) => d.code.toUpperCase() === deptCode)
+            : null;
+          const payload = {
+            name: row.name,
+            employee_id: row.employee_id,
+            role: roleKey,
+            max_lectures_per_day: toNumber(row.max_lectures_per_day,
+                ROLE_DEFAULTS[roleKey]?.max_lectures_per_day ?? 4),
+            max_consecutive_lectures: toNumber(row.max_consecutive_lectures,
+                ROLE_DEFAULTS[roleKey]?.max_consecutive_lectures ?? 2),
+            max_weekly_load: toNumber(row.max_weekly_load,
+                ROLE_DEFAULTS[roleKey]?.max_weekly_load ?? 18),
+            is_active: toBoolean(row.is_active, true),
+          };
+          if (dept) payload.department = dept.id;
+          return payload;
+        }}
         onUploadComplete={loadAll}
       />
 
