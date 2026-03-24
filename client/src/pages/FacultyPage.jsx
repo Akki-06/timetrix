@@ -11,6 +11,14 @@ import {
   FaUserTie,
 } from "react-icons/fa";
 
+const ROLE_DEFAULTS = {
+  PVC:      { max_weekly_load: 4,  max_lectures_per_day: 2, max_consecutive_lectures: 1 },
+  DEAN:     { max_weekly_load: 6,  max_lectures_per_day: 2, max_consecutive_lectures: 1 },
+  HOD:      { max_weekly_load: 12, max_lectures_per_day: 3, max_consecutive_lectures: 2 },
+  REGULAR:  { max_weekly_load: 18, max_lectures_per_day: 4, max_consecutive_lectures: 2 },
+  VISITING: { max_weekly_load: 8,  max_lectures_per_day: 3, max_consecutive_lectures: 2 },
+};
+
 const DAYS = [
   { key: "MON", label: "Monday" },
   { key: "TUE", label: "Tuesday" },
@@ -34,7 +42,6 @@ const INITIAL_FORM = {
   name: "",
   employee_id: "",
   role: "REGULAR",
-  max_lectures_per_day: 4,
   department: "",
 };
 
@@ -141,9 +148,9 @@ function FacultyPage() {
         name: form.name,
         employee_id: form.employee_id,
         role: form.role,
-        max_lectures_per_day: Number(form.max_lectures_per_day),
-        max_consecutive_lectures: 2,
-        max_weekly_load: 18,
+        max_lectures_per_day: ROLE_DEFAULTS[form.role]?.max_lectures_per_day ?? 4,
+        max_consecutive_lectures: ROLE_DEFAULTS[form.role]?.max_consecutive_lectures ?? 2,
+        max_weekly_load: ROLE_DEFAULTS[form.role]?.max_weekly_load ?? 18,
         is_active: true,
       };
       if (form.department) {
@@ -298,9 +305,12 @@ function FacultyPage() {
           name: row.name,
           employee_id: row.employee_id,
           role: String(row.role || "REGULAR").toUpperCase(),
-          max_lectures_per_day: toNumber(row.max_lectures_per_day, 4),
-          max_consecutive_lectures: toNumber(row.max_consecutive_lectures, 2),
-          max_weekly_load: toNumber(row.max_weekly_load, 18),
+          max_lectures_per_day: toNumber(row.max_lectures_per_day,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_lectures_per_day ?? 4),
+          max_consecutive_lectures: toNumber(row.max_consecutive_lectures,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_consecutive_lectures ?? 2),
+          max_weekly_load: toNumber(row.max_weekly_load,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_weekly_load ?? 18),
           is_active: toBoolean(row.is_active, true),
         })}
         onUploadComplete={loadAll}
@@ -356,32 +366,11 @@ function FacultyPage() {
                   setForm((p) => ({ ...p, role: e.target.value }))
                 }
               >
-                <option value="DEAN">Dean</option>
+                <option value="PVC">Pro Vice Chancellor</option>
+                <option value="DEAN">Dean of School</option>
                 <option value="HOD">Head of Department</option>
-                <option value="SENIOR">Senior Faculty</option>
-                <option value="REGULAR">Regular Faculty</option>
-                <option value="VISITING">Visiting Faculty</option>
-              </select>
-            </div>
-
-            {/* Max Lectures / Day dropdown */}
-            <div className="form-group">
-              <label className="form-label">Max Lectures / Day</label>
-              <select
-                className="input"
-                value={form.max_lectures_per_day}
-                onChange={(e) =>
-                  setForm((p) => ({
-                    ...p,
-                    max_lectures_per_day: e.target.value,
-                  }))
-                }
-              >
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    {n} lecture{n > 1 ? "s" : ""}
-                  </option>
-                ))}
+                <option value="REGULAR">Regular Faculty (Asst/Assoc/Professor)</option>
+                <option value="VISITING">Visiting / Contractual</option>
               </select>
             </div>
 

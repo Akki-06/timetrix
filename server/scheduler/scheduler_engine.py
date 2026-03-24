@@ -76,15 +76,6 @@ EMBED_PATH    = TRAINED_DIR / "node_embeddings.pkl"
 # CONSTANTS
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Max hours per week by faculty role — these are hard caps
-MAX_HOURS_BY_ROLE = {
-    "DEAN"    : 6,
-    "HOD"     : 12,
-    "SENIOR"  : 16,
-    "REGULAR" : 18,
-    "VISITING": 8,
-}
-
 DAYS = ["MON", "TUE", "WED", "THU", "FRI"]
 
 # Day abbreviation → full name for ML scorer

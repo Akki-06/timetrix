@@ -81,9 +81,11 @@ def ts_id(tid):      return f"TSL::{tid.strip()}"
 def faculty_features(row):
     """8-dim feature vector for a faculty node."""
     desig_enc = {
-        "Visiting": 0.0, "Assistant Professor": 0.2,
-        "Associate Professor": 0.6, "Professor": 0.8,
-        "HOD": 0.9, "Dean": 1.0
+        "Visiting":            0.0,
+        "Assistant Professor": 0.25,
+        "Associate Professor": 0.50,
+        "Professor":           0.75,
+        "Pro Vice Chancellor": 1.0,
     }
     emp_enc = {"Visiting": 0.0, "Part Time": 0.5, "Full Time": 1.0}
 

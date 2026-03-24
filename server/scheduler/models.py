@@ -49,9 +49,9 @@ class SchedulerConfig(models.Model):
     def role_cap(self, role: str) -> int:
         """Return the configured weekly hour cap for a given faculty role."""
         return {
+            "PVC"     : self.max_hours_dean,
             "DEAN"    : self.max_hours_dean,
             "HOD"     : self.max_hours_hod,
-            "SENIOR"  : self.max_hours_senior,
             "REGULAR" : self.max_hours_regular,
             "VISITING": self.max_hours_visiting,
         }.get(role, self.max_hours_regular)
