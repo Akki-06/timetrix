@@ -18,6 +18,6 @@ router.register(r'courses', CourseViewSet)
 router.register(r'student-groups', StudentGroupViewSet)
 router.register(r'course-offerings', CourseOfferingViewSet)
 
-urlpatterns = router.urls + [
+urlpatterns = [
     path("courses/bulk-upload/", CourseBulkUploadView.as_view(), name="course-bulk-upload"),
-]
+] + router.urls

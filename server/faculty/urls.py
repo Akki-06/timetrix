@@ -12,6 +12,6 @@ router.register(r'faculty', FacultyViewSet)
 router.register(r'teacher-availability', TeacherAvailabilityViewSet)
 router.register(r'faculty-subject-eligibility', FacultySubjectEligibilityViewSet)
 
-urlpatterns = router.urls + [
+urlpatterns = [
     path("faculty/bulk-upload/", FacultyBulkUploadView.as_view(), name="faculty-bulk-upload"),
-]
+] + router.urls

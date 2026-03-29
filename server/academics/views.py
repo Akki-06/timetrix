@@ -161,7 +161,6 @@ class StudentGroupViewSet(viewsets.ModelViewSet):
 
         overwrite = request.data.get("overwrite", False)
 
-        # Non-schedulable types excluded
         NON_SCHED = {"DIS", "INT", "RND"}
 
         courses = Course.objects.filter(
