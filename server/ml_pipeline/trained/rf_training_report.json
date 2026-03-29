@@ -1,0 +1,78 @@
+{
+  "cv_accuracy": 0.9366,
+  "cv_f1": 0.8718,
+  "cv_roc_auc": 0.9811,
+  "oob_score": 0.9377,
+  "optimal_threshold": 0.4699,
+  "n_positives": 1369,
+  "n_negatives": 4102,
+  "feature_dim": 111,
+  "sanity_check": {
+    "valid": 0.9817726031009606,
+    "wrong_room": 0.7781511452034016,
+    "overloaded": 0.9447041956506741,
+    "wrong_faculty": 0.7562798678711193
+  },
+  "top_features": [
+    {
+      "feature": "load_remaining",
+      "importance": 0.193465
+    },
+    {
+      "feature": "is_known_slot",
+      "importance": 0.141284
+    },
+    {
+      "feature": "fac_today_load_ratio",
+      "importance": 0.116531
+    },
+    {
+      "feature": "fac_course_affinity",
+      "importance": 0.032469
+    },
+    {
+      "feature": "near_weekly_cap",
+      "importance": 0.018542
+    },
+    {
+      "feature": "is_lab",
+      "importance": 0.016563
+    },
+    {
+      "feature": "rm_emb_19",
+      "importance": 0.012257
+    },
+    {
+      "feature": "fac_emb_24",
+      "importance": 0.011457
+    },
+    {
+      "feature": "rm_emb_25",
+      "importance": 0.011276
+    },
+    {
+      "feature": "rm_emb_16",
+      "importance": 0.010753
+    },
+    {
+      "feature": "rm_emb_2",
+      "importance": 0.010079
+    },
+    {
+      "feature": "ts_emb_17",
+      "importance": 0.010055
+    },
+    {
+      "feature": "rm_emb_4",
+      "importance": 0.010024
+    },
+    {
+      "feature": "rm_emb_17",
+      "importance": 0.009576
+    },
+    {
+      "feature": "rm_emb_29",
+      "importance": 0.009244
+    }
+  ]
+}
