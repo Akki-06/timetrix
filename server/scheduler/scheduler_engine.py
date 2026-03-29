@@ -205,9 +205,9 @@ class MLScorer:
                   current_load_today: int = 0,
                   max_daily: int = 4) -> float:
         """
-        Build a 111-dim feature vector and score via the trained RF model.
+        Build a 112-dim feature vector and score via the trained RF model.
         Layout must match random_forest_model.py exactly:
-          fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[15] = 111
+          fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[16] = 112
         Falls back to _heuristic_score() on any error.
         """
         try:
@@ -282,6 +282,9 @@ class MLScorer:
             # 15: early warning when faculty is close to their weekly cap
             near_weekly_cap = 1.0 if cur_load >= max_h * 0.85 else 0.0
 
+            # 16: overload severity — how far above weekly cap
+            overload_severity = max(0.0, (cur_load - max_h) / max(max_h, 1))
+
             manual = np.array([
                 load_remaining,           # 1
                 is_known_slot,            # 2
@@ -298,6 +301,7 @@ class MLScorer:
                 fac_today_ratio,          # 13
                 slot_adjacent_density,    # 14
                 near_weekly_cap,          # 15
+                overload_severity,        # 16
             ], dtype=np.float32)
 
             feat = np.concatenate([fac_emb, ts_emb, rm_emb, manual]).reshape(1, -1)
@@ -1106,15 +1110,14 @@ class SchedulerEngine:
     @transaction.atomic
     def _save(self) -> int:
         """
-        Write all allocations in one atomic transaction.
+        Write all allocations in one atomic transaction using bulk_create.
         If any DB-level unique constraint fires, the entire transaction
         rolls back — no partial corrupt state left in the DB.
         """
         log.info(f"Writing {len(self.pending_saves)} allocations to DB...")
-        created = 0
 
-        for alloc in self.pending_saves:
-            LectureAllocation.objects.create(
+        objs = [
+            LectureAllocation(
                 timetable_id           = self.timetable_id,
                 course_offering_id     = alloc["offering_id"],
                 student_group_id       = alloc["student_group_id"],
@@ -1124,7 +1127,11 @@ class SchedulerEngine:
                 hard_constraint_violated = False,
                 soft_constraint_score  = round(alloc["score"], 4),
             )
-            created += 1
+            for alloc in self.pending_saves
+        ]
+
+        LectureAllocation.objects.bulk_create(objs)
+        created = len(objs)
 
         # Update timetable quality score
         if self.pending_saves:

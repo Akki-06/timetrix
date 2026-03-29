@@ -76,8 +76,8 @@ RF_META_PATH   = TRAIN_DIR / "rf_feature_metadata.pkl"
 RF_REPORT_PATH = TRAIN_DIR / "rf_training_report.json"
 
 EMBED_DIM   = 32
-MANUAL_DIM  = 15    # upgraded from 12: +3 dynamic state features
-FEATURE_DIM = EMBED_DIM * 3 + MANUAL_DIM   # 111
+MANUAL_DIM  = 16    # upgraded from 15: +overload_severity
+FEATURE_DIM = EMBED_DIM * 3 + MANUAL_DIM   # 112
 
 ZERO_EMBED = np.zeros(EMBED_DIM, dtype=np.float32)
 
@@ -133,8 +133,8 @@ def compute_stats(df):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FEATURE VECTOR BUILDER — 108 dims
-# fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[12]
+# FEATURE VECTOR BUILDER — 112 dims
+# fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[16]
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_feature_vector(faculty, room, day, slot,
@@ -145,9 +145,9 @@ def build_feature_vector(faculty, room, day, slot,
                          max_hours_map, stats,
                          fac_today_load=0, max_daily=4):
     """
-    111-dim feature vector for one candidate assignment.
+    112-dim feature vector for one candidate assignment.
 
-    Layout: [fac_emb(32) | ts_emb(32) | rm_emb(32) | manual(15)]
+    Layout: [fac_emb(32) | ts_emb(32) | rm_emb(32) | manual(16)]
 
     The 3 new features (13-15) encode *dynamic scheduling state*:
       13. faculty_load_today_ratio — how full the faculty's day already is.
@@ -227,6 +227,10 @@ def build_feature_vector(faculty, room, day, slot,
     # the hard constraint kicks in at exactly max_h.
     near_weekly_cap = 1.0 if cur_load >= max_h * 0.85 else 0.0
 
+    # Feature 16: overload severity — how far above weekly cap
+    # 0.0 = at or below cap. Scales linearly above cap.
+    overload_severity = max(0.0, (cur_load - max_h) / max(max_h, 1))
+
     manual = np.array([
         load_remaining,           # 1:  faculty weekly availability
         is_known_slot,            # 2:  historical slot match
@@ -240,12 +244,13 @@ def build_feature_vector(faculty, room, day, slot,
         sem_norm,                 # 10: semester context
         contact_norm,             # 11: course weight
         breadth_norm,             # 12: faculty versatility
-        fac_today_ratio,          # 13: (NEW) today's load ratio
-        slot_adjacent_density,    # 14: (NEW) busyness of neighbouring slots
-        near_weekly_cap,          # 15: (NEW) approaching weekly limit
+        fac_today_ratio,          # 13: today's load ratio
+        slot_adjacent_density,    # 14: busyness of neighbouring slots
+        near_weekly_cap,          # 15: approaching weekly limit
+        overload_severity,        # 16: how far above weekly cap
     ], dtype=np.float32)
 
-    return np.concatenate([fac_emb, ts_emb, rm_emb, manual])  # 108-dim
+    return np.concatenate([fac_emb, ts_emb, rm_emb, manual])  # 112-dim
 
 
 def get_feature_names():
@@ -265,9 +270,10 @@ def get_feature_names():
         "semester_norm",            # 10
         "contact_hours_norm",       # 11
         "faculty_breadth_norm",     # 12
-        "fac_today_load_ratio",     # 13 (NEW)
-        "slot_adjacent_density",    # 14 (NEW)
-        "near_weekly_cap",          # 15 (NEW)
+        "fac_today_load_ratio",     # 13
+        "slot_adjacent_density",    # 14
+        "near_weekly_cap",          # 15
+        "overload_severity",        # 16
     ]
     return names
 
@@ -442,8 +448,8 @@ def build_negative_samples(df, embeddings, max_hours_map, stats,
         fac   = row["faculty"]
         max_h = max_hours.get(fac, 18)
         load  = max_h + rng.randint(4, 10)   # clearly over weekly limit
-        # Also simulate a full day (daily limit reached)
-        today = rng.randint(4, 6)
+        # Also simulate a full day (daily limit reached) — make extreme
+        today = rng.randint(5, 8)
         add(fac, row["room"], row["day"], row["slot_index"],
             row["is_lab"], row["is_consecutive_lab"],
             row["contact_hours_weekly"], row["semester_int"],

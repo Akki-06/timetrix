@@ -40,7 +40,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
 # ----------------------------
 
 class TimetableViewSet(viewsets.ModelViewSet):
-    queryset = Timetable.objects.select_related("term")
+    queryset = Timetable.objects.select_related("term", "term__program").all()
     serializer_class = TimetableSerializer
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -173,17 +173,19 @@ class GenerateTimetableView(APIView):
         # Create in-app notification based on result and user's preferences
         config = SchedulerConfig.get()
         if result["status"] in ("success", "partial") and config.notify_on_generation_complete:
+            n_alloc = result.get("allocations", 0)
+            n_unsched = len(result.get("unscheduled", []))
             msg = (
-                f"Timetable generated: {result.get('scheduled', 0)} sessions scheduled"
-                + (f", {result.get('unscheduled_count', 0)} unscheduled." if result["status"] == "partial" else ".")
+                f"Timetable generated: {n_alloc} sessions scheduled"
+                + (f", {n_unsched} unscheduled." if result["status"] == "partial" else ".")
             )
             Notification.objects.create(
                 message=msg,
                 type="success" if result["status"] == "success" else "warning",
             )
-        elif result["status"] == "error" and config.notify_on_failed_generation:
+        elif result["status"] == "failed" and config.notify_on_failed_generation:
             Notification.objects.create(
-                message=f"Timetable generation failed: {result.get('error', 'Unknown error')}",
+                message=f"Timetable generation failed: {result.get('reason', 'Unknown error')}",
                 type="error",
             )
 

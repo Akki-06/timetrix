@@ -25,6 +25,7 @@ function BulkUploadCard({
   helperText,
   templateFileName,
   templateSampleRow,
+  useFileUpload,          // when true, send file as FormData to endpoint
 }) {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -38,6 +39,26 @@ function BulkUploadCard({
     setResult(null);
 
     try {
+      /* ── File-upload mode: send the .xlsx directly to the backend ── */
+      if (useFileUpload) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        const resp = await api.post(endpoint, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        const d = resp.data;
+        const errors = d.errors || [];
+        setResult({
+          type: errors.length ? "partial" : "success",
+          successCount: (d.created || 0) + (d.updated || 0),
+          failedRows: errors.map((e, i) => ({ row: i + 2, error: e })),
+        });
+        setFile(null);
+        if (onUploadComplete) onUploadComplete();
+        return;
+      }
+
+      /* ── Row-by-row mode (original behaviour) ── */
       const rows = await readSpreadsheetRows(selectedFile);
       if (!rows.length) {
         setResult({ type: "error", message: "File is empty." });
