@@ -1,0 +1,25 @@
+{
+  "total_nodes": 445,
+  "total_edges": 4294,
+  "node_types": {
+    "faculty": 101,
+    "course": 216,
+    "section": 49,
+    "room": 49,
+    "timeslot": 30
+  },
+  "edge_types": {
+    "teaches": 290,
+    "occupied_at": 918,
+    "teaches_in": 427,
+    "belongs_to": 635,
+    "scheduled_at": 949,
+    "uses": 195,
+    "used_at": 880
+  },
+  "is_directed": true,
+  "avg_degree": 19.3,
+  "sessions_used": 1606,
+  "validation_errors": 0,
+  "validation_warns": 0
+}

@@ -92,19 +92,12 @@ htmlcov/
 .pytest_cache/
 
 # ==============================
-# ML Pipeline — trained artifacts
-# These are large binary files; regenerate
-# by running the training scripts.
+# ML Pipeline
 # ==============================
 
-server/ml_pipeline/trained/
-server/ml_pipeline/data/
-*.pkl
-*.pt
-*.gpickle
-
-# Visualization outputs (generated)
-viz_*.png
+# rf_model.pkl is ~125 MB — exceeds GitHub's 100 MB hard limit.
+# All other trained artifacts and datasets ARE tracked.
+server/ml_pipeline/trained/rf_model.pkl
 
 # ==============================
 # Misc
