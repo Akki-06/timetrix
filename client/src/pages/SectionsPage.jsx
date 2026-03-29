@@ -4,7 +4,7 @@ import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
-import { FaUsers, FaTrash } from "react-icons/fa";
+import { FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight } from "react-icons/fa";
 
 const INITIAL_FORM = {
   program: "",
@@ -22,6 +22,12 @@ function SectionsPage() {
   const [error, setError]         = useState("");
   const [success, setSuccess]     = useState("");
   const [form, setForm]           = useState(INITIAL_FORM);
+
+  /* ── Course Offerings panel state ── */
+  const [expandedGroup, setExpandedGroup] = useState(null);
+  const [offerings, setOfferings]         = useState([]);
+  const [offeringsLoading, setOfferingsLoading] = useState(false);
+  const [autoAssigning, setAutoAssigning] = useState(false);
 
   const loadAll = useCallback(async () => {
     try {
@@ -77,9 +83,59 @@ function SectionsPage() {
     if (!window.confirm("Delete this section? Associated course offerings and allocations will also be removed.")) return;
     try {
       await api.delete(`academics/student-groups/${id}/`);
+      if (expandedGroup === id) {
+        setExpandedGroup(null);
+        setOfferings([]);
+      }
       loadAll();
     } catch (err) {
       setError(extractError(err, "Failed to delete section."));
+    }
+  };
+
+  /* ── Course Offerings helpers ── */
+  const loadOfferings = useCallback(async (groupId) => {
+    try {
+      setOfferingsLoading(true);
+      const resp = await api.get(`academics/course-offerings/?student_group=${groupId}`);
+      setOfferings(asList(resp.data));
+    } catch {
+      setOfferings([]);
+    } finally {
+      setOfferingsLoading(false);
+    }
+  }, []);
+
+  const toggleExpand = (groupId) => {
+    if (expandedGroup === groupId) {
+      setExpandedGroup(null);
+      setOfferings([]);
+    } else {
+      setExpandedGroup(groupId);
+      loadOfferings(groupId);
+    }
+  };
+
+  const handleAutoAssign = async (groupId) => {
+    try {
+      setAutoAssigning(true);
+      const resp = await api.post(`academics/student-groups/${groupId}/auto-assign-courses/`);
+      const { created, already_existed } = resp.data;
+      setSuccess(`Auto-assigned: ${created} new, ${already_existed} already existed.`);
+      loadOfferings(groupId);
+    } catch (err) {
+      setError(extractError(err, "Auto-assign failed."));
+    } finally {
+      setAutoAssigning(false);
+    }
+  };
+
+  const handleDeleteOffering = async (offeringId) => {
+    try {
+      await api.delete(`academics/course-offerings/${offeringId}/`);
+      setOfferings((prev) => prev.filter((o) => o.id !== offeringId));
+    } catch (err) {
+      setError(extractError(err, "Failed to remove offering."));
     }
   };
 
@@ -282,7 +338,7 @@ function SectionsPage() {
                 <tbody>
                   {grouped.map((grp) =>
                     grp.rows.map((g, idx) => (
-                      <tr key={g.id}>
+                      <tr key={g.id} style={{ cursor: "pointer" }} onClick={() => toggleExpand(g.id)}>
                         {idx === 0 && (
                           <td rowSpan={grp.rows.length} style={{ fontWeight: 600 }}>
                             <div className="fac-name-cell">
@@ -296,17 +352,20 @@ function SectionsPage() {
                         </td>
                         <td style={{ color: "var(--muted)" }}>Year {g.year}</td>
                         <td>
-                          <strong>{g.name}</strong>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {expandedGroup === g.id ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                            <strong>{g.name}</strong>
+                          </div>
                         </td>
                         <td>{g.strength}</td>
                         <td style={{ color: "var(--muted)", fontSize: "0.85em" }}>
-                          {g.description || "—"}
+                          {g.description || "\u2014"}
                         </td>
                         <td>
                           <button
                             className="icon-btn danger"
                             title="Delete"
-                            onClick={() => handleDelete(g.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(g.id); }}
                           >
                             <FaTrash />
                           </button>
@@ -316,6 +375,74 @@ function SectionsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* ── Expanded Course Offerings Panel ── */}
+          {expandedGroup && (
+            <div className="data-card" style={{ marginTop: 12, background: "var(--bg-card)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                <h4 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <FaBook style={{ color: "var(--brand)" }} />
+                  Course Offerings for Section {groups.find((g) => g.id === expandedGroup)?.name || ""}
+                </h4>
+                <button
+                  className="btn-primary btn-with-icon"
+                  style={{ fontSize: "0.85em" }}
+                  disabled={autoAssigning}
+                  onClick={() => handleAutoAssign(expandedGroup)}
+                >
+                  <FaMagic />
+                  {autoAssigning ? "Assigning..." : "Auto-Assign Courses"}
+                </button>
+              </div>
+
+              {offeringsLoading ? (
+                <p className="upload-help">Loading offerings...</p>
+              ) : offerings.length === 0 ? (
+                <p style={{ color: "var(--muted)", textAlign: "center", padding: 16 }}>
+                  No course offerings yet. Click "Auto-Assign Courses" to populate from the program syllabus.
+                </p>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Course Code</th>
+                        <th>Course Name</th>
+                        <th>Type</th>
+                        <th>Weekly Load</th>
+                        <th>Faculty</th>
+                        <th style={{ width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {offerings.map((o) => (
+                        <tr key={o.id}>
+                          <td><strong>{o.course_code || o.course}</strong></td>
+                          <td>{o.course_name || "\u2014"}</td>
+                          <td>
+                            <span className="course-sem-badge">{o.course_type || "\u2014"}</span>
+                          </td>
+                          <td>{o.weekly_load}</td>
+                          <td style={{ color: o.faculty_name ? "inherit" : "var(--muted)" }}>
+                            {o.faculty_name || "Unassigned"}
+                          </td>
+                          <td>
+                            <button
+                              className="icon-btn danger"
+                              title="Remove offering"
+                              onClick={() => handleDeleteOffering(o.id)}
+                            >
+                              <FaTrash size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </section>

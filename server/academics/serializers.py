@@ -87,6 +87,10 @@ class StudentGroupSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class CourseOfferingSerializer(serializers.ModelSerializer):
+    course_code  = serializers.CharField(source="course.code", read_only=True, default=None)
+    course_name  = serializers.CharField(source="course.name", read_only=True, default=None)
+    course_type  = serializers.CharField(source="course.course_type", read_only=True, default=None)
+    faculty_name = serializers.CharField(source="assigned_faculty.name", read_only=True, default=None)
 
     def validate(self, data):
         return data

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'faculty',
     'infrastructure',
     'scheduler',
+    'ml_pipeline',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +133,20 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    },
+    "loggers": {
+        "scheduler": {"handlers": ["console"], "level": "INFO"},
+        "ml_pipeline": {"handlers": ["console"], "level": "INFO"},
+    },
+}

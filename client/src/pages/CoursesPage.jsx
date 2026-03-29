@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
 import { FaBook, FaTrash } from "react-icons/fa";
 
@@ -150,32 +149,17 @@ function CoursesPage() {
 
       <BulkUploadCard
         title="Upload Courses"
-        endpoint="academics/courses/"
-        requiredColumns={["code", "name", "credits"]}
+        endpoint="academics/courses/bulk-upload/"
+        useFileUpload
+        requiredColumns={["code", "name", "credits", "course_type", "program_code", "semester"]}
         templateFileName="courses-upload-template.xlsx"
         templateSampleRow={{
           code: "BCA501",
           name: "Advanced Algorithms",
           credits: 3,
           course_type: "PC",
-          program: "BCA",
+          program_code: "BCA",
           semester: 5,
-        }}
-        mapRow={(row) => {
-          const credits = toNumber(row.credits, 3);
-          const ct = String(row.course_type || "PC").toUpperCase();
-          const progCode = String(row.program || "").trim();
-          const prog = programs.find(
-            (p) => p.code.toLowerCase() === progCode.toLowerCase()
-          );
-          return {
-            code: row.code,
-            name: row.name,
-            credits,
-            course_type: ct,
-            program: prog?.id || null,
-            semester: toNumber(row.semester, null),
-          };
         }}
         onUploadComplete={loadAll}
       />
