@@ -88,8 +88,8 @@ SEED         = 42
 # timeslot upgraded from 6 → 8 to accommodate sinusoidal cyclic encoding
 NODE_FEAT_DIMS = {
     "faculty"  : 8,
-    "course"   : 7,
-    "section"  : 5,
+    "course"   : 8,
+    "section"  : 10,
     "room"     : 6,
     "timeslot" : 8,
 }

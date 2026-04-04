@@ -5,6 +5,8 @@ from .views import (
     TeacherAvailabilityViewSet,
     FacultySubjectEligibilityViewSet,
     FacultyBulkUploadView,
+    EligibilityBulkUploadView,
+    FacultyWorkloadView,
 )
 
 router = DefaultRouter()
@@ -14,4 +16,6 @@ router.register(r'faculty-subject-eligibility', FacultySubjectEligibilityViewSet
 
 urlpatterns = [
     path("faculty/bulk-upload/", FacultyBulkUploadView.as_view(), name="faculty-bulk-upload"),
+    path("eligibility/bulk-upload/", EligibilityBulkUploadView.as_view(), name="eligibility-bulk-upload"),
+    path("faculty/workload/", FacultyWorkloadView.as_view(), name="faculty-workload"),
 ] + router.urls

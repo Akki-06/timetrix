@@ -4,7 +4,7 @@ import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
-import { FaUniversity, FaTrash } from "react-icons/fa";
+import { FaBook, FaTrash, FaUniversity, FaEdit, FaTimes } from "react-icons/fa";
 
 const INITIAL_FORM = {
   department: "",
@@ -44,6 +44,8 @@ function ProgramsPage() {
     loadAll();
   }, [loadAll]);
 
+  const [editId, setEditId] = useState(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -54,22 +56,48 @@ function ProgramsPage() {
       const payload = {
         name: form.name.trim(),
         code: form.code.trim(),
+        department: Number(form.department),
         specialization: form.specialization.trim(),
         total_years: Number(form.total_years),
         total_semesters: Number(form.total_semesters),
       };
-      if (form.department) payload.department = Number(form.department);
 
-      await api.post("academics/programs/", payload);
-
+      if (editId) {
+        await api.patch(`academics/programs/${editId}/`, payload);
+        setSuccess("Program updated successfully.");
+        setEditId(null);
+      } else {
+        await api.post("academics/programs/", payload);
+        setSuccess("Program created successfully.");
+      }
       setForm(INITIAL_FORM);
-      setSuccess("Program created successfully.");
       loadAll();
     } catch (err) {
-      setError(extractError(err, "Failed to create program."));
+      setError(extractError(err, editId ? "Failed to update program." : "Failed to create program."));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (prog) => {
+    setEditId(prog.id);
+    setForm({
+      department: prog.department,
+      name: prog.name,
+      code: prog.code,
+      specialization: prog.specialization || "",
+      total_years: prog.total_years,
+      total_semesters: prog.total_semesters,
+    });
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setForm(INITIAL_FORM);
+    setError("");
+    setSuccess("");
   };
 
   const handleDelete = async (id) => {
@@ -91,7 +119,8 @@ function ProgramsPage() {
 
       <BulkUploadCard
         title="Upload Programs"
-        endpoint="academics/programs/"
+        endpoint="academics/programs/bulk-upload/"
+        useFileUpload
         requiredColumns={["name", "code", "department_code"]}
         templateFileName="programs-upload-template.xlsx"
         templateSampleRow={{
@@ -102,20 +131,6 @@ function ProgramsPage() {
           total_years: 4,
           total_semesters: 8,
         }}
-        mapRow={(row) => {
-          const deptCode = String(row.department_code || "").toUpperCase().trim();
-          const dept = departments.find(
-            (d) => d.code.toUpperCase() === deptCode
-          );
-          return {
-            name: String(row.name || "").trim(),
-            code: String(row.code || "").trim(),
-            specialization: String(row.specialization || "").trim(),
-            total_years: toNumber(row.total_years, 4),
-            total_semesters: toNumber(row.total_semesters, 8),
-            department: dept?.id || null,
-          };
-        }}
         onUploadComplete={loadAll}
       />
 
@@ -124,7 +139,7 @@ function ProgramsPage() {
         <section className="data-card faculty-form-card">
           <h3>
             <FaUniversity style={{ marginRight: 8, color: "var(--brand)" }} />
-            Add New Program
+            {editId ? "Update Program" : "Add New Program"}
           </h3>
 
           {error && <p className="upload-error">{error}</p>}
@@ -234,15 +249,25 @@ function ProgramsPage() {
             </div>
 
             <div className="form-group form-group-btn">
+              <div className="form-actions" style={{ display: "flex", gap: "10px" }}>
               <button
                 type="submit"
-                className="btn-primary btn-with-icon"
+                className="btn btn-primary"
                 disabled={submitting}
-                style={{ width: "100%", justifyContent: "center" }}
+                style={{ flex: 1 }}
               >
-                <FaUniversity />
-                {submitting ? "Creating..." : "Create Program"}
+                {submitting ? "Saving..." : editId ? "Update Program" : "Create Program"}
               </button>
+              {editId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelEdit}
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
             </div>
           </form>
         </section>
@@ -304,13 +329,22 @@ function ProgramsPage() {
                           {p.total_years} yrs / {p.total_semesters} sem
                         </td>
                         <td>
-                          <button
-                            className="icon-btn danger"
-                            title="Delete"
-                            onClick={() => handleDelete(p.id)}
-                          >
-                            <FaTrash />
-                          </button>
+                          <div className="table-actions">
+                            <button
+                              className="action-btn"
+                              onClick={() => handleEdit(p)}
+                              title="Edit Program"
+                            >
+                              <FaEdit style={{ color: "#3b82f6" }} />
+                            </button>
+                            <button
+                              className="action-btn"
+                              onClick={() => handleDelete(p.id)}
+                              title="Delete Program"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

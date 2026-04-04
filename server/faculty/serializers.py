@@ -64,6 +64,9 @@ class TeacherAvailabilitySerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class FacultySubjectEligibilitySerializer(serializers.ModelSerializer):
+    faculty_name = serializers.CharField(source="faculty.name", read_only=True, default=None)
+    course_code  = serializers.CharField(source="course.code", read_only=True, default=None)
+    course_name  = serializers.CharField(source="course.name", read_only=True, default=None)
 
     def validate(self, data):
         if data.get("priority_weight", 1) <= 0:

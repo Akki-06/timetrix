@@ -10,6 +10,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 
+import os
+from pathlib import Path
+from django.http import FileResponse, Http404
+from django.conf import settings
 log = logging.getLogger(__name__)
 from .models import (
     Department,
@@ -28,6 +32,30 @@ from .serializers import (
     StudentGroupSerializer,
     CourseOfferingSerializer
 )
+
+class TemplateDownloadView(APIView):
+    """
+    Serves standard Excel templates for bulk uploads.
+    """
+    def get(self, request, *args, **kwargs):
+        entity = request.query_params.get("entity", "").lower()
+        mapping = {
+            "programs": "TIMETRIX_Programs_Template.xlsx",
+            "courses" : "TIMETRIX_Courses_Template.xlsx",
+            "faculty" : "TIMETRIX_Faculty_Template.xlsx",
+            "rooms"   : "TIMETRIX_Rooms_Template.xlsx",
+            "offerings": "TIMETRIX_CourseOfferings_Template.xlsx",
+        }
+        
+        filename = mapping.get(entity)
+        if not filename:
+            return Response({"error": "Invalid entity type"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        path = Path(settings.BASE_DIR) / "ml_pipeline" / "data" / "templates" / filename
+        if not path.exists():
+            raise Http404("Template file not found.")
+            
+        return FileResponse(open(path, 'rb'), as_attachment=True, filename=filename)
 
 
 # ----------------------------
@@ -129,16 +157,19 @@ class StudentGroupViewSet(viewsets.ModelViewSet):
             defaults={"year": year},
         )
 
+        working_days = request.data.get("working_days", ["MON", "TUE", "WED", "THU", "FRI"])
+
         # Create section (or update strength if it already exists)
         group, created = StudentGroup.objects.get_or_create(
             term=term,
             name=section,
-            defaults={"strength": strength, "description": description},
+            defaults={"strength": strength, "description": description, "working_days": working_days},
         )
         if not created:
             group.strength = strength
-            if description:
+            if description is not None:
                 group.description = description
+            group.working_days = working_days
             group.save()
 
         data = StudentGroupSerializer(group).data
@@ -163,16 +194,24 @@ class StudentGroupViewSet(viewsets.ModelViewSet):
 
         NON_SCHED = {"DIS", "INT", "RND"}
 
-        courses = Course.objects.filter(
+        all_courses = list(Course.objects.filter(
             program=program,
             semester=semester,
-        ).exclude(course_type__in=NON_SCHED)
+        ).exclude(course_type__in=NON_SCHED))
 
-        if not courses.exists():
+        if not all_courses:
             return Response(
                 {"error": f"No schedulable courses found for {program.code} Sem {semester}."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        # Collect placeholder codes so we skip assigning the placeholder when actual choices exist
+        placeholder_codes = set()
+        for c in all_courses:
+            if c.parent_course_code:
+                placeholder_codes.add(c.parent_course_code)
+
+        courses_to_assign = [c for c in all_courses if c.code not in placeholder_codes]
 
         if overwrite:
             CourseOffering.objects.filter(student_group=group).delete()
@@ -181,12 +220,23 @@ class StudentGroupViewSet(viewsets.ModelViewSet):
         already_existed = 0
         course_codes = []
 
-        for course in courses:
-            _, was_created = CourseOffering.objects.get_or_create(
+        for course in courses_to_assign:
+            esg = course.parent_course_code if course.parent_course_code else None
+            
+            offering, was_created = CourseOffering.objects.get_or_create(
                 course=course,
                 student_group=group,
-                defaults={"weekly_load": course.min_weekly_lectures},
+                defaults={
+                    "weekly_load": course.min_weekly_lectures,
+                    "elective_slot_group": esg,
+                },
             )
+            
+            # If existed, ensure elective_slot_group is up to date
+            if not was_created and offering.elective_slot_group != esg:
+                offering.elective_slot_group = esg
+                offering.save(update_fields=["elective_slot_group"])
+                
             if was_created:
                 created_count += 1
             else:
@@ -299,6 +349,9 @@ class CourseBulkUploadView(APIView):
             for row_num, row in enumerate(rows[1:], start=2):
                 try:
                     code = str(row[col["code"]] or "").strip()
+                    # Normalization: strip _BCA, _BTech etc suffixes and uppercase
+                    code = code.split('_')[0].upper()
+                    
                     name = str(row[col["name"]] or "").strip()
                     credits_val = int(row[col["credits"]] or 3)
 
@@ -313,18 +366,23 @@ class CourseBulkUploadView(APIView):
                         errors.append(f"Row {row_num}: unknown course_type '{ct_raw}', skipped.")
                         continue
 
-                    # Resolve program (optional)
+                    # Resolve program (optional) — auto-create if missing
                     program = None
                     semester = None
+                    parent_code = None
+                    
                     if "program_code" in col and row[col["program_code"]]:
                         prog_code = str(row[col["program_code"]]).strip()
-                        try:
-                            program = Program.objects.get(code__iexact=prog_code)
-                        except Program.DoesNotExist:
-                            errors.append(f"Row {row_num}: program '{prog_code}' not found, skipped.")
+                        program = Program.objects.filter(code__iexact=prog_code).first()
+                        if not program:
+                            errors.append(f"Row {row_num}: Program code '{prog_code}' not found. Please create it first.")
                             continue
+                            
                     if "semester" in col and row[col["semester"]]:
                         semester = int(row[col["semester"]])
+                        
+                    if "parent_pe_code" in col and row[col["parent_pe_code"]]:
+                        parent_code = str(row[col["parent_pe_code"]]).strip()
 
                     obj, was_created = Course.objects.get_or_create(
                         code=code,
@@ -334,6 +392,159 @@ class CourseBulkUploadView(APIView):
                             "course_type": ct,
                             "program": program,
                             "semester": semester,
+                            "parent_course_code": parent_code,
+                        },
+                    )
+                    if was_created:
+                        created += 1
+                    else:
+                        # Ensure fields are updated
+                        update_fields = []
+                        if obj.name != name:
+                            obj.name = name; update_fields.append("name")
+                        if obj.credits != credits_val:
+                            obj.credits = credits_val; update_fields.append("credits")
+                        if obj.course_type != ct:
+                            obj.course_type = ct; update_fields.append("course_type")
+                        if obj.program != program:
+                            obj.program = program; update_fields.append("program")
+                        if obj.semester != semester:
+                            obj.semester = semester; update_fields.append("semester")
+                        if obj.parent_course_code != parent_code:
+                            obj.parent_course_code = parent_code; update_fields.append("parent_course_code")
+
+                        if update_fields:
+                            obj.save(update_fields=update_fields)
+                            updated += 1
+
+                except Exception as e:
+                    errors.append(f"Row {row_num}: {e}")
+
+        return Response(
+            {"created": created, "updated": updated, "errors": errors},
+            status=status.HTTP_200_OK,
+        )
+
+
+# ----------------------------
+# PROGRAM BULK UPLOAD
+# ----------------------------
+
+class ProgramBulkUploadView(APIView):
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        file = request.FILES.get("file")
+        if not file:
+            return Response(
+                {"error": "No file provided. Upload an .xlsx file with field name 'file'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not file.name.endswith(".xlsx"):
+            return Response(
+                {"error": "Only .xlsx files are supported."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            import openpyxl
+        except ImportError:
+            return Response(
+                {"error": "openpyxl is not installed. Run: pip install openpyxl"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        try:
+            wb = openpyxl.load_workbook(file, read_only=True)
+            ws = wb.active
+        except Exception as e:
+            return Response(
+                {"error": f"Could not read Excel file: {e}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rows = list(ws.iter_rows(values_only=True))
+        if len(rows) < 2:
+            return Response(
+                {"error": "File must have a header row and at least one data row."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        header = [str(h).strip().lower().replace(" ", "_") if h else "" for h in rows[0]]
+
+        required = {"name", "code"}
+        if not required.issubset(set(header)):
+            return Response(
+                {"error": f"Missing required columns: {required - set(header)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        col = {name: idx for idx, name in enumerate(header)}
+        created = 0
+        updated = 0
+        errors = []
+
+        with transaction.atomic():
+            for row_num, row in enumerate(rows[1:], start=2):
+                try:
+                    name = str(row[col["name"]] or "").strip()
+                    code = str(row[col["code"]] or "").strip()
+
+                    if not name or not code:
+                        errors.append(f"Row {row_num}: name or code is empty, skipped.")
+                        continue
+
+                    # Resolve or auto-create department
+                    department = None
+                    if "department_code" in col and row[col["department_code"]]:
+                        dept_code = str(row[col["department_code"]]).strip()
+                        department, dept_created = Department.objects.get_or_create(
+                            code__iexact=dept_code,
+                            defaults={
+                                "code": dept_code.upper(),
+                                "name": f"Department of {dept_code.upper()}",
+                            },
+                        )
+                        if dept_created:
+                            log.info(f"Auto-created department '{dept_code}'")
+                    elif "department" in col and row[col["department"]]:
+                        dept_name = str(row[col["department"]]).strip()
+                        department, dept_created = Department.objects.get_or_create(
+                            name__iexact=dept_name,
+                            defaults={
+                                "name": dept_name,
+                                "code": dept_name[:20].upper().replace(" ", ""),
+                            },
+                        )
+
+                    if department is None:
+                        # If no department info at all, create a default
+                        department, _ = Department.objects.get_or_create(
+                            code="GEN",
+                            defaults={"name": "General"},
+                        )
+
+                    specialization = ""
+                    if "specialization" in col and row[col["specialization"]]:
+                        specialization = str(row[col["specialization"]]).strip()
+
+                    total_years = 4
+                    if "total_years" in col and row[col["total_years"]]:
+                        total_years = int(row[col["total_years"]])
+
+                    total_semesters = 8
+                    if "total_semesters" in col and row[col["total_semesters"]]:
+                        total_semesters = int(row[col["total_semesters"]])
+
+                    obj, was_created = Program.objects.get_or_create(
+                        code=code,
+                        defaults={
+                            "name": name,
+                            "department": department,
+                            "specialization": specialization,
+                            "total_years": total_years,
+                            "total_semesters": total_semesters,
                         },
                     )
 
@@ -341,12 +552,10 @@ class CourseBulkUploadView(APIView):
                         created += 1
                     else:
                         obj.name = name
-                        obj.credits = credits_val
-                        obj.course_type = ct
-                        if program:
-                            obj.program = program
-                        if semester:
-                            obj.semester = semester
+                        obj.department = department
+                        obj.specialization = specialization
+                        obj.total_years = total_years
+                        obj.total_semesters = total_semesters
                         obj.save()
                         updated += 1
 

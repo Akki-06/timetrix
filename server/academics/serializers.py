@@ -87,10 +87,13 @@ class StudentGroupSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class CourseOfferingSerializer(serializers.ModelSerializer):
-    course_code  = serializers.CharField(source="course.code", read_only=True, default=None)
-    course_name  = serializers.CharField(source="course.name", read_only=True, default=None)
-    course_type  = serializers.CharField(source="course.course_type", read_only=True, default=None)
-    faculty_name = serializers.CharField(source="assigned_faculty.name", read_only=True, default=None)
+    course_code    = serializers.CharField(source="course.code", read_only=True, default=None)
+    course_name    = serializers.CharField(source="course.name", read_only=True, default=None)
+    course_type    = serializers.CharField(source="course.course_type", read_only=True, default=None)
+    credits        = serializers.IntegerField(source="course.credits", read_only=True, default=0)
+    course_semester = serializers.IntegerField(source="course.semester", read_only=True, default=None)
+    faculty_name   = serializers.CharField(source="assigned_faculty.name", read_only=True, default=None)
+    section_name   = serializers.CharField(source="student_group.name", read_only=True, default=None)
 
     def validate(self, data):
         return data

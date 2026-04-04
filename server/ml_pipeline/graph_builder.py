@@ -1,23 +1,7 @@
 """
-TIMETRIX — Graph Builder
-=========================
-Builds a heterogeneous NetworkX graph from the 4 clean CSVs.
-
-Node types  : faculty, course, section, room, timeslot
-Edge types  : teaches, belongs_to, scheduled_at, uses, occupied_at
-
-Input  CSVs : timetable_dataset_clean.csv
-              faculty_metadata.csv
-              rooms.csv
-              timeslots.csv
-
-Output files: timetrix_graph.gpickle   — full NetworkX graph
-              node_features.pkl        — {node_id: feature_vector}
-              node_metadata.pkl        — {node_id: human-readable info}
-              graph_stats.json         — summary for validation
-
-Run:
-    python ml_pipeline/graph_builder.py
+TIMETRIX — Graph Builder (v3)
+Builds a heterogeneous GNN graph from normalized CSV metadata.
+Nodes: faculty, course, section, room, timeslot.
 """
 
 import os
@@ -29,17 +13,11 @@ import pandas as pd
 import networkx as nx
 from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PATHS  — relative to server/ directory
-# ─────────────────────────────────────────────────────────────────────────────
-
-BASE_DIR    = Path(__file__).resolve().parent.parent   # timetrix/server/
+# Config
+BASE_DIR    = Path(__file__).resolve().parent.parent
 DATA_DIR    = BASE_DIR / "ml_pipeline" / "data"
 OUTPUT_DIR  = BASE_DIR / "ml_pipeline" / "trained"
 
@@ -53,19 +31,7 @@ OUTPUT_FEATURES = OUTPUT_DIR / "node_features.pkl"
 OUTPUT_META     = OUTPUT_DIR / "node_metadata.pkl"
 OUTPUT_STATS    = OUTPUT_DIR / "graph_stats.json"
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# NODE ID CONVENTIONS
-# Every node has a globally unique string ID with a type prefix.
-# This avoids any collision between e.g. a room "1112" and a course code "1112".
-#
-#   faculty   → "FAC::<name>"          e.g. "FAC::Mr. Rahul Bhatt"
-#   course    → "CRS::<name>"          e.g. "CRS::Database Management Systems"
-#   section   → "SEC::<prog>_<sem>_<sec>" e.g. "SEC::BTech CSE_4_A"
-#   room      → "RRM::<room_id>"       e.g. "RRM::1118"
-#   timeslot  → "TSL::<timeslot_id>"   e.g. "TSL::MON_S2"
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Node ID helpers
 def fac_id(name):    return f"FAC::{name.strip()}"
 def crs_id(name):    return f"CRS::{name.strip()}"
 def sec_id(p,s,sec): return f"SEC::{p.strip()}_{s}_{sec.strip()}"
@@ -81,9 +47,11 @@ def ts_id(tid):      return f"TSL::{tid.strip()}"
 def faculty_features(row):
     """8-dim feature vector for a faculty node."""
     desig_enc = {
-        "Visiting": 0.0, "Assistant Professor": 0.2,
-        "Associate Professor": 0.6, "Professor": 0.8,
-        "HOD": 0.9, "Dean": 1.0
+        "Visiting":            0.0,
+        "Assistant Professor": 0.25,
+        "Associate Professor": 0.50,
+        "Professor":           0.75,
+        "Pro Vice Chancellor": 1.0,
     }
     emp_enc = {"Visiting": 0.0, "Part Time": 0.5, "Full Time": 1.0}
 
@@ -100,7 +68,7 @@ def faculty_features(row):
 
 
 def course_features(row):
-    """7-dim feature vector for a course node."""
+    """8-dim feature vector for a course node."""
     type_enc = {"theory": 0.0, "lab": 1.0}
     prog_enc = {"BTech CSE": 0.0, "BCA": 0.25, "BSc IT": 0.5,
                 "MCA": 0.75, "Poly CSE": 1.0}
@@ -113,21 +81,26 @@ def course_features(row):
         float(row.get("semester_int", 1)) / 8.0,
         prog_enc.get(str(row.get("program","")), 0.0),
         float(row.get("is_consecutive_lab", 0)),
+        float(row.get("is_combined", 0)), # New: A+B grouping
     ], dtype=np.float32)
 
 
 def section_features(row):
-    """5-dim feature vector for a section node."""
+    """10-dim feature vector for a section node."""
     prog_enc = {"BTech CSE": 0.0, "BCA": 0.25, "BSc IT": 0.5,
                 "MCA": 0.75, "Poly CSE": 1.0}
+
+    # Working days bitmask (Mon-Fri)
+    wd = row.get("working_days", ["MON", "TUE", "WED", "THU", "FRI"])
+    wd_mask = [1.0 if d in wd else 0.0 for d in ["MON", "TUE", "WED", "THU", "FRI"]]
 
     return np.array([
         prog_enc.get(str(row.get("program","")), 0.0),
         float(row.get("semester_int", 1)) / 8.0,
         float(row.get("section_encoded", 0)) / 5.0,
         float(row.get("semester_type_enc", 0)),   # 0=even, 1=odd
-        0.5,   # placeholder for section strength (not in data)
-    ], dtype=np.float32)
+        0.5,   # placeholder for section strength
+    ] + wd_mask, dtype=np.float32)
 
 
 def room_features(row):
@@ -408,7 +381,7 @@ def validate_graph(G, node_features):
 
     # Feature vectors must be the right length
     expected_dims = {
-        "faculty": 8, "course": 7, "section": 5,
+        "faculty": 8, "course": 8, "section": 10,
         "room": 6, "timeslot": 8   # upgraded to 8 (sinusoidal encoding)
     }
     dim_errors = 0

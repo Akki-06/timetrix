@@ -9,11 +9,11 @@ from academics.models import Course, Department
 class Faculty(models.Model):
 
     class RoleChoices(models.TextChoices):
-        DEAN = "DEAN", "Dean"
-        HOD = "HOD", "Head of Department"
-        SENIOR = "SENIOR", "Senior Faculty"
-        REGULAR = "REGULAR", "Regular Faculty"
-        VISITING = "VISITING", "Visiting Faculty"
+        PVC      = "PVC",      "Pro Vice Chancellor"
+        DEAN     = "DEAN",     "Dean of School"
+        HOD      = "HOD",      "Head of Department"
+        REGULAR  = "REGULAR",  "Regular Faculty"
+        VISITING = "VISITING", "Visiting / Contractual"
 
     name = models.CharField(max_length=100)
     employee_id = models.CharField(max_length=20, unique=True)

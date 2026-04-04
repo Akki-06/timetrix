@@ -8,6 +8,8 @@ from .views import (
     StudentGroupViewSet,
     CourseOfferingViewSet,
     CourseBulkUploadView,
+    ProgramBulkUploadView,
+    TemplateDownloadView,
 )
 
 router = DefaultRouter()
@@ -20,4 +22,6 @@ router.register(r'course-offerings', CourseOfferingViewSet)
 
 urlpatterns = [
     path("courses/bulk-upload/", CourseBulkUploadView.as_view(), name="course-bulk-upload"),
+    path("programs/bulk-upload/", ProgramBulkUploadView.as_view(), name="program-bulk-upload"),
+    path("templates/download/", TemplateDownloadView.as_view(), name="template-download"),
 ] + router.urls

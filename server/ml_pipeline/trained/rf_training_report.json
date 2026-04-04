@@ -1,78 +1,78 @@
 {
-  "cv_accuracy": 0.9602,
-  "cv_f1": 0.9188,
-  "cv_roc_auc": 0.9925,
-  "oob_score": 0.964,
-  "optimal_threshold": 0.4749,
+  "cv_accuracy": 0.9627,
+  "cv_f1": 0.9233,
+  "cv_roc_auc": 0.9926,
+  "oob_score": 0.9656,
+  "optimal_threshold": 0.4598,
   "n_positives": 1369,
   "n_negatives": 4102,
-  "feature_dim": 112,
+  "feature_dim": 114,
   "sanity_check": {
-    "valid": 0.9991646645855695,
-    "wrong_room": 0.7996925399033501,
-    "overloaded": 0.9473994338490223,
-    "wrong_faculty": 0.796154642928274
+    "valid": 0.9993261127642443,
+    "wrong_room": 0.8927647389215647,
+    "overloaded": 0.9258539824856064,
+    "wrong_faculty": 0.6044968981996023
   },
   "top_features": [
     {
       "feature": "load_remaining",
-      "importance": 0.193936
+      "importance": 0.181175
     },
     {
       "feature": "is_known_slot",
-      "importance": 0.129928
+      "importance": 0.13441
     },
     {
       "feature": "fac_today_load_ratio",
-      "importance": 0.107553
+      "importance": 0.101274
     },
     {
       "feature": "overload_severity",
-      "importance": 0.041345
+      "importance": 0.043159
     },
     {
       "feature": "fac_course_affinity",
-      "importance": 0.029994
+      "importance": 0.038513
     },
     {
-      "feature": "is_lab",
-      "importance": 0.01797
+      "feature": "rm_emb_19",
+      "importance": 0.020159
+    },
+    {
+      "feature": "rm_emb_18",
+      "importance": 0.016481
+    },
+    {
+      "feature": "rm_emb_21",
+      "importance": 0.015574
+    },
+    {
+      "feature": "rm_emb_8",
+      "importance": 0.014365
     },
     {
       "feature": "near_weekly_cap",
-      "importance": 0.014242
+      "importance": 0.01433
     },
     {
-      "feature": "rm_emb_25",
-      "importance": 0.012904
+      "feature": "rm_emb_1",
+      "importance": 0.013564
     },
     {
       "feature": "rm_emb_15",
-      "importance": 0.0119
+      "importance": 0.012326
     },
     {
-      "feature": "rm_emb_4",
-      "importance": 0.011117
+      "feature": "rm_emb_23",
+      "importance": 0.011884
     },
     {
-      "feature": "rm_emb_29",
-      "importance": 0.010664
+      "feature": "rm_emb_28",
+      "importance": 0.010084
     },
     {
-      "feature": "rm_emb_6",
-      "importance": 0.009788
-    },
-    {
-      "feature": "fac_emb_6",
-      "importance": 0.009184
-    },
-    {
-      "feature": "fac_emb_24",
-      "importance": 0.009053
-    },
-    {
-      "feature": "rm_emb_2",
-      "importance": 0.008918
+      "feature": "rm_emb_16",
+      "importance": 0.009554
     }
   ]
 }

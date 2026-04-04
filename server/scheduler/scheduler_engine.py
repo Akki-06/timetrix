@@ -1,50 +1,8 @@
 """
-TIMETRIX — Scheduler Engine
-=============================
+TIMETRIX — Scheduler Engine (v3)
 
-HOW IT WORKS (read this before touching anything):
-
-Admin flow:
-  1. Admin enters faculty / rooms / courses / sections via Excel upload or form
-  2. Django saves everything to DB
-  3. Admin clicks "Generate Timetable" for e.g. BCA Sem V
-  4. This engine runs, writes LectureAllocation rows, returns result to API
-
-Scheduling order (critical — do not change without understanding why):
-  Phase 1 — Load all data from DB into memoone DB hit, not N)
-  Phase 2 — Schedule LABS firstry (
-             Labs need 2 consecutive slots + a lab room — scarcest resource
-             G1/G2 splits: both halves assigned simultaneously, same timeslot
-             pair, different lab rooms
-             Only ONE lab session per subject per week (sir's requirement)
-  Phase 3 — Schedule THEORY
-             Sort by Course.priority descending (important courses go first)
-             For each offering → get eligible faculty → rank (day, slot, room)
-             candidates by ML score → try best candidates first
-             If hard constraint violated → backtrack, try next candidate
-  Phase 4 — Save to DB atomically
-
-Hard constraints (never violated):
-  - Faculty not double-booked in same timeslot
-  - Room not double-booked in same timeslot
-  - Student group not double-booked in same timeslot
-  - Faculty within max_weekly_load
-  - Faculty within max_lectures_per_day
-  - Faculty within max_consecutive_lectures
-  - Labs always in 2 consecutive slots, lab rooms only
-  - Lunch slot never assigned
-
-Soft constraints (optimised by ML score):
-  - Faculty preference for certain times
-  - Historical room-course affinity
-  - Even distribution across the week
-  - Morning slots preferred for labs
-
-ML integration:
-  - RF scores each (faculty, room, day, slot) candidate 0.0–1.0
-  - Candidates sorted by score before trying — best first
-  - If ML models missing → heuristic fallback (scheduler still works)
-  - Graceful degradation: partial schedules returned, not crashes
+A greedy constraint-satisfaction engine with ML-assisted candidate ranking.
+Phases: 1. Load Data, 2. Labs (Scarce), 3. Theory (Greedy + ML), 4. Atomic Save.
 """
 
 import logging
@@ -63,38 +21,15 @@ from scheduler.models    import Timetable, TimeSlot, LectureAllocation, Schedule
 
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PATHS
-# ─────────────────────────────────────────────────────────────────────────────
-
+# Config
 BASE_DIR      = Path(__file__).resolve().parent.parent
 TRAINED_DIR   = BASE_DIR / "ml_pipeline" / "trained"
 RF_MODEL_PATH = TRAINED_DIR / "rf_model.pkl"
 RF_META_PATH  = TRAINED_DIR / "rf_feature_metadata.pkl"
 EMBED_PATH    = TRAINED_DIR / "node_embeddings.pkl"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CONSTANTS
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Max hours per week by faculty role — these are hard caps
-MAX_HOURS_BY_ROLE = {
-    "DEAN"    : 6,
-    "HOD"     : 12,
-    "SENIOR"  : 16,
-    "REGULAR" : 18,
-    "VISITING": 8,
-}
-
 DAYS = ["MON", "TUE", "WED", "THU", "FRI"]
-
-# Day abbreviation → full name for ML scorer
-DAY_FULL = {
-    "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
-    "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday",
-}
-
-# Canonical slot numbers (1-6, no lunch)
+DAY_FULL = {"MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday", "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday"}
 TEACHING_SLOTS = [1, 2, 3, 4, 5, 6]
 
 # Slot pairs that are truly consecutive and don't span lunch
@@ -172,7 +107,9 @@ class MLScorer:
               section_name: Optional[str] = None,
               program_code: Optional[str] = None,
               current_load_today: int = 0,
-              max_daily: int = 4) -> float:
+              max_daily: int = 4,
+              is_combined: bool = False,
+              working_days: Optional[list[str]] = None) -> float:
         """
         Score a candidate (faculty, room, day, slot).
         Returns float in [0.0, 1.0]. Higher = better assignment.
@@ -194,8 +131,10 @@ class MLScorer:
                 program_code=program_code,
                 current_load_today=current_load_today,
                 max_daily=max_daily,
+                is_combined=is_combined,
+                working_days=working_days,
             )
-        return self._heuristic_score(day, slot, is_lab, current_load,
+        return self._heuristic_score(None, None, day, slot, is_lab, current_load,
                                       self.max_hours_map.get(faculty_name, 18))
 
     def _ml_score(self, faculty_name, room_number, day, slot,
@@ -204,12 +143,13 @@ class MLScorer:
                   requires_consecutive_slots=False, is_elective=False,
                   section_name=None, program_code=None,
                   current_load_today: int = 0,
-                  max_daily: int = 4) -> float:
+                  max_daily: int = 4,
+                  is_combined: bool = False,
+                  working_days: Optional[list[str]] = None) -> float:
         """
-        Build a 112-dim feature vector and score via the trained RF model.
+        Build a 114-dim feature vector and score via the trained RF model.
         Layout must match random_forest_model.py exactly:
-          fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[16] = 112
-        Falls back to _heuristic_score() on any error.
+          fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[18] = 114
         """
         try:
             import numpy as np
@@ -231,7 +171,6 @@ class MLScorer:
             load_remaining = max(0.0, (max_h - cur_load) / max(max_h, 1))
 
             # 2: did this faculty actually teach at this (day, slot) in training data?
-            #    Training stats use full day names ("Monday"), engine uses abbreviations ("MON")
             day_full = DAY_FULL.get(day, day)
             actual_slots = self.stats.get("fac_actual_slots", {}).get(faculty_name, set())
             is_known_slot = 1.0 if (day_full, slot) in actual_slots else 0.0
@@ -251,28 +190,25 @@ class MLScorer:
             slot_pop = self.stats.get("slot_popularity", {}).get(slot, 0.5)
 
             # 5: how popular this day is in the training data
-            #    day_popularity keys are full names ("Monday") from training CSV
             day_pop = self.stats.get("day_popularity", {}).get(day_full, 0.5)
 
             # 6-7: session type flags
             is_lab_f = float(is_lab)
             is_consecutive_lab = 1.0 if requires_consecutive_slots else 0.0
 
-            # 8-9: time-of-day indicators
-            is_morning = 1.0 if slot <= 3 else 0.0
+            # 8-9: time of day flags
+            is_morning    = 1.0 if slot <= 3 else 0.0
             is_post_lunch = 1.0 if slot >= 5 else 0.0
 
-            # 10: semester context (higher sem = more advanced course)
-            sem_norm = float(semester) / 8.0
-
-            # 11: how heavy the course is (weekly contact hours)
+            # 10-11: course weights
+            sem_norm     = float(semester) / 8.0
             contact_norm = float(contact_hours) / 8.0
 
-            # 12: how many different courses this faculty teaches (versatility)
-            breadth = self.stats.get("fac_course_count", {}).get(faculty_name, 1)
+            # 12: faculty breadth
+            breadth      = self.stats.get("fac_course_count", {}).get(faculty_name, 1)
             breadth_norm = min(breadth / 10.0, 1.0)
 
-            # 13: how full the faculty's day already is (live state from tracker)
+            # 13: dynamic load ratio
             fac_today_ratio = float(current_load_today) / max(float(max_daily), 1.0)
 
             # 14: busyness of neighbouring slots (slot-1 and slot+1)
@@ -314,17 +250,41 @@ class MLScorer:
 
         except Exception as e:
             log.warning(f"ML scoring failed, falling back to heuristic: {e}")
-            return self._heuristic_score(day, slot, is_lab, current_load,
+            return self._heuristic_score(None, None, day, slot, is_lab, current_load,
                                          self.max_hours_map.get(faculty_name, 18))
 
-    def _heuristic_score(self, day, slot, is_lab,
-                          current_load, max_load) -> float:
+    def _heuristic_score(self, fac, room, day, slot, is_lab,
+                          current_load=0, max_load=18, offering=None) -> float:
         score = 0.5
-        if is_lab and slot in (1, 2, 3):   score += 0.15  # morning labs preferred
-        if slot in (2, 3, 4):              score += 0.05  # mid-morning slots
-        if day in ("TUE", "WED", "THU"):   score += 0.03  # mid-week preferred
-        if current_load >= max_load:        score -= 0.50  # overload penalty
-        elif current_load >= max_load * 0.8: score -= 0.10
+
+        # Labs: morning strongly preferred
+        if is_lab:
+            if slot in (1, 2):   score += 0.20
+            elif slot == 3:      score += 0.10
+            elif slot >= 5:      score -= 0.10
+        else:
+            if slot in (2, 3):   score += 0.08
+            elif slot == 1:      score += 0.04
+            elif slot >= 5:      score += 0.02
+
+        # Mid-week preferred
+        if day in ("TUE", "WED", "THU"):  score += 0.05
+        elif day in ("MON", "FRI"):       score -= 0.02
+
+        # Faculty load penalty when approaching limit
+        ratio  = current_load / max(max_load, 1)
+        if ratio > 0.9:    score -= 0.30
+        elif ratio > 0.7:  score -= 0.10
+
+        # Room type match
+        if room is not None:
+            if is_lab and getattr(room, 'room_type', '') == "LAB":        score += 0.10
+            if not is_lab and getattr(room, 'room_type', '') == "THEORY": score += 0.05
+
+            # Historical room preference (priority_weight)
+            pref = min(getattr(room, "priority_weight", 1) / 3.0, 1.0)
+            score += pref * 0.08
+
         return max(0.0, min(1.0, score))
 
 
@@ -340,22 +300,15 @@ class ConstraintTracker:
     """
 
     def __init__(self):
-        # (day, slot) → {faculty_id, ...}
-        self._faculty_busy  : dict = defaultdict(set)
-        # (day, slot) → {room_id, ...}
-        self._room_busy     : dict = defaultdict(set)
-        # (day, slot) → {group_id, ...}
-        self._group_busy    : dict = defaultdict(set)
-        # faculty_id → {day → count_of_sessions}
-        self._fac_day       : dict = defaultdict(lambda: defaultdict(int))
-        # faculty_id → total sessions this week
-        self._fac_week      : dict = defaultdict(int)
-        # faculty_id → {day → sorted list of assigned slots}
-        self._fac_slots     : dict = defaultdict(lambda: defaultdict(list))
-        # group_id → {day → count_of_sessions}  (prevents all-day group overload)
-        self._group_day     : dict = defaultdict(lambda: defaultdict(int))
-        # group_id → set of days that already have a lab session
-        self._group_lab_days: dict = defaultdict(set)
+        self._faculty_busy  = defaultdict(set)
+        self._room_busy     = defaultdict(set)
+        self._group_busy    = defaultdict(set)
+        self._fac_day       = defaultdict(lambda: defaultdict(int))
+        self._fac_week      = defaultdict(int)
+        self._fac_slots     = defaultdict(lambda: defaultdict(list))
+        self._group_day     = defaultdict(lambda: defaultdict(int))
+        self._group_lab_days = defaultdict(set)
+        self.section_room_count = defaultdict(lambda: defaultdict(int))
 
     def check(self, fac_id, room_id, group_id,
               day, slot, max_daily, max_weekly, max_consec) -> tuple[bool, str]:
@@ -376,7 +329,6 @@ class ConstraintTracker:
         if self._fac_day[fac_id][day] >= max_daily:
             return False, f"faculty {fac_id} at daily limit {max_daily} on {day}"
 
-        # Consecutive lectures check
         existing = sorted(self._fac_slots[fac_id][day])
         if existing:
             tentative = sorted(existing + [slot])
@@ -417,6 +369,7 @@ class ConstraintTracker:
         self._fac_week[fac_id]      += 1
         self._fac_slots[fac_id][day].append(slot)
         self._group_day[group_id][day] += 1
+        self.section_room_count[group_id][room_id] += 1
 
     def unassign(self, fac_id, room_id, group_id, day, slot):
         """Backtrack — remove a previously made assignment."""
@@ -446,9 +399,19 @@ class ConstraintTracker:
         """Return True if this group already has a lab session on this day."""
         return day in self._group_lab_days[group_id]
 
+    def is_group_free(self, group_id, day, slot) -> bool:
+        """Check if group is not already booked in this slot."""
+        return group_id not in self._group_busy.get((day, slot), set())
+
     def mark_group_lab_day(self, group_id, day):
         """Record that this group now has a lab session on this day."""
         self._group_lab_days[group_id].add(day)
+
+    def preferred_room_for_section(self, group_id: int):
+        usage = self.section_room_count.get(group_id)
+        if not usage:
+            return None
+        return max(usage, key=usage.get)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -458,44 +421,26 @@ class ConstraintTracker:
 class SchedulerEngine:
     """
     One instance per scheduling run.
-
-    Usage (from Django view):
-        engine = SchedulerEngine(timetable_id=timetable.id)
-        result = engine.run()
-        # result = {
-        #   "status": "success" | "partial" | "failed",
-        #   "allocations": 42,
-        #   "avg_score": 0.81,
-        #   "unscheduled": [],
-        #   "ml_used": True,
-        # }
     """
 
     def __init__(self, timetable_id: int):
         self.timetable_id = timetable_id
-        self.timetable    = (
-            Timetable.objects
-            .select_related("term", "term__program")
-            .get(pk=timetable_id)
-        )
-        self.term    = self.timetable.term
-        self.ml      = MLScorer()
-        self.tracker = ConstraintTracker()
-        # Load admin-configurable settings once per run
-        self.config  = SchedulerConfig.get()
+        self.timetable    = Timetable.objects.select_related("term", "term__program").get(pk=timetable_id)
+        self.term         = self.timetable.term
+        self.ml           = MLScorer()
+        self.tracker      = ConstraintTracker()
+        self.config       = SchedulerConfig.get()
 
-        # Populated in _load()
-        self.slot_map     = {}   # (day, slot_number) → TimeSlot obj
-        self.lab_rooms    = []   # Room objs with room_type=LAB
-        self.theory_rooms = []   # Room objs with room_type=THEORY
-        self.faculty_meta = {}   # faculty_id → dict of constraints + availability
-        self.offerings    = []   # CourseOffering objs for this term
+        self.slot_map     = {}
+        self.lab_rooms    = []
+        self.theory_rooms = []
+        self.faculty_meta = {}
+        self.offerings    = []
 
-        # Output buffers
-        self.pending_saves        : list[dict]          = []
-        self.unscheduled          : list[str]           = []
-        self.unscheduled_offerings: list[CourseOffering] = []  # for repair pass
-        self.rejection_reasons    : dict[str, Counter]  = defaultdict(Counter)
+        self.pending_saves        = []
+        self.unscheduled          = []
+        self.unscheduled_offerings = []
+        self.rejection_reasons     = defaultdict(Counter)
 
     def _offering_label(self, offering: CourseOffering, prefix: str) -> str:
         return f"{prefix} {offering.course.code} ({offering.student_group.name})"
@@ -515,7 +460,32 @@ class SchedulerEngine:
         """
         log.info(f"Loading data for term: {self.term}")
 
-        # Timeslots (exclude lunch)
+        # Timeslots (exclude lunch) — auto-seed if empty
+        if TimeSlot.objects.count() == 0:
+            log.info("  No timeslots found — auto-seeding standard grid")
+            from datetime import time as dt_time
+            # 6 teaching slots matching TEACHING_SLOTS = [1,2,3,4,5,6]
+            # Lunch is stored as a marker row (slot_number=99, is_lunch=True)
+            _SLOT_TIMES = [
+                (1,  dt_time(9, 40),  dt_time(10, 35), False),
+                (2,  dt_time(10, 35), dt_time(11, 30), False),
+                (3,  dt_time(11, 30), dt_time(12, 25), False),
+                (4,  dt_time(12, 25), dt_time(13, 20), False),
+                (99, dt_time(13, 20), dt_time(14, 15), True),   # LUNCH
+                (5,  dt_time(14, 15), dt_time(15, 10), False),
+                (6,  dt_time(15, 10), dt_time(16, 5),  False),
+            ]
+            _SEED_DAYS = ["MON", "TUE", "WED", "THU", "FRI"]
+            bulk = []
+            for day in _SEED_DAYS:
+                for slot_num, start, end, is_lunch in _SLOT_TIMES:
+                    bulk.append(TimeSlot(
+                        day=day, slot_number=slot_num,
+                        start_time=start, end_time=end, is_lunch=is_lunch,
+                    ))
+            TimeSlot.objects.bulk_create(bulk, ignore_conflicts=True)
+            log.info(f"  Seeded {len(bulk)} timeslots")
+
         for ts in TimeSlot.objects.filter(is_lunch=False).order_by("slot_number"):
             self.slot_map[(ts.day, ts.slot_number)] = ts
         log.info(f"  Slots loaded: {len(self.slot_map)}")
@@ -555,9 +525,7 @@ class SchedulerEngine:
                 for d in active_days:
                     avail_slots_by_day[d] = set(TEACHING_SLOTS)
 
-            # Hard cap: min of individual faculty setting and role-based admin-configured cap
-            role_cap   = self.config.role_cap(fac.role)
-            max_weekly = min(fac.max_weekly_load, role_cap)
+            max_weekly = fac.max_weekly_load
 
             # Also cap daily/consecutive limits by sensible floor — prevents
             # faculty with unusually high DB values from being over-scheduled.
@@ -639,7 +607,7 @@ class SchedulerEngine:
         # If admin enabled senior-priority, bubble HOD/SENIOR to the top
         # (assigned_faculty already at front, so we only re-sort the rest)
         if self.config.prioritize_senior_faculty:
-            _senior_roles = {"DEAN", "HOD", "SENIOR"}
+            _senior_roles = {"PVC", "DEAN", "HOD"}
             assigned = result[0] if result and offering.assigned_faculty == result[0] else None
             rest = result[1:] if assigned else result
             rest_sorted = sorted(
@@ -679,107 +647,66 @@ class SchedulerEngine:
             program_code               = getattr(self.term.program, "code", None),
             current_load_today         = today_load,
             max_daily                  = max_daily,
+            is_combined                = bool(offering.combined_token),
+            working_days               = group.working_days,
         )
 
-    # ── PHASE 2: LAB SCHEDULING ───────────────────────────────────────────────
-
     def _schedule_labs(self, lab_offerings: list):
-        """
-        Schedule all lab offerings.
-
-        Rules enforced here:
-        - 2 consecutive slots only (from VALID_CONSECUTIVE_PAIRS)
-        - Lab room only
-        - Only 1 lab session per subject per week (sir's requirement)
-        - G1/G2: both halves scheduled simultaneously in different rooms,
-          same consecutive slot pair, same day
-        """
         log.info(f"LAB PHASE: {len(lab_offerings)} lab offerings")
 
         for offering in lab_offerings:
-            course   = offering.course
-            group    = offering.student_group
-            group_id = group.id
+            course         = offering.course
+            group          = offering.student_group
+            group_id       = group.id
             offering_label = self._offering_label(offering, "LAB")
 
-            # Detect G1/G2 split from StudentGroup description or name
-            is_split  = (
+            is_split = (
                 "G1" in group.name.upper() or
                 "G2" in group.name.upper() or
                 "SPLIT" in (group.description or "").upper() or
                 "G1/G2" in (group.description or "").upper()
             )
 
-            # Auto-detect split: if no single lab room can fit the full group,
-            # fall back to G1/G2 split (half-group per room)
             if not is_split:
                 room_pool_check = self.lab_rooms if course.requires_lab_room else self.theory_rooms
-                if room_pool_check and all(
-                    r.capacity < group.strength for r in room_pool_check
-                ):
-                    log.info(
-                        f"  LAB {course.code} ({group.name}): no single room fits "
-                        f"strength={group.strength} — auto-switching to G1/G2 split"
-                    )
+                if room_pool_check and all(r.capacity < group.strength for r in room_pool_check):
+                    log.info(f"  LAB {course.code} ({group.name}): auto-switching to split")
                     is_split = True
 
             eligible = self._eligible_faculty(offering)
-            if not eligible:
-                self.rejection_reasons[offering_label]["no_eligible_faculty"] += 1
             scheduled = False
 
-            # ── Standard lab (no split) ───────────────────────────────────────
             if not is_split:
                 for fac in eligible:
-                    if scheduled:
-                        break
+                    if scheduled: break
                     meta = self.faculty_meta.get(fac.id)
-                    if not meta:
-                        continue
+                    if not meta: continue
 
                     room_pool = self.lab_rooms if course.requires_lab_room else self.theory_rooms
                     for room in room_pool:
-                        if scheduled:
-                            break
-                        if room.capacity < group.strength:
-                            continue
+                        if scheduled: break
+                        if room.capacity < group.strength: continue
 
-                        # Build scored candidates for all valid consecutive pairs.
-                        # LIMIT: max 1 lab per group per day to prevent all-day labs.
                         candidates = []
                         for day in meta["avail_days"]:
-                            # Skip this day if this group already has a lab today
-                            if self.tracker.group_has_lab_today(group_id, day):
-                                continue
-                            # Also skip if group is already overloaded this day
-                            # (pre-existing labs from earlier iterations count)
-                            if self.tracker.group_day_load(group_id, day) >= len(TEACHING_SLOTS) - 1:
-                                continue
+                            if group.working_days and day not in group.working_days: continue
+                            if self.tracker.group_has_lab_today(group_id, day): continue
+                            if self.tracker.group_day_load(group_id, day) >= len(TEACHING_SLOTS) - 1: continue
+
                             avail = meta["avail_slots"].get(day, set())
                             for s1, s2 in VALID_CONSECUTIVE_PAIRS:
-                                if s1 not in avail or s2 not in avail:
-                                    continue
-                                if (day, s1) not in self.slot_map:
-                                    continue
-                                if (day, s2) not in self.slot_map:
-                                    continue
-                                score = self._score_candidate(
-                                    fac, room, day, s1, True, offering
-                                )
+                                if s1 not in avail or s2 not in avail: continue
+                                score = self._score_candidate(fac, room, day, s1, True, offering)
                                 candidates.append((score, day, s1, s2))
 
-                        # Try best-scored pair first
                         candidates.sort(reverse=True)
                         for score, day, s1, s2 in candidates:
                             ok, reason = self.tracker.check_pair(
                                 fac.id, room.id, group_id, day, s1, s2,
-                                meta["max_daily"], meta["max_weekly"],
-                                meta["max_consec"]
+                                meta["max_daily"], meta["max_weekly"], meta["max_consec"]
                             )
-                            if not ok:
-                                continue
+                            if not ok: continue
 
-                            # Assign both slots
                             self.tracker.assign(fac.id, room.id, group_id, day, s1)
                             self.tracker.assign(fac.id, room.id, group_id, day, s2)
                             # Mark this group as having a lab today so no other
@@ -817,6 +744,8 @@ class SchedulerEngine:
                     for day in meta["avail_days"]:
                         if scheduled:
                             break
+                        if group.working_days and day not in group.working_days:
+                            continue
                         # LIMIT: no more than 1 lab per group per day (G1/G2 path)
                         if self.tracker.group_has_lab_today(group_id, day):
                             continue
@@ -868,12 +797,8 @@ class SchedulerEngine:
                                     "timeslot_id": self.slot_map[(day, slot)].id,
                                     "score"      : score,
                                 })
-                                # G2 — mark room busy in tracker only (no DB record
-                                # to avoid violating unique_faculty_per_slot and
-                                # unique_group_per_slot constraints)
                                 self.tracker._room_busy[(day, slot)].add(room_g2.id)
 
-                            # Mark this group as having a lab today (G1/G2 path too)
                             self.tracker.mark_group_lab_day(group_id, day)
                             log.info(
                                 f"  LAB G1/G2 ✓ {course.code} | {fac.name} | "
@@ -887,166 +812,163 @@ class SchedulerEngine:
                 self.unscheduled.append(msg)
                 log.warning(f"  UNSCHEDULED: {msg}")
 
-    # ── PHASE 3: THEORY SCHEDULING WITH BACKTRACKING ──────────────────────────
-
     def _schedule_theory(self, theory_offerings: list):
-        """
-        Schedule theory sessions.
-
-        Strategy:
-        - Sort by Course.priority descending (most important courses first)
-        - For each offering, build all (faculty, room, day, slot) candidates
-          scored by ML
-        - Try best-scored candidate first
-        - If it violates any hard constraint → skip and try next (backtrack)
-        - Distribute sessions across the week: same course not on same day twice
-        """
         log.info(f"THEORY PHASE: {len(theory_offerings)} theory offerings")
+        theory_offerings.sort(key=lambda o: -o.course.priority)
 
-        # High priority courses get slots first
-        theory_offerings = sorted(
-            theory_offerings,
-            key=lambda o: -o.course.priority
-        )
+        # 1. Group into Units (Elective Groups vs Standard Units)
+        # Standard Unit = Combined Sections (same course, faculty, token)
+        # Elective Group = Parallel PE sessions (same elective_slot_group)
+        
+        elective_groups = defaultdict(list)
+        standard_units = []
+        
+        assigned_to_group = set()
+        for o in theory_offerings:
+            if o.elective_slot_group:
+                elective_groups[o.elective_slot_group].append(o)
+                assigned_to_group.add(o.id)
+        
+        # Group remaining into standard combined units
+        groups_map = defaultdict(list)
+        for o in theory_offerings:
+            if o.id in assigned_to_group: continue
+            token = o.combined_token if o.combined_token else f"S_{o.id}"
+            key = (o.course_id, o.assigned_faculty_id, token)
+            groups_map[key].append(o)
+        standard_units = list(groups_map.values())
 
-        for offering in theory_offerings:
-            course   = offering.course
-            group    = offering.student_group
-            group_id = group.id
-            needed   = course.min_weekly_lectures
-            offering_label = self._offering_label(offering, "THEORY")
+        # Track sessions scheduled per COURSE to spread them over days
+        course_days_used = defaultdict(set)
+
+        # ── PROCESS PARALLEL ELECTIVES ────────────────────────────────────────
+        for group_name, unit in elective_groups.items():
+            needed = max(o.course.min_weekly_lectures for o in unit)
             scheduled_count = 0
+            
+            log.info(f"  Parallel Elective Group '{group_name}': {len(unit)} offerings")
+            
+            for pass_num in range(needed):
+                found_slot = False
+                # Build candidates for all valid slots
+                slot_candidates = []
+                for day in DAYS:
+                    if any(day in course_days_used[o.course_id] for o in unit): continue
+                    for slot in TEACHING_SLOTS:
+                        if (day, slot) not in self.slot_map: continue
+                        
+                        # Check group availability (all involved groups)
+                        unit_groups = {o.student_group_id for o in unit}
+                        if any(not self.tracker.is_group_free(gid, day, slot) for gid in unit_groups): continue
+                        
+                        # Check faculty availability
+                        fac_valid = True
+                        for o in unit:
+                            f = o.assigned_faculty
+                            if not f: continue
+                            meta = self.faculty_meta.get(f.id)
+                            if not meta or not self.tracker.check(f.id, None, None, day, slot, meta["max_daily"], meta["max_weekly"], 99)[0]:
+                                fac_valid = False; break
+                        if not fac_valid: continue
 
-            # Track which days already have a session of this course
-            # to ensure distribution across the week
-            days_used: set[str] = set()
+                        # Room availability
+                        busy_rooms = self.tracker._room_busy.get((day, slot), set())
+                        free_rooms = [r for r in self.theory_rooms if r.id not in busy_rooms]
+                        if len(free_rooms) < len(unit): continue
+                        
+                        # Simple score bias for morning
+                        score = 0.5 + (0.1 if slot <= 3 else 0)
+                        slot_candidates.append((score, day, slot))
 
+                slot_candidates.sort(reverse=True)
+                for score, day, slot in slot_candidates:
+                    if found_slot: break
+                    
+                    busy_rooms = self.tracker._room_busy.get((day, slot), set())
+                    free_rooms = [r for r in self.theory_rooms if r.id not in busy_rooms]
+                    
+                    # Assign each elective to its own room in this slot
+                    for i, o in enumerate(unit):
+                        room = free_rooms[i]
+                        fac_id = o.assigned_faculty_id
+                        self.tracker.assign(fac_id, room.id, o.student_group_id, day, slot)
+                        self.pending_saves.append({
+                            "offering_id": o.id, "student_group_id": o.student_group_id, "faculty_id": fac_id,
+                            "room_id": room.id, "timeslot_id": self.slot_map[(day, slot)].id, "score": 1.0,
+                        })
+                        course_days_used[o.course_id].add(day)
+                    
+                    found_slot = True
+                    scheduled_count += 1
+                    log.info(f"    {group_name} ✓ {day} S{slot} (Pass {scheduled_count})")
+
+        # ── PROCESS STANDARD THEORY ───────────────────────────────────────────
+        for unit in standard_units:
+            offering = unit[0]
+            course = offering.course
+            needed = course.min_weekly_lectures
+            if needed == 0: continue
+
+            participating_groups = [o.student_group for o in unit]
+            group_ids = [g.id for g in participating_groups]
+            total_strength = sum(g.strength for g in participating_groups)
+            
+            scheduled_count = 0
             eligible = self._eligible_faculty(offering)
 
             for fac in eligible:
-                if scheduled_count >= needed:
-                    break
-
+                if scheduled_count >= needed: break
                 meta = self.faculty_meta.get(fac.id)
-                if not meta:
-                    continue
+                if not meta: continue
 
-                # Build ALL valid candidates for this faculty.
-                # Score (faculty, day, slot) ONCE with the first viable room —
-                # this is the dominant ML signal. Room selection then picks the
-                # best-capacity-fit available room without extra ML calls.
-                viable_rooms = [
-                    r for r in self.theory_rooms
-                    if r.capacity >= group.strength
-                ]
-                if not viable_rooms:
-                    self.rejection_reasons[offering_label]["room_capacity_too_small"] += 1
-
-                # Max theory sessions this group can have in one day.
-                # Labs take 2 slots; leave at least 2 free slots per day for theory variety.
-                max_group_sessions_per_day = max(2, len(TEACHING_SLOTS) - 2)
-
+                viable_rooms = [r for r in self.theory_rooms if r.capacity >= total_strength]
+                max_group_daily = max(2, len(TEACHING_SLOTS) - 2)
                 candidates = []
                 sample_room = viable_rooms[0] if viable_rooms else None
+
                 for day in meta["avail_days"]:
-                    # Don't schedule same course twice on same day
-                    if day in days_used:
-                        self.rejection_reasons[offering_label]["same_course_day_distribution_block"] += 1
-                        continue
-                    if not sample_room:
-                        self.rejection_reasons[offering_label]["no_room_fit_for_slot"] += 1
-                        continue
-                    # Skip days where this group is already heavily scheduled
-                    if self.tracker.group_day_load(group_id, day) >= max_group_sessions_per_day:
-                        self.rejection_reasons[offering_label]["group_daily_limit_reached"] += 1
-                        continue
-                    avail = meta["avail_slots"].get(day, set())
-                    for slot in sorted(avail):
-                        if slot not in TEACHING_SLOTS:
-                            continue
-                        if (day, slot) not in self.slot_map:
-                            continue
-                        # Single ML call per (fac, day, slot)
-                        score = self._score_candidate(
-                            fac, sample_room, day, slot, False, offering
-                        )
+                    if day in course_days_used[course.id]: continue
+                    if any(g.working_days and day not in g.working_days for g in participating_groups): continue
+                    if any(self.tracker.group_day_load(gid, day) >= max_group_daily for gid in group_ids): continue
+                    
+                    for slot in sorted(meta["avail_slots"].get(day, set())):
+                        if (day, slot) not in self.slot_map: continue
+                        if any(not self.tracker.is_group_free(gid, day, slot) for gid in group_ids): continue
+                        score = self._score_candidate(fac, sample_room, day, slot, False, offering)
                         candidates.append((score, day, slot, fac, viable_rooms))
 
-                if not candidates:
-                    self.rejection_reasons[offering_label]["no_candidates_generated_for_faculty"] += 1
-
-                # Best score first
                 candidates.sort(reverse=True)
-
-                sessions_from_this_fac = 0
-                # Each faculty takes at most ceil(needed/2) sessions
-                # so multiple faculty can share the load
-                max_per_fac = max(1, (needed + 1) // 2)
-
                 for score, day, slot, fac_c, room_pool in candidates:
-                    if scheduled_count >= needed:
-                        break
-                    if sessions_from_this_fac >= max_per_fac:
-                        break
-                    if day in days_used:
-                        continue
-                    # Re-check group daily limit at assignment time (count may have changed)
-                    if self.tracker.group_day_load(group_id, day) >= max_group_sessions_per_day:
-                        continue
+                    if scheduled_count >= needed: break
+                    if day in course_days_used[course.id]: continue
 
-                    meta_c = self.faculty_meta.get(fac_c.id)
-                    if not meta_c:
-                        continue
+                    # Room selection: favor the preferred room for this section (monopoly)
+                    pref_id = self.tracker.preferred_room_for_section.get(group_ids[0])
+                    room = None
+                    if pref_id:
+                        room = next((r for r in room_pool if r.id == pref_id and r.id not in self.tracker._room_busy.get((day, slot), set())), None)
+                    if not room:
+                        room = next((r for r in room_pool if r.id not in self.tracker._room_busy.get((day, slot), set())), None)
+                    if not room: continue
 
-                    # Pick the first available room from the viable pool
-                    room = next(
-                        (r for r in room_pool
-                         if r.id not in self.tracker._room_busy.get((day, slot), set())),
-                        None,
-                    )
-                    if room is None:
-                        self.rejection_reasons[offering_label]["no_room_available_for_slot"] += 1
-                        continue
+                    ok, reason = self.tracker.check(fac_c.id, room.id, group_ids[0], day, slot, meta["max_daily"], meta["max_weekly"], meta["max_consec"])
+                    if not ok: continue
 
-                    ok, reason = self.tracker.check(
-                        fac_c.id, room.id, group_id, day, slot,
-                        meta_c["max_daily"],
-                        meta_c["max_weekly"],
-                        meta_c["max_consec"],
-                    )
-                    if not ok:
-                        self.rejection_reasons[offering_label][reason] += 1
-                        continue   # backtrack — try next candidate
+                    for gid in group_ids:
+                        self.tracker.assign(fac_c.id, room.id, gid, day, slot)
+                    self.tracker.preferred_room_for_section[group_ids[0]] = room.id
 
-                    # Assign
-                    self.tracker.assign(fac_c.id, room.id, group_id, day, slot)
-                    ts = self.slot_map[(day, slot)]
-                    self.pending_saves.append({
-                        "offering_id": offering.id,
-                        "student_group_id": group.id,
-                        "faculty_id" : fac_c.id,
-                        "room_id"    : room.id,
-                        "timeslot_id": ts.id,
-                        "score"      : score,
-                    })
-                    days_used.add(day)
-                    scheduled_count      += 1
-                    sessions_from_this_fac += 1
-
-                    log.info(
-                        f"  THEORY ✓ {course.code} | {fac_c.name} | "
-                        f"Room {room.room_number} | "
-                        f"{day} S{slot} | score={score:.3f}"
-                    )
+                    for o in unit:
+                        self.pending_saves.append({
+                            "offering_id": o.id, "student_group_id": o.student_group_id, "faculty_id": fac_c.id,
+                            "room_id": room.id, "timeslot_id": self.slot_map[(day, slot)].id, "score": score,
+                        })
+                    scheduled_count += 1
+                    course_days_used[course.id].add(day)
+                    log.info(f"  THEORY ✓ {course.code} | {fac_c.name} | R{room.room_number} | {day} S{slot}")
 
             if scheduled_count < needed:
-                if not self.rejection_reasons[offering_label]:
-                    self.rejection_reasons[offering_label]["insufficient_feasible_candidates"] += 1
-                msg = (
-                    f"THEORY {course.code} ({group.name}) — "
-                    f"only {scheduled_count}/{needed} sessions scheduled"
-                )
-                # Track the offering object for the repair pass
+                msg = f"THEORY {course.code} ({'+'.join(g.name for g in participating_groups)}) — only {scheduled_count}/{needed} sessions scheduled"
                 self.unscheduled_offerings.append(offering)
                 self.unscheduled.append(msg)
                 log.warning(f"  UNSCHEDULED: {msg}")

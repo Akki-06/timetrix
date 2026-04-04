@@ -153,6 +153,38 @@ class GenerateTimetableView(APIView):
             version = last_version + 1,
         )
  
+        # Auto-create CourseOfferings if none exist for this term.
+        # Joins every course for this program+semester with every section.
+        # Faculty left blank — scheduler picks from eligibility.
+        import logging
+        log = logging.getLogger(__name__)
+        from academics.models import Course, CourseOffering
+        existing = CourseOffering.objects.filter(
+            student_group__term=term
+        ).count()
+
+        if existing == 0:
+            courses  = Course.objects.filter(
+                program=term.program,
+                semester=term.semester,
+            ).exclude(course_type__in=["DIS", "INT", "RND"])
+            sections = StudentGroup.objects.filter(term=term)
+            to_create = [
+                CourseOffering(
+                    course=course,
+                    student_group=section,
+                    assigned_faculty=None,
+                    weekly_load=0,
+                )
+                for section in sections
+                for course in courses
+            ]
+            CourseOffering.objects.bulk_create(to_create, ignore_conflicts=True)
+            log.info(
+                f"Auto-created {len(to_create)} offerings "
+                f"({sections.count()} sections × {courses.count()} courses)"
+            )
+
         try:
             engine = SchedulerEngine(timetable_id=timetable.id)
             result = engine.run()
