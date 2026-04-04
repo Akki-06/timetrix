@@ -4,7 +4,9 @@ import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
-import { FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight } from "react-icons/fa";
+import { FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight, FaEdit, FaTimes } from "react-icons/fa";
+
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const INITIAL_FORM = {
   program: "",
@@ -12,6 +14,7 @@ const INITIAL_FORM = {
   section: "",
   strength: 45,
   description: "",
+  working_days: ["MON", "TUE", "WED", "THU", "FRI"],
 };
 
 function SectionsPage() {
@@ -22,6 +25,7 @@ function SectionsPage() {
   const [error, setError]         = useState("");
   const [success, setSuccess]     = useState("");
   const [form, setForm]           = useState(INITIAL_FORM);
+  const [editId, setEditId]       = useState(null);
 
   /* ── Course Offerings panel state ── */
   const [expandedGroup, setExpandedGroup] = useState(null);
@@ -61,22 +65,53 @@ function SectionsPage() {
     setSubmitting(true);
 
     try {
-      await api.post("academics/student-groups/quick-create/", {
+      const payload = {
         program:     Number(form.program),
         semester:    Number(form.semester),
         section:     form.section.trim().toUpperCase(),
         strength:    Number(form.strength),
         description: form.description.trim(),
-      });
+        working_days: form.working_days,
+      };
+
+      if (editId) {
+        // quick-create handles updating if it exists
+        await api.post("academics/student-groups/quick-create/", payload);
+        setSuccess("Section updated successfully.");
+        setEditId(null);
+      } else {
+        await api.post("academics/student-groups/quick-create/", payload);
+        setSuccess("Section registered successfully.");
+      }
 
       setForm(INITIAL_FORM);
-      setSuccess("Section registered successfully.");
       loadAll();
     } catch (err) {
-      setError(extractError(err, "Failed to register section."));
+      setError(extractError(err, editId ? "Failed to update section." : "Failed to register section."));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (group) => {
+    setEditId(group.id);
+    setForm({
+      program: group.program_id || "",
+      semester: group.semester || "",
+      section: group.name,
+      strength: group.strength,
+      description: group.description || "",
+      working_days: group.working_days && group.working_days.length > 0 ? group.working_days : ["MON", "TUE", "WED", "THU", "FRI"],
+    });
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setForm(INITIAL_FORM);
+    setError("");
+    setSuccess("");
   };
 
   const handleDelete = async (id) => {
@@ -200,7 +235,7 @@ function SectionsPage() {
         <section className="data-card faculty-form-card">
           <h3>
             <FaUsers style={{ marginRight: 8, color: "var(--brand)" }} />
-            Register Section
+            {editId ? "Update Section" : "Register Section"}
           </h3>
 
           {error   && <p className="upload-error">{error}</p>}
@@ -298,16 +333,50 @@ function SectionsPage() {
               />
             </div>
 
-            <div className="form-group form-group-btn">
+            {/* Working Days */}
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label">Working Days *</label>
+              <div className="custom-checkbox-group">
+                {DAYS.map(day => (
+                  <label key={day} className="custom-checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="custom-checkbox"
+                      checked={form.working_days.includes(day)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setForm(p => ({ ...p, working_days: [...p.working_days, day] }));
+                        } else {
+                          setForm(p => ({ ...p, working_days: p.working_days.filter(d => d !== day) }));
+                        }
+                      }}
+                    />
+                    <span className="checkbox-text">{day}</span>
+                  </label>
+                ))}
+              </div>
+              <span className="input-hint">Uncheck days to declare them as holidays for this section.</span>
+            </div>
+
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
               <button
                 type="submit"
-                className="btn-primary btn-with-icon"
+                className="btn btn-primary"
                 disabled={submitting}
-                style={{ width: "100%", justifyContent: "center" }}
+                style={{ flex: 1, justifyContent: "center" }}
               >
-                <FaUsers />
-                {submitting ? "Registering..." : "Register Section"}
+                <FaUsers style={{ marginRight: 8 }} />
+                {submitting ? "Saving..." : editId ? "Update Section" : "Register Section"}
               </button>
+              {editId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelEdit}
+                >
+                  <FaTimes />
+                </button>
+              )}
             </div>
           </form>
         </section>
@@ -362,13 +431,22 @@ function SectionsPage() {
                           {g.description || "\u2014"}
                         </td>
                         <td>
-                          <button
-                            className="icon-btn danger"
-                            title="Delete"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(g.id); }}
-                          >
-                            <FaTrash />
-                          </button>
+                          <div className="table-actions">
+                            <button
+                              className="action-btn"
+                              title="Edit Section"
+                              onClick={(e) => { e.stopPropagation(); handleEdit(g); }}
+                            >
+                              <FaEdit style={{ color: "#3b82f6" }} />
+                            </button>
+                            <button
+                              className="action-btn danger"
+                              title="Delete"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(g.id); }}
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

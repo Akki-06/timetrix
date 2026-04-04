@@ -9,6 +9,8 @@ import {
   FaChevronUp,
   FaTrash,
   FaUserTie,
+  FaEdit,
+  FaTimes,
 } from "react-icons/fa";
 
 const DAYS = [
@@ -18,6 +20,14 @@ const DAYS = [
   { key: "THU", label: "Thursday" },
   { key: "FRI", label: "Friday" },
 ];
+
+const ROLE_DEFAULTS = {
+  PVC:      { max_weekly_load: 4,  max_lectures_per_day: 2, max_consecutive_lectures: 1 },
+  DEAN:     { max_weekly_load: 6,  max_lectures_per_day: 2, max_consecutive_lectures: 1 },
+  HOD:      { max_weekly_load: 12, max_lectures_per_day: 3, max_consecutive_lectures: 2 },
+  REGULAR:  { max_weekly_load: 18, max_lectures_per_day: 4, max_consecutive_lectures: 2 },
+  VISITING: { max_weekly_load: 8,  max_lectures_per_day: 3, max_consecutive_lectures: 2 },
+};
 
 const SLOTS = [1, 2, 3, 4, 5, 6];
 
@@ -64,6 +74,7 @@ function FacultyPage() {
   const [showAvailability, setShowAvailability] = useState(false);
   const [availability, setAvailability] = useState(buildInitialAvailability());
   const [selectedSubjects, setSelectedSubjects] = useState({});
+  const [editId, setEditId] = useState(null);
 
   const loadAll = useCallback(async () => {
     try {
@@ -141,17 +152,28 @@ function FacultyPage() {
         name: form.name,
         employee_id: form.employee_id,
         role: form.role,
-        max_lectures_per_day: Number(form.max_lectures_per_day),
-        max_consecutive_lectures: 2,
-        max_weekly_load: 18,
+        max_lectures_per_day:     ROLE_DEFAULTS[form.role]?.max_lectures_per_day ?? 4,
+        max_consecutive_lectures: ROLE_DEFAULTS[form.role]?.max_consecutive_lectures ?? 2,
+        max_weekly_load:          ROLE_DEFAULTS[form.role]?.max_weekly_load ?? 18,
         is_active: true,
       };
       if (form.department) {
         facPayload.department = Number(form.department);
       }
 
-      const facResp = await api.post("faculty/faculty/", facPayload);
-      const facultyId = facResp.data.id;
+      let facultyId = editId;
+
+      if (editId) {
+        await api.patch(`faculty/faculty/${editId}/`, facPayload);
+        // Clear existing availability and eligibility to replace them
+        await Promise.all([
+          ...availabilityData.filter(a => a.faculty === editId).map(a => api.delete(`faculty/teacher-availability/${a.id}/`)),
+          ...eligibilityData.filter(e => e.faculty === editId).map(e => api.delete(`faculty/faculty-subject-eligibility/${e.id}/`))
+        ]);
+      } else {
+        const facResp = await api.post("faculty/faculty/", facPayload);
+        facultyId = facResp.data.id;
+      }
 
       // 2. Create availability entries
       const availPromises = [];
@@ -213,13 +235,67 @@ function FacultyPage() {
       setAvailability(buildInitialAvailability());
       setSelectedSubjects({});
       setShowAvailability(false);
-      setSuccess("Faculty member registered successfully.");
+      setEditId(null);
+      setSuccess(editId ? "Faculty member updated successfully." : "Faculty member registered successfully.");
       loadAll();
     } catch (err) {
       setError(extractError(err, "Failed to register faculty."));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (fac) => {
+    setEditId(fac.id);
+    setForm({
+      name: fac.name,
+      employee_id: fac.employee_id,
+      role: fac.role,
+      department: fac.department || "",
+    });
+
+    // Reconstruct availability
+    const newAvail = buildInitialAvailability();
+    const facAvails = availabilityData.filter(a => a.faculty === fac.id);
+    
+    // Default to false for all slots if they have ANY custom availability set
+    if (facAvails.length > 0) {
+      DAYS.forEach(d => {
+        newAvail[d.key].allDay = false;
+        SLOTS.forEach(s => newAvail[d.key].slots[s] = false);
+      });
+      facAvails.forEach(a => {
+        for (let s = a.start_slot; s < a.end_slot; s++) {
+          newAvail[a.day].slots[s] = true;
+        }
+      });
+      // Re-evaluate allDay
+      DAYS.forEach(d => {
+        newAvail[d.key].allDay = SLOTS.every(s => newAvail[d.key].slots[s]);
+      });
+    }
+    setAvailability(newAvail);
+
+    // Reconstruct selected subjects
+    const newSubjects = {};
+    eligibilityData.filter(e => e.faculty === fac.id).forEach(e => {
+      newSubjects[e.course.id || e.course] = true;
+    });
+    setSelectedSubjects(newSubjects);
+    
+    setShowAvailability(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setForm(INITIAL_FORM);
+    setAvailability(buildInitialAvailability());
+    setSelectedSubjects({});
+    setShowAvailability(false);
+    setError("");
+    setSuccess("");
   };
 
   const handleDelete = async (id) => {
@@ -298,9 +374,12 @@ function FacultyPage() {
           name: row.name,
           employee_id: row.employee_id,
           role: String(row.role || "REGULAR").toUpperCase(),
-          max_lectures_per_day: toNumber(row.max_lectures_per_day, 4),
-          max_consecutive_lectures: toNumber(row.max_consecutive_lectures, 2),
-          max_weekly_load: toNumber(row.max_weekly_load, 18),
+          max_lectures_per_day: toNumber(row.max_lectures_per_day,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_lectures_per_day ?? 4),
+          max_consecutive_lectures: toNumber(row.max_consecutive_lectures,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_consecutive_lectures ?? 2),
+          max_weekly_load: toNumber(row.max_weekly_load,
+              ROLE_DEFAULTS[String(row.role||'REGULAR').toUpperCase()]?.max_weekly_load ?? 18),
           is_active: toBoolean(row.is_active, true),
         })}
         onUploadComplete={loadAll}
@@ -311,7 +390,7 @@ function FacultyPage() {
         <section className="data-card faculty-form-card">
           <h3>
             <FaUserTie style={{ marginRight: 8, color: "var(--brand)" }} />
-            Register Faculty
+            {editId ? "Update Faculty Member" : "Register New Faculty"}
           </h3>
 
           {error && <p className="upload-error">{error}</p>}
@@ -356,11 +435,11 @@ function FacultyPage() {
                   setForm((p) => ({ ...p, role: e.target.value }))
                 }
               >
-                <option value="DEAN">Dean</option>
+                <option value="PVC">Pro Vice Chancellor</option>
+                <option value="DEAN">Dean of School</option>
                 <option value="HOD">Head of Department</option>
-                <option value="SENIOR">Senior Faculty</option>
                 <option value="REGULAR">Regular Faculty</option>
-                <option value="VISITING">Visiting Faculty</option>
+                <option value="VISITING">Visiting / Contractual</option>
               </select>
             </div>
 
@@ -482,14 +561,25 @@ function FacultyPage() {
               )}
             </div>
 
-            <div className="form-group form-group-btn">
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
               <button
                 type="submit"
-                className="btn-primary"
+                className="btn btn-primary"
                 disabled={submitting}
+                style={{ flex: 1, justifyContent: "center" }}
               >
-                {submitting ? "Registering..." : "Register Faculty"}
+                <FaUserTie style={{ marginRight: 8 }} />
+                {submitting ? "Saving..." : editId ? "Update Faculty" : "Register Faculty"}
               </button>
+              {editId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelEdit}
+                >
+                  <FaTimes />
+                </button>
+              )}
             </div>
           </form>
         </section>
@@ -569,14 +659,23 @@ function FacultyPage() {
                             </div>
                           </td>
                           <td>
+                          <div className="table-actions">
                             <button
-                              className="icon-btn danger"
-                              title="Delete"
+                              className="action-btn"
+                              onClick={() => handleEdit(f)}
+                              title="Edit Faculty"
+                            >
+                              <FaEdit style={{ color: "#3b82f6" }} />
+                            </button>
+                            <button
+                              className="action-btn danger"
                               onClick={() => handleDelete(f.id)}
+                              title="Delete Faculty"
                             >
                               <FaTrash />
                             </button>
-                          </td>
+                          </div>
+                        </td>
                         </tr>
                       );
                     })

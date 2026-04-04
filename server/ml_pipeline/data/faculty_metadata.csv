@@ -1,88 +1,54 @@
-faculty_name,designation,designation_encoded,department,employment_type,max_hours_per_week,max_hours_norm,teaches_theory,teaches_lab,num_unique_courses,num_courses_norm,num_programs_taught,observed_semesters,available_days,is_hod,is_dean,is_cross_school
-Dr. Ajeet Kumar Vishwakarma,Associate Professor,2,Computer Science,Full Time,16,0.8889,1,1,4,0.4,2,"2,3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Ekta,Associate Professor,2,Computer Science,Full Time,14,0.7778,1,0,3,0.3,1,"4,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Gesu Thakur,Associate Professor,2,Computer Science,Full Time,14,0.7778,1,1,4,0.4,3,"2,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Luxmi Sapra,Professor,3,Computer Science,Full Time,12,0.6667,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Prashant Kumar,Associate Professor,2,Computer Science,Full Time,14,0.7778,1,0,1,0.1,2,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Rohit Goyal,Associate Professor,2,Computer Science,Full Time,12,0.6667,1,1,3,0.3,1,"1,3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Sachin Kumar Rana,Associate Professor,2,Computer Science,Full Time,14,0.7778,1,0,1,0.1,1,3,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Shikha Singh,Associate Professor,2,Computer Science,Full Time,17,0.9444,1,0,1,0.1,1,1,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Sudhir Kumar Rathi,Associate Professor,2,Computer Networks,Full Time,8,0.4444,1,1,5,0.5,3,"3,4,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Sumit Sharma,Associate Professor,2,Computer Science,Full Time,15,0.8333,1,1,2,0.2,2,5,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Industry Expert,Visiting,0,Industry,Visiting,8,0.4444,1,0,1,0.1,1,3,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Ajay Singh,Assistant Professor,1,Computer Science,Full Time,19,1.0556,1,1,6,0.6,3,"2,3,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Akhilesh Pandey,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,2,0.2,2,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Ankit Maithani,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,5,0.5,1,"6,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Anubhav Singh Bisht,Assistant Professor,1,Computer Networks,Full Time,17,0.9444,1,1,6,0.6,3,"3,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Aquib Hussain,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,2,0.2,1,"3,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Arif Ali,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,7,0.7,4,"2,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Arif Ali Chauhan,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,3,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Arun Kumar,Assistant Professor,1,Applied Sciences,Visiting,18,1.0,1,0,2,0.2,3,"2,8","Mon,Tue,Wed,Thu,Fri",0,0,1
-Mr. Ashok Kumar,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Bal Krishna Yadav,Assistant Professor,1,Computer Science,Full Time,15,0.8333,1,1,4,0.4,1,"3,5,6,7","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Dhajvir Singh Rai,Assistant Professor,1,Computer Science,Full Time,13,0.7222,1,1,4,0.4,2,"1,3,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Dharmendra Kumar,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,5,0.5,2,"2,3","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Dharmendra Singh,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Digvijay Singh,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,1,0.1,2,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Gaurav Dobriyal,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,1,0.1,4,"2,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Govind Singh Panwar,Assistant Professor,1,Computer Science,Full Time,12,0.6667,1,1,4,0.4,1,"3,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Hammad,Assistant Professor,1,Humanities,Visiting,8,0.4444,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,1
-Mr. Harpreet Singh Cheema,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,2,0.2,4,"2,4,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Jatiender Kumar,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,2,0.2,2,"1,2","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Jatiendra Singh,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,5,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Kuldeep Bahuguna,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,3,0.3,3,"4,6,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Manish Naagar,Assistant Professor,1,Computer Science,Visiting,8,0.4444,1,0,1,0.1,1,8,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Manoj Adhikari,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,3,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Mohit Kumar Sharma,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,4,0.4,1,"3,5,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Mukesh Kumar,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,2,0.2,2,"2,6,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Mukesh Rajput,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,7,0.7,2,"2,4,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Nitin Mohan Arya,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,1,0.1,4,"2,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Paramjeet Singh Paliyal,Assistant Professor,1,Electronics,Full Time,18,1.0,1,0,1,0.1,1,3,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Pradumb Dhyani,Assistant Professor,1,Computer Science,Visiting,8,0.4444,0,1,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Rahul Bhatt,Assistant Professor,1,Computer Science,Full Time,10,0.5556,1,1,2,0.2,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Rakesh Arya,Assistant Professor,1,Computer Science,Full Time,12,0.6667,1,0,3,0.3,2,"5,7,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Rishabh Vashisht,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,4,0.4,3,"2,3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Sachin Sharma,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,4,0.4,3,"2,3,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Sanjay Kumar Tuddu,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,6,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Shubhashish Goswami,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,2,"1,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Siddhant Nautiyal,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,0,2,0.2,3,"2,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Vikas Kumar,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,5,0.5,3,"2,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Vivek,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,2,0.2,4,"4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Yudhveer Singh Moudgil,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,3,0.3,1,"3,4,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mrs. Gunjan Bhatnagar,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,5,0.5,4,"2,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Abhilasha Chauhan,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,3,0.3,2,"4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Amita Bisht,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,2,0.2,2,"4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Anamika Bhatt,Assistant Professor,1,Applied Sciences,Full Time,18,1.0,1,0,1,0.1,1,8,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Anshika Sharma,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,4,0.4,3,"2,3,4,7","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Anuja Chaturvedi,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,1,0.1,1,5,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Arundatti Sati,Assistant Professor,1,Humanities,Full Time,18,1.0,1,1,4,0.4,3,"1,3,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Asmi Khan,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,3,0.3,2,"1,3,7,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Avni Sharma,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,3,0.3,3,"2,4,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Champa Devi,Assistant Professor,1,Management,Full Time,18,1.0,1,0,1,0.1,2,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Charu Aghi,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,2,0.2,3,"3,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Esha Dogra,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,2,0.2,3,"5,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Isha Sharma,Assistant Professor,1,Applied Sciences,Full Time,18,1.0,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Jaishree Aggarwal,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,6,0.6,2,"2,3","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Jigyasha Chandok,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Manvi Chopra,Assistant Professor,1,Humanities,Full Time,18,1.0,1,0,2,0.2,3,"3,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Manvi Walia,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,5,0.5,4,"2,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Nishi Aggarwal,Assistant Professor,1,Electronics,Full Time,17,0.9444,1,0,2,0.2,3,"2,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Noopur Dass,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,4,0.4,2,"1,3","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Prachi Shriradha Negi,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,1,0.1,1,5,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Renu Devi,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,2,0.2,2,"3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Renu Yadav,Assistant Professor,1,Electronics,Full Time,18,1.0,1,0,1,0.1,1,6,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Sameeka Saini,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,0,3,0.3,2,"2,4,6,8","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Sarthika Dutt,Assistant Professor,1,Computer Science,Full Time,17,0.9444,1,1,4,0.4,1,"3,5,6","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Shruti,Assistant Professor,1,Computer Science,Full Time,18,1.0,0,1,1,0.1,1,"3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Shweta Kandari,Assistant Professor,1,Management,Full Time,18,1.0,1,0,1,0.1,2,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Sumedha,Assistant Professor,1,Computer Science,Full Time,18,1.0,0,1,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Vaishali Negi,Assistant Professor,1,Computer Science,Full Time,18,1.0,0,1,3,0.3,1,"3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Vaishali Yadav,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,7,0.7,3,"1,2,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Vijayshree Khugshal,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,4,0.4,3,"2,3,5","Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Deepa Bhatt,Associate Professor,2,Management,Full Time,14,0.7778,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Dr. Ritika Mehra,Pro Vice Chancellor,4,Computer Science,Full Time,4,0.2222,1,0,1,0.1,1,4,"Mon,Tue,Wed,Thu,Fri",0,1,0
-Dr. Shweta Sachdeva,Associate Professor,2,Computer Science,Full Time,14,0.7778,1,0,2,0.2,2,"2,4","Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Naseem Ahmad,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,1,0.1,1,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Mr. Sparsh Jaiswal,Assistant Professor,1,Management,Visiting,14,0.7778,1,0,1,0.1,3,2,"Mon,Tue,Wed,Thu,Fri",0,0,1
-Ms. Snehi Gusain,Assistant Professor,1,Humanities,Visiting,16,0.8889,1,0,1,0.1,3,2,"Mon,Tue,Wed,Thu,Fri",0,0,0
-Ms. Swarnima Gupta,Assistant Professor,1,Computer Science,Full Time,18,1.0,1,1,2,0.2,1,"6,8","Mon,Tue,Wed,Thu,Fri",0,0,0
+faculty_name,designation,max_hours_per_week,teaches_theory,teaches_lab,num_unique_courses,num_programs_taught,employment_type,is_hod,is_dean
+Dr. Ritika Mehra,Pro Vice Chancellor,4,1,1,3,2,Full Time,0,0
+Dr. Sudhir Rathi,Head of Department,8,1,1,3,2,Full Time,1,0
+Dr. Ashok Kumar,Head of Department,8,1,1,3,2,Full Time,1,0
+Mr. Rahul Bhatt,Regular Faculty,10,1,1,3,2,Full Time,0,0
+Mr. Dhajvir Singh Rai,Regular Faculty,13,1,1,3,2,Full Time,0,0
+Mr. Govind Singh Panwar,Regular Faculty,12,1,1,3,2,Full Time,0,0
+Mr. Mohit Kumar Sharma,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Rakesh Arya,Regular Faculty,12,1,1,3,2,Full Time,0,0
+Mr. Aquib Hussain,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Bal Krishna Yadav,Regular Faculty,15,1,1,3,2,Full Time,0,0
+Mr. Yudhveer Singh Moudgil,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Ajay Singh,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Gunjan,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Sanjay Kumar Tuddu,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Sarthika Dutt,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Anubhav Singh Bisht,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Ms. Manvi Chopra,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Mukesh Rajput,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Dr. Sumit Sharma,Regular Faculty,15,1,1,3,2,Full Time,0,0
+Mr. Arif Ali Chauhan,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Naseem Ahmad,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Noopur Dass,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Dr. Shikha Singh,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Ms. Swarnima Gupta,Regular Faculty,14,1,1,3,2,Full Time,0,0
+Dr. Rohit Goyal,Regular Faculty,12,1,1,3,2,Full Time,0,0
+Ms. Vaishali Yadav,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Dr. Ajeet Kumar Vishwakarma,Regular Faculty,16,1,1,3,2,Full Time,0,0
+Mr. Nishi Agarwal,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Rishabh Vashisht,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Jatiender Kumar,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Mr. Siddhant Nautiyal,Regular Faculty,17,1,1,3,2,Full Time,0,0
+Ms. Vijayshree Khugshal,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Vikas Kumar,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Sumedha,Regular Faculty,16,1,1,3,2,Full Time,0,0
+Mr. Pradumb Dhyani,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Jaishree Aggarwal,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Dr. Deepa Bhatt,Regular Faculty,15,1,1,3,2,Full Time,0,0
+Mr. Kuldeep Bahuguna,Visiting / Contractual,18,1,1,3,2,Visiting,0,0
+Mr. Mukesh Kumar,Visiting / Contractual,18,1,1,3,2,Visiting,0,0
+Dr. Shweta Sachdeva,Head of Department,6,1,1,3,2,Full Time,1,0
+Dr. Digvijay Singh,Head of Department,8,1,1,3,2,Full Time,1,0
+Ms. Vaishali Negi,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Shruti Chamoli,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Sandarbh Dwivedi,Visiting / Contractual,2,1,1,3,2,Visiting,0,0
+Dr. Arun Kumar,Visiting / Contractual,8,1,1,3,2,Visiting,0,0
+Ms. Gurpreet Sharma,Visiting / Contractual,16,1,1,3,2,Visiting,0,0
+Mr. Sparsh Jaiswal,Visiting / Contractual,11,1,1,3,2,Visiting,0,0
+Ms. Snehi Gusain,Regular Faculty,16,1,1,3,2,Full Time,0,0
+Dr. Anamika Bhatt,Visiting / Contractual,2,1,1,3,2,Visiting,0,0
+Dr. Manish Nagar,Visiting / Contractual,2,1,1,3,2,Visiting,0,0
+Mr. Harpreet Singh Cheema,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Ms. Anshika Sharma,Regular Faculty,18,1,1,3,2,Full Time,0,0
+Mr. Dharmendra Singh,Regular Faculty,18,1,1,3,2,Full Time,0,0

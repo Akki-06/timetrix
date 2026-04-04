@@ -3,7 +3,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { asList, extractError } from "../utils/helpers";
-import { FaBook, FaTrash } from "react-icons/fa";
+import { FaBook, FaTrash, FaEdit, FaTimes } from "react-icons/fa";
 
 /* ────────────────────────────────────────────
    Course type definitions matching backend
@@ -70,6 +70,12 @@ function CoursesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState(INITIAL_FORM);
+  const [editId, setEditId] = useState(null);
+
+  // Filters
+  const [filterProgram, setFilterProgram] = useState("");
+  const [filterSem, setFilterSem] = useState("");
+  const [filterType, setFilterType] = useState("");
 
   const loadAll = useCallback(async () => {
     try {
@@ -119,16 +125,43 @@ function CoursesPage() {
       if (form.program) payload.program = Number(form.program);
       if (form.semester) payload.semester = Number(form.semester);
 
-      await api.post("academics/courses/", payload);
+      if (editId) {
+        await api.patch(`academics/courses/${editId}/`, payload);
+        setSuccess("Course updated successfully.");
+        setEditId(null);
+      } else {
+        await api.post("academics/courses/", payload);
+        setSuccess("Course created successfully.");
+      }
 
       setForm(INITIAL_FORM);
-      setSuccess("Course created successfully.");
       loadAll();
     } catch (err) {
-      setError(extractError(err, "Failed to create course."));
+      setError(extractError(err, editId ? "Failed to update course." : "Failed to create course."));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (course) => {
+    setEditId(course.id);
+    setForm({
+      program: course.program || "",
+      semester: course.semester || "",
+      code: course.code,
+      name: course.name,
+      credits: course.credits,
+      course_type: course.course_type,
+    });
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setForm(INITIAL_FORM);
+    setError("");
+    setSuccess("");
   };
 
   const handleDelete = async (id) => {
@@ -140,6 +173,13 @@ function CoursesPage() {
     }
   };
 
+  const filteredCourses = courses.filter((c) => {
+    if (filterProgram && String(c.program) !== String(filterProgram)) return false;
+    if (filterSem && String(c.semester) !== String(filterSem)) return false;
+    if (filterType && c.course_type !== filterType) return false;
+    return true;
+  });
+
   return (
     <DashboardLayout>
       <div className="page-head">
@@ -148,7 +188,7 @@ function CoursesPage() {
       </div>
 
       <BulkUploadCard
-        title="Upload Courses"
+        title="Upload Courses Master Data"
         endpoint="academics/courses/bulk-upload/"
         useFileUpload
         requiredColumns={["code", "name", "credits", "course_type", "program_code", "semester"]}
@@ -164,12 +204,30 @@ function CoursesPage() {
         onUploadComplete={loadAll}
       />
 
+      <BulkUploadCard
+        title="Upload Program Elective Choices"
+        endpoint="academics/courses/bulk-upload/"
+        useFileUpload
+        requiredColumns={["code", "name", "credits", "course_type", "program_code", "semester", "parent_pe_code"]}
+        templateFileName="pe-choices-template.xlsx"
+        templateSampleRow={{
+          code: "24COA2A1",
+          name: "Cyber Security",
+          credits: 3,
+          course_type: "PE",
+          program_code: "BCA",
+          semester: 4,
+          parent_pe_code: "24COA2AX_BCA",
+        }}
+        onUploadComplete={loadAll}
+      />
+
       <div className="faculty-two-col">
         {/* ── LEFT: Add Course Form ── */}
         <section className="data-card faculty-form-card">
           <h3>
             <FaBook style={{ marginRight: 8, color: "var(--brand)" }} />
-            Add New Course
+            {editId ? "Update Course" : "Add New Course"}
           </h3>
 
           {error && <p className="upload-error">{error}</p>}
@@ -304,23 +362,54 @@ function CoursesPage() {
               </div>
             )}
 
-            <div className="form-group form-group-btn">
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
               <button
                 type="submit"
-                className="btn-primary btn-with-icon"
+                className="btn btn-primary"
                 disabled={submitting}
-                style={{ width: "100%", justifyContent: "center" }}
+                style={{ flex: 1, justifyContent: "center" }}
               >
-                <FaBook />
-                {submitting ? "Creating..." : "Create Course"}
+                <FaBook style={{ marginRight: 8 }} />
+                {submitting ? "Saving..." : editId ? "Update Course" : "Create Course"}
               </button>
+              {editId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelEdit}
+                >
+                  <FaTimes />
+                </button>
+              )}
             </div>
           </form>
         </section>
 
         {/* ── RIGHT: Existing Courses ── */}
         <section className="data-card faculty-list-card">
-          <h3>Existing Courses ({courses.length})</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "10px" }}>
+            <h3 style={{ margin: 0 }}>Existing Courses ({filteredCourses.length})</h3>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <select className="input" style={{ width: "150px" }} value={filterProgram} onChange={e => setFilterProgram(e.target.value)}>
+                <option value="">All Programs</option>
+                {programs.map(p => (
+                  <option key={p.id} value={p.id}>{p.code}</option>
+                ))}
+              </select>
+              <select className="input" style={{ width: "120px" }} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
+                <option value="">All Sems</option>
+                {[1,2,3,4,5,6,7,8].map(s => (
+                  <option key={s} value={s}>Sem {s}</option>
+                ))}
+              </select>
+              <select className="input" style={{ width: "130px" }} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="">All Types</option>
+                {COURSE_TYPES.map(ct => (
+                  <option key={ct.value} value={ct.value}>{ct.value}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           {loading ? (
             <p className="upload-help">Loading course data...</p>
           ) : (
@@ -339,7 +428,7 @@ function CoursesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.length === 0 ? (
+                  {filteredCourses.length === 0 ? (
                     <tr>
                       <td
                         colSpan="8"
@@ -349,11 +438,11 @@ function CoursesPage() {
                           padding: 24,
                         }}
                       >
-                        No courses yet. Add one using the form.
+                        No courses found matching criteria.
                       </td>
                     </tr>
                   ) : (
-                    courses.map((c) => {
+                    filteredCourses.map((c) => {
                       const typeInfo = TYPE_MAP[c.course_type];
                       const badgeClass = typeInfo
                         ? typeInfo.group
@@ -402,13 +491,22 @@ function CoursesPage() {
                             )}
                           </td>
                           <td>
-                            <button
-                              className="icon-btn danger"
-                              title="Delete"
-                              onClick={() => handleDelete(c.id)}
-                            >
-                              <FaTrash />
-                            </button>
+                            <div className="table-actions">
+                              <button
+                                className="action-btn"
+                                onClick={() => handleEdit(c)}
+                                title="Edit Course"
+                              >
+                                <FaEdit style={{ color: "#3b82f6" }} />
+                              </button>
+                              <button
+                                className="action-btn danger"
+                                onClick={() => handleDelete(c.id)}
+                                title="Delete Course"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

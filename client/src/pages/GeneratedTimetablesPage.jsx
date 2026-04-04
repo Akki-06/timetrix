@@ -29,6 +29,13 @@ const DAY_LABELS = {
   THU: "Thursday", FRI: "Friday", SAT: "Saturday",
 };
 
+const DAY_CODE_TO_NAME = {
+  MON: "Monday", TUE: "Tuesday", WED: "Wednesday",
+  THU: "Thursday", FRI: "Friday", SAT: "Saturday",
+};
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
 /* ── view mode labels ── */
 const VIEW_LABELS = {
   section: "Program / Section",
@@ -287,6 +294,23 @@ function GeneratedTimetablesPage() {
     });
     return grid;
   }, [allocations, days, slotsBeforeLunch, slotsAfterLunch]);
+
+  /* Build grid: { day: { slotNumber: [allocations] } } */
+  const grid = useMemo(() => {
+    const g = {};
+    DAYS.forEach(day => {
+      g[day] = {};
+      [1,2,3,4,5,6].forEach(slot => { g[day][slot] = []; });
+    });
+    allocations.forEach(alloc => {
+      const day  = DAY_CODE_TO_NAME[alloc.day];
+      const slot = alloc.slot_number;
+      if (day && slot && g[day] && g[day][slot] !== undefined) {
+        g[day][slot].push(alloc);
+      }
+    });
+    return g;
+  }, [allocations]);
 
   /* ────────────────────────── cell renderer ────────────────────────── */
   const renderCell = (entries, key) => {
@@ -557,27 +581,105 @@ function GeneratedTimetablesPage() {
             <table className="timetable-grid">
               <thead>
                 <tr>
-                  <th className="sticky-col">Day / Time</th>
-                  {slotsBeforeLunch.map((s) => (
-                    <th key={s.number}>{s.label}</th>
-                  ))}
-                  <th className="lunch-col">{lunchLabel}</th>
-                  {slotsAfterLunch.map((s) => (
-                    <th key={s.number}>{s.label}</th>
-                  ))}
+                  <th>Day / Time</th>
+                  <th>09:40–10:35</th>
+                  <th>10:35–11:30</th>
+                  <th>11:30–12:25</th>
+                  <th>12:25–13:20</th>
+                  <th className="lunch-col">13:20–14:15</th>
+                  <th>14:15–15:10</th>
+                  <th>15:10–16:05</th>
                 </tr>
               </thead>
               <tbody>
-                {days.map((day) => (
+                {DAYS.map(day => (
                   <tr key={day}>
-                    <td className="sticky-col day-cell">{DAY_LABELS[day]}</td>
-                    {slotsBeforeLunch.map((s) =>
-                      renderCell(gridData[day]?.[s.number], s.number)
-                    )}
+                    <td className="day-label">{day}</td>
+                    {[1,2,3,4].map(slot => {
+                      const cellAllocs = grid[day]?.[slot] || [];
+                      return (
+                        <td key={slot} className={cellAllocs.length ? "has-class" : "empty-cell"}>
+                          {cellAllocs.map((a, i) => {
+                            const c = colorMap[a.course_code] || PALETTE[0];
+                            return (
+                              <div
+                                key={i}
+                                className="lecture-chip"
+                                style={{ background: c.bg, borderLeftColor: c.border }}
+                              >
+                                <div className="lecture-subject">
+                                  {a.course_name}
+                                  {(a.room_type === "LAB" || a.course_type === "PR") && (
+                                    <span className="lab-tag">Lab</span>
+                                  )}
+                                </div>
+                                {viewMode === "section" && (
+                                  <>
+                                    <div className="lecture-meta">{a.faculty_name}</div>
+                                    <div className="lecture-meta">Room: {a.room_number}</div>
+                                  </>
+                                )}
+                                {viewMode === "faculty" && (
+                                  <>
+                                    <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                                    <div className="lecture-meta">Room: {a.room_number}</div>
+                                  </>
+                                )}
+                                {viewMode === "room" && (
+                                  <>
+                                    <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                                    <div className="lecture-meta">{a.faculty_name}</div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </td>
+                      );
+                    })}
                     <td className="lunch-col lunch-cell">LUNCH</td>
-                    {slotsAfterLunch.map((s) =>
-                      renderCell(gridData[day]?.[s.number], s.number)
-                    )}
+                    {[5,6].map(slot => {
+                      const cellAllocs = grid[day]?.[slot] || [];
+                      return (
+                        <td key={slot} className={cellAllocs.length ? "has-class" : "empty-cell"}>
+                          {cellAllocs.map((a, i) => {
+                            const c = colorMap[a.course_code] || PALETTE[0];
+                            return (
+                              <div
+                                key={i}
+                                className="lecture-chip"
+                                style={{ background: c.bg, borderLeftColor: c.border }}
+                              >
+                                <div className="lecture-subject">
+                                  {a.course_name}
+                                  {(a.room_type === "LAB" || a.course_type === "PR") && (
+                                    <span className="lab-tag">Lab</span>
+                                  )}
+                                </div>
+                                {viewMode === "section" && (
+                                  <>
+                                    <div className="lecture-meta">{a.faculty_name}</div>
+                                    <div className="lecture-meta">Room: {a.room_number}</div>
+                                  </>
+                                )}
+                                {viewMode === "faculty" && (
+                                  <>
+                                    <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                                    <div className="lecture-meta">Room: {a.room_number}</div>
+                                  </>
+                                )}
+                                {viewMode === "room" && (
+                                  <>
+                                    <div className="lecture-meta">{a.student_group_name} &middot; {a.program_code}</div>
+                                    <div className="lecture-meta">{a.faculty_name}</div>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

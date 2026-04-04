@@ -9,7 +9,10 @@
       "Read(//c/Users/akki2/.claude/plugins/**)",
       "Bash(where claude:*)",
       "Bash(python -c \"import openpyxl; wb = openpyxl.load_workbook\\('server/ml_pipeline/data/TIMETRIX_Faculty_Master_Data.xlsx'\\); ws = wb.active; print\\([cell.value for cell in ws[1]]\\)\")",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(python manage.py shell -c \"from faculty.models import Faculty; updated = Faculty.objects.filter\\(role='SENIOR'\\).update\\(role='REGULAR'\\); print\\(f'Updated {updated} SENIOR → REGULAR'\\)\")",
+      "Bash(python manage.py shell -c \"from faculty.models import Faculty; updated = Faculty.objects.filter\\(role='SENIOR'\\).update\\(role='REGULAR'\\); print\\('Updated', updated, 'SENIOR rows to REGULAR'\\)\")",
+      "Bash(pip install:*)"
     ]
   }
 }

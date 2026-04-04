@@ -4,6 +4,7 @@ import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toBoolean, toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
+import { FaTrash, FaEdit, FaTimes } from "react-icons/fa";
 
 function InfrastructurePage() {
   const [buildings, setBuildings] = useState([]);
@@ -32,6 +33,9 @@ function InfrastructurePage() {
     is_shared: true,
     priority_weight: 1,
   });
+
+  const [editBuildingId, setEditBuildingId] = useState(null);
+  const [editRoomId, setEditRoomId] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -68,18 +72,46 @@ function InfrastructurePage() {
     setSubmittingBuilding(true);
 
     try {
-      await api.post("infrastructure/building/", {
-        ...buildingForm,
-        floors: Number(buildingForm.floors),
-      });
+      if (editBuildingId) {
+        await api.patch(`infrastructure/building/${editBuildingId}/`, {
+          ...buildingForm,
+          floors: Number(buildingForm.floors),
+        });
+        setBuildingSuccess("Building updated successfully.");
+        setEditBuildingId(null);
+      } else {
+        await api.post("infrastructure/building/", {
+          ...buildingForm,
+          floors: Number(buildingForm.floors),
+        });
+        setBuildingSuccess("Building added successfully.");
+      }
       setBuildingForm({ name: "", code: "", floors: 1, is_active: true });
-      setBuildingSuccess("Building added successfully.");
       loadData();
     } catch (err) {
-      setBuildingError(extractError(err, "Failed to add building."));
+      setBuildingError(extractError(err, editBuildingId ? "Failed to update building." : "Failed to add building."));
     } finally {
       setSubmittingBuilding(false);
     }
+  };
+
+  const handleBuildingEdit = (building) => {
+    setEditBuildingId(building.id);
+    setBuildingForm({
+      name: building.name,
+      code: building.code,
+      floors: building.floors,
+      is_active: building.is_active,
+    });
+    setBuildingError("");
+    setBuildingSuccess("");
+  };
+
+  const cancelBuildingEdit = () => {
+    setEditBuildingId(null);
+    setBuildingForm({ name: "", code: "", floors: 1, is_active: true });
+    setBuildingError("");
+    setBuildingSuccess("");
   };
 
   const handleRoomSubmit = async (event) => {
@@ -89,13 +121,23 @@ function InfrastructurePage() {
     setSubmittingRoom(true);
 
     try {
-      await api.post("infrastructure/room/", {
+      const payload = {
         ...roomForm,
         building: Number(roomForm.building),
         floor: Number(roomForm.floor),
         capacity: Number(roomForm.capacity),
         priority_weight: Number(roomForm.priority_weight),
-      });
+      };
+
+      if (editRoomId) {
+        await api.patch(`infrastructure/room/${editRoomId}/`, payload);
+        setRoomSuccess("Room updated successfully.");
+        setEditRoomId(null);
+      } else {
+        await api.post("infrastructure/room/", payload);
+        setRoomSuccess("Room added successfully.");
+      }
+
       setRoomForm({
         building: "",
         room_number: "",
@@ -106,12 +148,61 @@ function InfrastructurePage() {
         is_shared: true,
         priority_weight: 1,
       });
-      setRoomSuccess("Room added successfully.");
       loadData();
     } catch (err) {
-      setRoomError(extractError(err, "Failed to add room."));
+      setRoomError(extractError(err, editRoomId ? "Failed to update room." : "Failed to add room."));
     } finally {
       setSubmittingRoom(false);
+    }
+  };
+
+  const handleRoomEdit = (room) => {
+    setEditRoomId(room.id);
+    setRoomForm({
+      building: room.building || room.building_id || "",
+      room_number: room.room_number,
+      floor: room.floor,
+      capacity: room.capacity,
+      room_type: room.room_type,
+      is_active: room.is_active,
+      is_shared: room.is_shared,
+      priority_weight: room.priority_weight,
+    });
+    setRoomError("");
+    setRoomSuccess("");
+  };
+
+  const cancelRoomEdit = () => {
+    setEditRoomId(null);
+    setRoomForm({
+      building: "",
+      room_number: "",
+      floor: 1,
+      capacity: 40,
+      room_type: "THEORY",
+      is_active: true,
+      is_shared: true,
+      priority_weight: 1,
+    });
+    setRoomError("");
+    setRoomSuccess("");
+  };
+
+  const handleBuildingDelete = async (id) => {
+    try {
+      await api.delete(`infrastructure/building/${id}/`);
+      loadData();
+    } catch (err) {
+      setBuildingError(extractError(err, "Failed to delete building."));
+    }
+  };
+
+  const handleRoomDelete = async (id) => {
+    try {
+      await api.delete(`infrastructure/room/${id}/`);
+      loadData();
+    } catch (err) {
+      setRoomError(extractError(err, "Failed to delete room."));
     }
   };
 
@@ -145,9 +236,9 @@ function InfrastructurePage() {
 
         <BulkUploadCard
           title="Upload Rooms"
-          endpoint="infrastructure/room/"
+          endpoint="infrastructure/room/bulk-upload/"
+          useFileUpload
           requiredColumns={["floor", "capacity", "room_type"]}
-          helperText="Accepts rooms.csv columns (room_id/room_number, building/building_code)."
           templateFileName="rooms-upload-template.xlsx"
           templateSampleRow={{
             building_code: "MB",
@@ -159,44 +250,13 @@ function InfrastructurePage() {
             is_shared: true,
             priority_weight: 1,
           }}
-          mapRow={(row, lineNumber) => {
-            // Accept both "building_code" (template) and "building" (rooms.csv)
-            const buildingCode = String(row.building_code || row.building || "")
-              .trim()
-              .toUpperCase();
-            const buildingId = buildingCodeToId[buildingCode];
-
-            if (!buildingId) {
-              throw new Error(
-                `Unknown building '${buildingCode}' at row ${lineNumber}. ` +
-                `Available: ${Object.keys(buildingCodeToId).join(", ")}`
-              );
-            }
-
-            // Accept both "room_number" (template) and "room_id" (rooms.csv)
-            const roomNumber = String(row.room_number || row.room_id || "").trim();
-            if (!roomNumber) {
-              throw new Error(`Missing room number at row ${lineNumber}`);
-            }
-
-            return {
-              building: buildingId,
-              room_number: roomNumber,
-              floor: toNumber(row.floor, 0),
-              capacity: toNumber(row.capacity, 40),
-              room_type: String(row.room_type || "THEORY").toUpperCase(),
-              is_active: toBoolean(row.is_active, true),
-              is_shared: toBoolean(row.is_shared, true),
-              priority_weight: toNumber(row.priority_weight, 1),
-            };
-          }}
           onUploadComplete={loadData}
         />
       </div>
 
       <div className="upload-grid">
         <section className="data-card">
-          <h3>Add Building Manually</h3>
+          <h3>{editBuildingId ? "Update Building" : "Add Building Manually"}</h3>
 
           {buildingError && <p className="upload-error">{buildingError}</p>}
           {buildingSuccess && <p className="upload-success">{buildingSuccess}</p>}
@@ -253,16 +313,21 @@ function InfrastructurePage() {
                 Active
               </label>
             </div>
-            <div className="form-group form-group-btn">
-              <button type="submit" className="btn-primary" disabled={submittingBuilding}>
-                {submittingBuilding ? "Adding..." : "Add Building"}
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
+              <button type="submit" className="btn-primary" disabled={submittingBuilding} style={{ flex: 1 }}>
+                {submittingBuilding ? "Saving..." : editBuildingId ? "Update Building" : "Add Building"}
               </button>
+              {editBuildingId && (
+                <button type="button" className="btn btn-secondary" onClick={cancelBuildingEdit}>
+                  <FaTimes />
+                </button>
+              )}
             </div>
           </form>
         </section>
 
         <section className="data-card">
-          <h3>Add Room Manually</h3>
+          <h3>{editRoomId ? "Update Room" : "Add Room Manually"}</h3>
 
           {roomError && <p className="upload-error">{roomError}</p>}
           {roomSuccess && <p className="upload-success">{roomSuccess}</p>}
@@ -372,11 +437,15 @@ function InfrastructurePage() {
                 Active
               </label>
             </div>
-            <div className="form-group form-group-btn">
-              <button type="submit" className="btn-primary" disabled={submittingRoom}>
-                {submittingRoom ? "Adding..." : "Add Room"}
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
+              <button type="submit" className="btn-primary" disabled={submittingRoom} style={{ flex: 1 }}>
+                {submittingRoom ? "Saving..." : editRoomId ? "Update Room" : "Add Room"}
               </button>
-            </div>
+              {editRoomId && (
+                <button type="button" className="btn btn-secondary" onClick={cancelRoomEdit}>
+                  <FaTimes />
+                </button>
+              )}            </div>
           </form>
         </section>
       </div>

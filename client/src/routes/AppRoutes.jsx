@@ -11,6 +11,7 @@ import InfrastructurePage from "../pages/InfrastructurePage";
 import TimetableGeneratorPage from "../pages/TimetableGeneratorPage";
 import GeneratedTimetablesPage from "../pages/GeneratedTimetablesPage";
 import SettingsPage from "../pages/SettingsPage";
+import CourseAssignmentPage from "../pages/CourseAssignmentPage";
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -52,6 +53,12 @@ function AppRoutes() {
         <Route path="/infrastructure" element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <InfrastructurePage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/assignments" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <CourseAssignmentPage />
           </ProtectedRoute>
         } />
 

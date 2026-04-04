@@ -76,8 +76,8 @@ RF_META_PATH   = TRAIN_DIR / "rf_feature_metadata.pkl"
 RF_REPORT_PATH = TRAIN_DIR / "rf_training_report.json"
 
 EMBED_DIM   = 32
-MANUAL_DIM  = 16    # upgraded from 15: +overload_severity
-FEATURE_DIM = EMBED_DIM * 3 + MANUAL_DIM   # 112
+MANUAL_DIM  = 18    # upgraded from 16: +is_combined, +is_working_day
+FEATURE_DIM = EMBED_DIM * 3 + MANUAL_DIM   # 114
 
 ZERO_EMBED = np.zeros(EMBED_DIM, dtype=np.float32)
 
@@ -143,7 +143,8 @@ def build_feature_vector(faculty, room, day, slot,
                          course_name,
                          embeddings, fac_weekly_load,
                          max_hours_map, stats,
-                         fac_today_load=0, max_daily=4):
+                         fac_today_load=0, max_daily=4,
+                         is_combined=0, working_days=None):
     """
     112-dim feature vector for one candidate assignment.
 
@@ -231,6 +232,14 @@ def build_feature_vector(faculty, room, day, slot,
     # 0.0 = at or below cap. Scales linearly above cap.
     overload_severity = max(0.0, (cur_load - max_h) / max(max_h, 1))
 
+    # Feature 17: is_combined (A+B grouping context)
+    combined_val = float(is_combined)
+
+    # Feature 18: is_working_day (is this day in section's allowed list?)
+    if working_days is None:
+        working_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    is_working_day = 1.0 if day in working_days else 0.0
+
     manual = np.array([
         load_remaining,           # 1:  faculty weekly availability
         is_known_slot,            # 2:  historical slot match
@@ -248,6 +257,8 @@ def build_feature_vector(faculty, room, day, slot,
         slot_adjacent_density,    # 14: busyness of neighbouring slots
         near_weekly_cap,          # 15: approaching weekly limit
         overload_severity,        # 16: how far above weekly cap
+        combined_val,             # 17: is_combined
+        is_working_day,           # 18: working day match
     ], dtype=np.float32)
 
     return np.concatenate([fac_emb, ts_emb, rm_emb, manual])  # 112-dim
@@ -274,6 +285,8 @@ def get_feature_names():
         "slot_adjacent_density",    # 14
         "near_weekly_cap",          # 15
         "overload_severity",        # 16
+        "is_combined",              # 17
+        "is_working_day",           # 18
     ]
     return names
 

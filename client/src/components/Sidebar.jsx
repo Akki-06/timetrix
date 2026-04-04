@@ -7,6 +7,7 @@ import {
   FaCog,
   FaCalendarAlt,
   FaGraduationCap,
+  FaLink,
   FaMagic,
   FaUniversity,
   FaUsers,
@@ -18,6 +19,7 @@ const MENU_ITEMS = [
   { label: "Programs", to: "/programs", icon: FaUniversity, roles: ["admin"] },
   { label: "Sections", to: "/sections", icon: FaUsers, roles: ["admin"] },
   { label: "Courses", to: "/courses", icon: FaGraduationCap, roles: ["admin"] },
+  { label: "Assignments", to: "/assignments", icon: FaLink, roles: ["admin"] },
   { label: "Infrastructure", to: "/infrastructure", icon: FaBuilding, roles: ["admin"] },
   { label: "Generator", to: "/generator", icon: FaMagic, roles: ["admin"] },
   { label: "Timetables", to: "/generated", icon: FaCalendarAlt, roles: ["admin", "teacher", "student"] },
@@ -41,8 +43,8 @@ function Sidebar({ collapsed, mobileOpen, onMobileClose }) {
         <div className="sidebar-logo">
           <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
             <rect width="48" height="48" rx="12" fill="url(#slg)" />
-            <path d="M14 16h20v2H14zM14 22h20v2H14zM14 28h14v2H14zM32 26l6 6-6 6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs><linearGradient id="slg" x1="0" y1="0" x2="48" y2="48"><stop stopColor="#6366f1"/><stop offset="1" stopColor="#14b8a6"/></linearGradient></defs>
+            <path d="M14 16h20v2H14zM14 22h20v2H14zM14 28h14v2H14zM32 26l6 6-6 6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <defs><linearGradient id="slg" x1="0" y1="0" x2="48" y2="48"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#14b8a6" /></linearGradient></defs>
           </svg>
         </div>
         {!collapsed && (

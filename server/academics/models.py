@@ -118,6 +118,12 @@ class CourseType(models.TextChoices):
 _NOT_SCHEDULED     = {"DIS", "INT", "RND"}
 _CONSECUTIVE_TYPES = {"PR", "PRJ"}
 _LAB_ROOM_TYPES    = {"PR"}
+_TYPE_PRIORITY = {
+    "PR": 5,
+    "PC": 4, "BSC": 4, "ESC": 4,
+    "PE": 3, "OE": 3, "HUM": 3,
+    "LS": 2, "VAM": 2, "AEC": 2,
+}
 
 
 class Course(models.Model):
@@ -138,6 +144,13 @@ class Course(models.Model):
         max_length=20,
         choices=CourseType.choices,
         default=CourseType.PC
+    )
+    
+    parent_course_code = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="If this is an elective choice, the code of the placeholder course (e.g. PE-I)"
     )
 
     min_weekly_lectures = models.PositiveIntegerField(default=0)
@@ -162,14 +175,7 @@ class Course(models.Model):
         self.requires_lab_room          = (ct in _LAB_ROOM_TYPES)
         self.requires_consecutive_slots = (ct in _CONSECUTIVE_TYPES)
 
-        # Priority: PR=5, PC/BSC/ESC=4, PE/OE/HUM=3, LS/VAM/AEC=2, rest=1
-        _priority = {
-            "PR": 5,
-            "PC": 4, "BSC": 4, "ESC": 4,
-            "PE": 3, "OE": 3, "HUM": 3,
-            "LS": 2, "VAM": 2, "AEC": 2,
-        }
-        self.priority = _priority.get(ct, 1)
+        self.priority = _TYPE_PRIORITY.get(ct, 1)
 
         super().save(*args, **kwargs)
 
@@ -196,6 +202,11 @@ class StudentGroup(models.Model):
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=150, blank=True)
     strength = models.PositiveIntegerField()
+    working_days = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text='List of working days for this section, e.g. ["MON", "TUE", "WED", "THU", "FRI", "SAT"]'
+    )
 
     class Meta:
         constraints = [
@@ -237,6 +248,21 @@ class CourseOffering(models.Model):
     )
 
     weekly_load = models.PositiveIntegerField(default=0)
+    
+    # NEW: Used to group offerings that must be scheduled in the same slot 
+    # (e.g. Sections A & B combined for one theory class)
+    combined_token = models.CharField(max_length=50, blank=True, null=True, help_text="Common token for linked sessions (A+B)")
+
+    elective_slot_group = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Offerings sharing this value are forced to the same "
+            "day+slot with different rooms. Used for parallel PE electives."
+        )
+    )
 
     class Meta:
         constraints = [
