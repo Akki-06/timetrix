@@ -1,52 +1,64 @@
-room_id,building,floor,room_type,capacity,is_lab,lab_type,is_shared,is_active,notes,capacity_norm,floor_norm,room_type_enc
-1112,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1113,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1114,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1116,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1117,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1118,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1119,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1124,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1127,Block 1,1,theory,60,0,,1,1,Regular lecture hall,0.5,0.25,0
-1017,Block 1,0,theory,60,0,,1,1,Ground floor lecture hall,0.5,0.0,0
-1018,Block 1,0,theory,60,0,,1,1,Ground floor lecture hall,0.5,0.0,0
-1019,Block 1,0,theory,60,0,,1,1,Ground floor lecture hall,0.5,0.0,0
-1020,Block 1,0,theory,60,0,,1,1,Ground floor lecture hall,0.5,0.0,0
-1108,Block 1,1,lab,30,1,general_computing,1,1,Database/Programming Lab,0.25,0.25,1
-1109,Block 1,1,lab,30,1,networking,1,1,Networking Lab,0.25,0.25,1
-1122,Block 1,1,lab,30,1,general_computing,1,1,Computer Lab,0.25,0.25,1
-1125,Block 1,1,lab,30,1,general_computing,1,1,Computer Lab 3,0.25,0.25,1
-1126,Block 1,1,lab,30,1,general_computing,1,1,Computer Lab 4,0.25,0.25,1
-1121,Block 1,1,lab,30,1,general_computing,1,1,Python Lab,0.25,0.25,1
-1021,Block 1,0,lab,30,1,software,1,1,Software/Project Lab,0.25,0.0,1
-1022,Block 1,0,lab,30,1,general_computing,1,1,Computer Lab,0.25,0.0,1
-1228,Block 1,2,lab,30,1,digital_electronics,1,1,Digital Electronics Lab,0.25,0.5,1
-1213,Block 1,2,theory,60,0,,1,1,Lecture room (MCA block),0.5,0.5,0
-1214,Block 1,2,theory,60,0,,1,1,Lecture room,0.5,0.5,0
-1215,Block 1,2,theory,60,0,,1,1,Lecture room,0.5,0.5,0
-1220,Block 1,2,theory,60,0,,1,1,Lecture room,0.5,0.5,0
-1221,Block 1,2,theory,60,0,,1,1,Lecture room,0.5,0.5,0
-1222,Block 1,2,theory,60,0,,1,1,Lecture room,0.5,0.5,0
-4202,Block 4,2,theory,50,0,,1,1,Lecture hall,0.4167,0.5,0
-4205,Block 4,2,theory,50,0,,1,1,Lecture hall,0.4167,0.5,0
-4102,Block 4,1,theory,50,0,,1,1,Lecture hall,0.4167,0.25,0
-4105,Block 4,1,theory,50,0,,1,1,Lecture hall,0.4167,0.25,0
-4301,Block 4,3,lab,30,1,general_computing,1,1,Computer Lab (Block 4),0.25,0.75,1
-4302,Block 4,3,theory,50,0,,1,1,Lecture room,0.4167,0.75,0
-4103,Block 4,1,theory,50,0,,1,1,Lecture room,0.4167,0.25,0
-3201,Block 3,2,theory,50,0,,1,1,Lecture room,0.4167,0.5,0
-FF-101,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
-FF-03,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
-FF-04,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
-FF-07,Old Block FF,0,theory,60,0,,1,0,Lecture hall,0.5,0.0,0
-FF-105,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
-FF-106,Old Block FF,1,theory,60,0,,1,0,Lecture hall,0.5,0.25,0
-FF-110,Old Block FF,1,theory,60,0,,1,0,Lecture room,0.5,0.25,0
-GF-06,Old Block GF,0,theory,50,0,,1,0,Lecture room,0.4167,0.0,0
-GF-207,Old Block GF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
-SF-110,Old Block SF,1,theory,50,0,,1,0,Lecture room,0.4167,0.25,0
-SF-204,Old Block SF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
-SF-205,Old Block SF,2,theory,50,0,,1,0,Lecture room,0.4167,0.5,0
-SF-207,Old Block SF,2,theory,60,0,,1,0,Lecture room,0.5,0.5,0
-rotation,Various,0,theory,60,0,,1,1,Room rotation — no fixed assignment,0.5,0.0,0
-unknown,Unknown,0,theory,60,0,,1,1,Room not recorded in source data,0.5,0.0,0
+room_id,building,floor,room_type,capacity,is_lab,lab_type,is_shared,is_active,notes
+1006,SOEC,0,theory,100,0,,1,1,
+1007,SOEC,0,theory,100,0,,1,1,
+1008,SOEC,0,theory,100,0,,1,1,
+1010,SOEC,0,theory,150,0,,1,1,
+1011,SOEC,0,theory,80,0,,1,1,
+1012,SOEC,0,theory,80,0,,1,1,
+1020,SOEC,0,theory,80,0,,1,1,
+1019,SOEC,0,theory,80,0,,1,1,
+1018,SOEC,0,theory,80,0,,1,1,
+1017,SOEC,0,theory,70,0,,1,1,
+1021,SOEC,0,lab,70,1,computer_lab,1,1,General computing lab
+1022,SOEC,0,lab,70,1,computer_lab,1,1,General computing lab
+1112,SOEC,1,theory,80,0,,1,1,
+1113,SOEC,1,theory,80,0,,1,1,
+1114,SOEC,1,theory,80,0,,1,1,
+1116,SOEC,1,theory,200,0,,1,1,
+1117,SOEC,1,theory,80,0,,1,1,
+1118,SOEC,1,theory,80,0,,1,1,
+1119,SOEC,1,theory,80,0,,1,1,
+1121,SOEC,1,lab,70,1,computer_lab,1,1,Computer Lab
+1122,SOEC,1,lab,70,1,computer_lab,1,1,Computer Lab
+1127,SOEC,1,theory,50,0,,1,1,
+1107,SOEC,1,theory,1,0,,1,0,CLOSED
+1124,SOEC,1,theory,50,0,,1,1,
+1108,SOEC,1,lab,60,1,computer_lab,1,1,General computing lab
+1109,SOEC,1,lab,60,1,computer_lab,1,1,General computing lab
+1125,SOEC,1,lab,70,1,computer_lab,1,1,General computing lab
+1126,SOEC,1,lab,70,1,computer_lab,1,1,General computing lab
+1201,SOEC,2,theory,80,0,,1,1,
+1210,SOEC,2,theory,80,0,,1,1,
+1211,SOEC,2,theory,80,0,,1,1,
+1213,SOEC,2,theory,80,0,,1,1,
+1214,SOEC,2,theory,80,0,,1,1,
+1215,SOEC,2,theory,80,0,,1,1,
+1216,SOEC,2,theory,80,0,,1,1,
+1217,SOEC,2,lab,40,1,control_power_system,1,1,Control Lab & Power System Lab
+1218,SOEC,2,lab,40,1,physics,1,1,Physics Lab
+1219,SOEC,2,theory,30,0,,1,1,
+1220,SOEC,2,theory,30,0,,1,1,
+1221,SOEC,2,lab,30,1,computer_lab,1,1,
+1222,SOEC,2,theory,30,0,,1,1,
+1223,SOEC,2,theory,80,0,,1,1,
+1206,SOEC,2,lab,40,1,semiconductor_lic,1,1,LIC & Semiconductor Devices Lab
+1207,SOEC,2,lab,40,1,pcb_design,1,1,PCB Design Lab
+1224,SOEC,2,lab,20,1,computer_lab,1,1,
+1227,SOEC,2,theory,30,0,,1,1,
+1226,SOEC,2,theory,30,0,,1,1,
+1225,SOEC,2,theory,1,0,,1,0,CLOSED
+1228,SOEC,2,lab,70,1,data_design_micro,1,1,Data Design Lab & Microprocessor Lab
+1203,SOEC,2,theory,200,0,,1,0,Library — not for classes
+4007,DOCE,0,lab,50,1,surveying,1,1,Surveying Lab
+4006,DOCE,0,lab,50,1,geology,1,1,Engineering Geology Lab
+4004,DOCE,0,lab,1,1,transportation,1,0,Transportation Lab — CLOSED
+4002,DOCE,0,lab,20,1,geotechnical,1,1,Geotechnical Lab
+4001,DOCE,0,lab,20,1,environment,1,1,Environment Lab
+4105,DOCE,1,theory,120,0,,1,1,
+4102,DOCE,1,theory,120,0,,1,1,
+3101,DOCE,2,theory,30,0,,1,1,
+4201,DOCE,2,theory,120,0,,1,1,
+4202,DOCE,2,theory,120,0,,1,1,
+4301,DOCE,3,lab,30,1,computer_lab,1,1,General computing lab
+4302,DOCE,3,theory,120,0,,1,1,
+4303,DOCE,3,theory,100,0,,1,1,

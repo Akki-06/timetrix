@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api/axios";
@@ -37,6 +38,7 @@ const VIEW_LABELS = {
 
 function GeneratedTimetablesPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const role = user?.role || "student";
 
   /* role → available view modes */
@@ -107,6 +109,7 @@ function GeneratedTimetablesPage() {
 
   /* ────────────────────────── load reference data ────────────────────────── */
   useEffect(() => {
+    mounted.current = false; // block cascade resets during auto-selection
     (async () => {
       try {
         setLoading(true);
@@ -161,10 +164,14 @@ function GeneratedTimetablesPage() {
         setError("Failed to load data. Please check backend connection.");
       } finally {
         setLoading(false);
-        mounted.current = true; // cascade resets are safe to run from here on
+        // Delay enabling cascade resets until AFTER React has committed the
+        // auto-selected state and run its effects. Without the timeout the
+        // [selProgram] cascade effect runs with mounted.current=true and
+        // immediately clears the auto-selected semester/section.
+        setTimeout(() => { mounted.current = true; }, 0);
       }
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.key]); // re-run when navigated to (e.g. after generation) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── cascade resets — only after mount auto-select has settled ── */
   useEffect(() => {
@@ -539,7 +546,11 @@ function GeneratedTimetablesPage() {
           <div style={{ padding: "3rem", textAlign: "center", color: "var(--muted)" }}>
             {timetables.length === 0
               ? "No timetables generated yet. Use the Generator page to create one."
-              : "Select filters above to view a timetable."}
+              : (viewMode === "section" && selSection) ||
+                (viewMode === "faculty" && selFaculty) ||
+                (viewMode === "room" && selRoom)
+                ? "No allocations found for this selection. Generate a timetable first from the Generator page."
+                : "Select filters above to view a timetable."}
           </div>
         ) : (
           <div className="timetable-grid-wrap">

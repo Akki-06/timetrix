@@ -4,7 +4,12 @@
       "Bash(python manage.py migrate)",
       "Bash(python manage.py check)",
       "Bash(python -c \"from faculty.views import *\")",
-      "Bash(python manage.py runserver)"
+      "Bash(python manage.py runserver)",
+      "Read(//c/Users/akki2/.claude/plugins//**)",
+      "Read(//c/Users/akki2/.claude/plugins/**)",
+      "Bash(where claude:*)",
+      "Bash(python -c \"import openpyxl; wb = openpyxl.load_workbook\\('server/ml_pipeline/data/TIMETRIX_Faculty_Master_Data.xlsx'\\); ws = wb.active; print\\([cell.value for cell in ws[1]]\\)\")",
+      "Bash(python -c ':*)"
     ]
   }
 }

@@ -49,6 +49,7 @@ ML integration:
 
 import logging
 import pickle
+import random
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Optional
@@ -351,6 +352,10 @@ class ConstraintTracker:
         self._fac_week      : dict = defaultdict(int)
         # faculty_id → {day → sorted list of assigned slots}
         self._fac_slots     : dict = defaultdict(lambda: defaultdict(list))
+        # group_id → {day → count_of_sessions}  (prevents all-day group overload)
+        self._group_day     : dict = defaultdict(lambda: defaultdict(int))
+        # group_id → set of days that already have a lab session
+        self._group_lab_days: dict = defaultdict(set)
 
     def check(self, fac_id, room_id, group_id,
               day, slot, max_daily, max_weekly, max_consec) -> tuple[bool, str]:
@@ -411,6 +416,7 @@ class ConstraintTracker:
         self._fac_day[fac_id][day]  += 1
         self._fac_week[fac_id]      += 1
         self._fac_slots[fac_id][day].append(slot)
+        self._group_day[group_id][day] += 1
 
     def unassign(self, fac_id, room_id, group_id, day, slot):
         """Backtrack — remove a previously made assignment."""
@@ -423,6 +429,7 @@ class ConstraintTracker:
         slots = self._fac_slots[fac_id][day]
         if slot in slots:
             slots.remove(slot)
+        self._group_day[group_id][day] = max(0, self._group_day[group_id][day] - 1)
 
     def faculty_week_load(self, fac_id) -> int:
         return self._fac_week[fac_id]
@@ -430,6 +437,18 @@ class ConstraintTracker:
     def faculty_day_load(self, fac_id, day) -> int:
         """Return how many sessions fac_id already has on this day."""
         return self._fac_day[fac_id][day]
+
+    def group_day_load(self, group_id, day) -> int:
+        """Return total sessions the student group already has on this day."""
+        return self._group_day[group_id][day]
+
+    def group_has_lab_today(self, group_id, day) -> bool:
+        """Return True if this group already has a lab session on this day."""
+        return day in self._group_lab_days[group_id]
+
+    def mark_group_lab_day(self, group_id, day):
+        """Record that this group now has a lab session on this day."""
+        self._group_lab_days[group_id].add(day)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -536,17 +555,35 @@ class SchedulerEngine:
                 for d in active_days:
                     avail_slots_by_day[d] = set(TEACHING_SLOTS)
 
-            # Hard cap is min of model field and admin-configured role cap
-            role_cap  = self.config.role_cap(fac.role)
+            # Hard cap: min of individual faculty setting and role-based admin-configured cap
+            role_cap   = self.config.role_cap(fac.role)
             max_weekly = min(fac.max_weekly_load, role_cap)
+
+            # Also cap daily/consecutive limits by sensible floor — prevents
+            # faculty with unusually high DB values from being over-scheduled.
+            # Max daily is further capped at the number of teaching slots per day.
+            max_daily  = min(fac.max_lectures_per_day,  len(TEACHING_SLOTS))
+            max_consec = min(fac.max_consecutive_lectures, max_daily)
+
+            # Filter avail_slots to only valid TEACHING_SLOTS (1-6).
+            # TeacherAvailability.end_slot could be > 6 if seeded incorrectly.
+            filtered_slots: dict = {}
+            for d, slots in avail_slots_by_day.items():
+                filtered = slots & set(TEACHING_SLOTS)
+                if filtered:
+                    filtered_slots[d] = filtered
+            # Refill any days that became empty after filtering
+            for d in avail_days:
+                if d not in filtered_slots:
+                    filtered_slots[d] = set(TEACHING_SLOTS)
 
             self.faculty_meta[fac.id] = {
                 "obj"         : fac,
                 "avail_days"  : avail_days,
-                "avail_slots" : dict(avail_slots_by_day),  # day → set of slots
+                "avail_slots" : filtered_slots,  # day → set of valid slots (1-6 only)
                 "max_weekly"  : max_weekly,
-                "max_daily"   : fac.max_lectures_per_day,
-                "max_consec"  : fac.max_consecutive_lectures,
+                "max_daily"   : max_daily,
+                "max_consec"  : max_consec,
             }
 
         log.info(f"  Faculty loaded: {len(self.faculty_meta)}")
@@ -594,9 +631,10 @@ class SchedulerEngine:
         if not result:
             log.warning(
                 f"No eligible faculty found for {offering.course.code}. "
-                f"Using all active faculty as fallback."
+                f"Using random sample of active faculty as fallback."
             )
-            result = list(Faculty.objects.filter(is_active=True))
+            all_fac = list(Faculty.objects.filter(is_active=True))
+            result = random.sample(all_fac, min(10, len(all_fac)))
 
         # If admin enabled senior-priority, bubble HOD/SENIOR to the top
         # (assigned_faculty already at front, so we only re-sort the rest)
@@ -672,6 +710,19 @@ class SchedulerEngine:
                 "G1/G2" in (group.description or "").upper()
             )
 
+            # Auto-detect split: if no single lab room can fit the full group,
+            # fall back to G1/G2 split (half-group per room)
+            if not is_split:
+                room_pool_check = self.lab_rooms if course.requires_lab_room else self.theory_rooms
+                if room_pool_check and all(
+                    r.capacity < group.strength for r in room_pool_check
+                ):
+                    log.info(
+                        f"  LAB {course.code} ({group.name}): no single room fits "
+                        f"strength={group.strength} — auto-switching to G1/G2 split"
+                    )
+                    is_split = True
+
             eligible = self._eligible_faculty(offering)
             if not eligible:
                 self.rejection_reasons[offering_label]["no_eligible_faculty"] += 1
@@ -693,9 +744,17 @@ class SchedulerEngine:
                         if room.capacity < group.strength:
                             continue
 
-                        # Build scored candidates for all valid consecutive pairs
+                        # Build scored candidates for all valid consecutive pairs.
+                        # LIMIT: max 1 lab per group per day to prevent all-day labs.
                         candidates = []
                         for day in meta["avail_days"]:
+                            # Skip this day if this group already has a lab today
+                            if self.tracker.group_has_lab_today(group_id, day):
+                                continue
+                            # Also skip if group is already overloaded this day
+                            # (pre-existing labs from earlier iterations count)
+                            if self.tracker.group_day_load(group_id, day) >= len(TEACHING_SLOTS) - 1:
+                                continue
                             avail = meta["avail_slots"].get(day, set())
                             for s1, s2 in VALID_CONSECUTIVE_PAIRS:
                                 if s1 not in avail or s2 not in avail:
@@ -723,6 +782,9 @@ class SchedulerEngine:
                             # Assign both slots
                             self.tracker.assign(fac.id, room.id, group_id, day, s1)
                             self.tracker.assign(fac.id, room.id, group_id, day, s2)
+                            # Mark this group as having a lab today so no other
+                            # lab offering can be placed on the same day
+                            self.tracker.mark_group_lab_day(group_id, day)
 
                             for slot in (s1, s2):
                                 self.pending_saves.append({
@@ -755,6 +817,11 @@ class SchedulerEngine:
                     for day in meta["avail_days"]:
                         if scheduled:
                             break
+                        # LIMIT: no more than 1 lab per group per day (G1/G2 path)
+                        if self.tracker.group_has_lab_today(group_id, day):
+                            continue
+                        if self.tracker.group_day_load(group_id, day) >= len(TEACHING_SLOTS) - 1:
+                            continue
                         avail = meta["avail_slots"].get(day, set())
 
                         for s1, s2 in VALID_CONSECUTIVE_PAIRS:
@@ -789,7 +856,7 @@ class SchedulerEngine:
                             )
 
                             for slot in (s1, s2):
-                                # G1
+                                # G1 — primary record (faculty + group tracked here)
                                 self.tracker.assign(
                                     fac.id, room_g1.id, group_id, day, slot
                                 )
@@ -801,17 +868,13 @@ class SchedulerEngine:
                                     "timeslot_id": self.slot_map[(day, slot)].id,
                                     "score"      : score,
                                 })
-                                # G2 (room only differs — same faculty, same slot)
+                                # G2 — mark room busy in tracker only (no DB record
+                                # to avoid violating unique_faculty_per_slot and
+                                # unique_group_per_slot constraints)
                                 self.tracker._room_busy[(day, slot)].add(room_g2.id)
-                                self.pending_saves.append({
-                                    "offering_id": offering.id,
-                                    "student_group_id": group.id,
-                                    "faculty_id" : fac.id,
-                                    "room_id"    : room_g2.id,
-                                    "timeslot_id": self.slot_map[(day, slot)].id,
-                                    "score"      : score,
-                                })
 
+                            # Mark this group as having a lab today (G1/G2 path too)
+                            self.tracker.mark_group_lab_day(group_id, day)
                             log.info(
                                 f"  LAB G1/G2 ✓ {course.code} | {fac.name} | "
                                 f"R{room_g1.room_number}/R{room_g2.room_number} | "
@@ -868,12 +931,34 @@ class SchedulerEngine:
                 if not meta:
                     continue
 
-                # Build ALL valid candidates for this faculty
+                # Build ALL valid candidates for this faculty.
+                # Score (faculty, day, slot) ONCE with the first viable room —
+                # this is the dominant ML signal. Room selection then picks the
+                # best-capacity-fit available room without extra ML calls.
+                viable_rooms = [
+                    r for r in self.theory_rooms
+                    if r.capacity >= group.strength
+                ]
+                if not viable_rooms:
+                    self.rejection_reasons[offering_label]["room_capacity_too_small"] += 1
+
+                # Max theory sessions this group can have in one day.
+                # Labs take 2 slots; leave at least 2 free slots per day for theory variety.
+                max_group_sessions_per_day = max(2, len(TEACHING_SLOTS) - 2)
+
                 candidates = []
+                sample_room = viable_rooms[0] if viable_rooms else None
                 for day in meta["avail_days"]:
                     # Don't schedule same course twice on same day
                     if day in days_used:
                         self.rejection_reasons[offering_label]["same_course_day_distribution_block"] += 1
+                        continue
+                    if not sample_room:
+                        self.rejection_reasons[offering_label]["no_room_fit_for_slot"] += 1
+                        continue
+                    # Skip days where this group is already heavily scheduled
+                    if self.tracker.group_day_load(group_id, day) >= max_group_sessions_per_day:
+                        self.rejection_reasons[offering_label]["group_daily_limit_reached"] += 1
                         continue
                     avail = meta["avail_slots"].get(day, set())
                     for slot in sorted(avail):
@@ -881,28 +966,11 @@ class SchedulerEngine:
                             continue
                         if (day, slot) not in self.slot_map:
                             continue
+                        # Single ML call per (fac, day, slot)
                         score = self._score_candidate(
-                            fac, self.theory_rooms[0] if self.theory_rooms
-                            else Room(room_number="?"),
-                            day, slot, False, offering
+                            fac, sample_room, day, slot, False, offering
                         )
-                        # Score each room too and keep best
-                        best_room  = None
-                        best_score = -1.0
-                        for room in self.theory_rooms:
-                            if room.capacity < group.strength:
-                                self.rejection_reasons[offering_label]["room_capacity_too_small"] += 1
-                                continue
-                            s = self._score_candidate(
-                                fac, room, day, slot, False, offering
-                            )
-                            if s > best_score:
-                                best_score = s
-                                best_room  = room
-                        if best_room is None:
-                            self.rejection_reasons[offering_label]["no_room_fit_for_slot"] += 1
-                            continue
-                        candidates.append((best_score, day, slot, fac, best_room))
+                        candidates.append((score, day, slot, fac, viable_rooms))
 
                 if not candidates:
                     self.rejection_reasons[offering_label]["no_candidates_generated_for_faculty"] += 1
@@ -915,16 +983,29 @@ class SchedulerEngine:
                 # so multiple faculty can share the load
                 max_per_fac = max(1, (needed + 1) // 2)
 
-                for score, day, slot, fac_c, room in candidates:
+                for score, day, slot, fac_c, room_pool in candidates:
                     if scheduled_count >= needed:
                         break
                     if sessions_from_this_fac >= max_per_fac:
                         break
                     if day in days_used:
                         continue
+                    # Re-check group daily limit at assignment time (count may have changed)
+                    if self.tracker.group_day_load(group_id, day) >= max_group_sessions_per_day:
+                        continue
 
                     meta_c = self.faculty_meta.get(fac_c.id)
                     if not meta_c:
+                        continue
+
+                    # Pick the first available room from the viable pool
+                    room = next(
+                        (r for r in room_pool
+                         if r.id not in self.tracker._room_busy.get((day, slot), set())),
+                        None,
+                    )
+                    if room is None:
+                        self.rejection_reasons[offering_label]["no_room_available_for_slot"] += 1
                         continue
 
                     ok, reason = self.tracker.check(
@@ -1026,38 +1107,46 @@ class SchedulerEngine:
                     continue
 
                 # Relaxation: try ALL five days, not just avail_days.
-                # A faculty may have no availability rows (= open all week) or
-                # a restrictive set that the greedy pass couldn't satisfy.
+                viable_rooms = [
+                    r for r in self.theory_rooms
+                    if r.capacity >= group.strength
+                ]
+                sample_room = viable_rooms[0] if viable_rooms else None
                 candidates = []
                 for day in DAYS:
+                    if not sample_room:
+                        break
                     avail = meta["avail_slots"].get(day, set(TEACHING_SLOTS))
                     for slot in sorted(avail):
                         if slot not in TEACHING_SLOTS:
                             continue
                         if (day, slot) not in self.slot_map:
                             continue
-                        best_room  = None
-                        best_score = -1.0
-                        for room in self.theory_rooms:
-                            if room.capacity < group.strength:
-                                continue
-                            s = self._score_candidate(
-                                fac, room, day, slot, False, offering
-                            )
-                            if s > best_score:
-                                best_score = s
-                                best_room  = room
-                        if best_room:
-                            candidates.append((best_score, day, slot, fac, best_room))
+                        score = self._score_candidate(
+                            fac, sample_room, day, slot, False, offering
+                        )
+                        candidates.append((score, day, slot, fac, viable_rooms))
 
                 # Best score first — same as greedy pass
                 candidates.sort(reverse=True)
 
-                for score, day, slot, fac_c, room in candidates:
+                for score, day, slot, fac_c, room_pool in candidates:
                     if scheduled_now >= still_need:
                         break
+                    # Respect group daily session cap even in the repair pass
+                    max_group_daily = max(2, len(TEACHING_SLOTS) - 2)
+                    if self.tracker.group_day_load(group_id, day) >= max_group_daily:
+                        continue
                     meta_c = self.faculty_meta.get(fac_c.id)
                     if not meta_c:
+                        continue
+
+                    room = next(
+                        (r for r in room_pool
+                         if r.id not in self.tracker._room_busy.get((day, slot), set())),
+                        None,
+                    )
+                    if room is None:
                         continue
 
                     ok, reason = self.tracker.check(
@@ -1111,33 +1200,88 @@ class SchedulerEngine:
     def _save(self) -> int:
         """
         Write all allocations in one atomic transaction using bulk_create.
-        If any DB-level unique constraint fires, the entire transaction
-        rolls back — no partial corrupt state left in the DB.
+        Deduplicates pending_saves first to guard against any scheduler
+        path that accidentally generates duplicate (faculty+timeslot) or
+        (room+timeslot) or (group+timeslot) entries, which would cause an
+        IntegrityError and roll back the entire save.
         """
         log.info(f"Writing {len(self.pending_saves)} allocations to DB...")
 
+        # --- Deduplicate to prevent DB unique-constraint violations ---
+        seen_fac_slot   = set()
+        seen_room_slot  = set()
+        seen_grp_slot   = set()
+        deduped = []
+        skipped = 0
+        for alloc in self.pending_saves:
+            key_f = (alloc["faculty_id"],       alloc["timeslot_id"])
+            key_r = (alloc["room_id"],           alloc["timeslot_id"])
+            key_g = (alloc["student_group_id"],  alloc["timeslot_id"])
+            if key_f in seen_fac_slot or key_r in seen_room_slot or key_g in seen_grp_slot:
+                log.warning(
+                    f"  Dedup-skip: fac={alloc['faculty_id']} "
+                    f"room={alloc['room_id']} grp={alloc['student_group_id']} "
+                    f"ts={alloc['timeslot_id']}"
+                )
+                skipped += 1
+                continue
+            seen_fac_slot.add(key_f)
+            seen_room_slot.add(key_r)
+            seen_grp_slot.add(key_g)
+            deduped.append(alloc)
+
+        if skipped:
+            log.warning(f"  Dedup removed {skipped} duplicate allocation(s).")
+
         objs = [
             LectureAllocation(
-                timetable_id           = self.timetable_id,
-                course_offering_id     = alloc["offering_id"],
-                student_group_id       = alloc["student_group_id"],
-                faculty_id             = alloc["faculty_id"],
-                room_id                = alloc["room_id"],
-                timeslot_id            = alloc["timeslot_id"],
+                timetable_id             = self.timetable_id,
+                course_offering_id       = alloc["offering_id"],
+                student_group_id         = alloc["student_group_id"],
+                faculty_id               = alloc["faculty_id"],
+                room_id                  = alloc["room_id"],
+                timeslot_id              = alloc["timeslot_id"],
                 hard_constraint_violated = False,
-                soft_constraint_score  = round(alloc["score"], 4),
+                soft_constraint_score    = round(float(alloc["score"]), 4),
             )
-            for alloc in self.pending_saves
+            for alloc in deduped
         ]
 
-        LectureAllocation.objects.bulk_create(objs)
-        created = len(objs)
+        bulk_ok = False
+        try:
+            with transaction.atomic():
+                LectureAllocation.objects.bulk_create(objs)
+            bulk_ok = True
+        except Exception as bulk_err:
+            log.error(
+                f"  bulk_create failed ({bulk_err}). "
+                "Falling back to per-record saves..."
+            )
+
+        if not bulk_ok:
+            # The nested savepoint was rolled back; outer transaction is clean.
+            # Save records one by one so we can skip individual violators.
+            saved_indices = []
+            for i, (alloc, obj) in enumerate(zip(deduped, objs)):
+                try:
+                    with transaction.atomic():
+                        obj.pk = None  # ensure INSERT not UPDATE
+                        obj.save()
+                    saved_indices.append(i)
+                except Exception as row_err:
+                    log.warning(
+                        f"  Skipped: fac={obj.faculty_id} "
+                        f"room={obj.room_id} ts={obj.timeslot_id}: {row_err}"
+                    )
+            deduped = [deduped[i] for i in saved_indices]
+
+        created = len(deduped)
 
         # Update timetable quality score
-        if self.pending_saves:
-            avg = sum(a["score"] for a in self.pending_saves) / len(self.pending_saves)
+        if deduped:
+            avg = sum(a["score"] for a in deduped) / len(deduped)
             self.timetable.total_constraint_score = round(avg, 4)
-            self.timetable.save()
+            self.timetable.save(update_fields=["total_constraint_score"])
 
         log.info(f"  Saved {created} allocations.")
         return created

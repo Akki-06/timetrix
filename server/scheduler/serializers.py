@@ -25,6 +25,15 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class TimetableSerializer(serializers.ModelSerializer):
+    program_name = serializers.CharField(
+        source="term.program.display_name", read_only=True, default=None
+    )
+    program_code = serializers.CharField(
+        source="term.program.code", read_only=True, default=None
+    )
+    semester = serializers.IntegerField(
+        source="term.semester", read_only=True, default=None
+    )
 
     class Meta:
         model = Timetable

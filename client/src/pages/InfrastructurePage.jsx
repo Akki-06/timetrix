@@ -146,8 +146,8 @@ function InfrastructurePage() {
         <BulkUploadCard
           title="Upload Rooms"
           endpoint="infrastructure/room/"
-          requiredColumns={["building_code", "room_number", "floor", "capacity", "room_type"]}
-          helperText="building_code must match an existing building code."
+          requiredColumns={["floor", "capacity", "room_type"]}
+          helperText="Accepts rooms.csv columns (room_id/room_number, building/building_code)."
           templateFileName="rooms-upload-template.xlsx"
           templateSampleRow={{
             building_code: "MB",
@@ -160,21 +160,29 @@ function InfrastructurePage() {
             priority_weight: 1,
           }}
           mapRow={(row, lineNumber) => {
-            const buildingCode = String(row.building_code || "")
+            // Accept both "building_code" (template) and "building" (rooms.csv)
+            const buildingCode = String(row.building_code || row.building || "")
               .trim()
               .toUpperCase();
             const buildingId = buildingCodeToId[buildingCode];
 
             if (!buildingId) {
               throw new Error(
-                `Unknown building_code '${buildingCode}' at row ${lineNumber}`
+                `Unknown building '${buildingCode}' at row ${lineNumber}. ` +
+                `Available: ${Object.keys(buildingCodeToId).join(", ")}`
               );
+            }
+
+            // Accept both "room_number" (template) and "room_id" (rooms.csv)
+            const roomNumber = String(row.room_number || row.room_id || "").trim();
+            if (!roomNumber) {
+              throw new Error(`Missing room number at row ${lineNumber}`);
             }
 
             return {
               building: buildingId,
-              room_number: row.room_number,
-              floor: toNumber(row.floor, 1),
+              room_number: roomNumber,
+              floor: toNumber(row.floor, 0),
               capacity: toNumber(row.capacity, 40),
               room_type: String(row.room_type || "THEORY").toUpperCase(),
               is_active: toBoolean(row.is_active, true),

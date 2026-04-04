@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import { asList, extractError } from "../utils/helpers";
-import { FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import { FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle, FaArrowRight } from "react-icons/fa";
 
 // Derive academic year from semester: sem 1-2 → Year 1, sem 3-4 → Year 2 …
 function yearFromSemester(sem) {
@@ -10,6 +11,8 @@ function yearFromSemester(sem) {
 }
 
 function TimetableGeneratorPage() {
+  const navigate = useNavigate();
+
   const [programs, setPrograms]       = useState([]);
   const [timetables, setTimetables]   = useState([]);
   const [sections, setSections]       = useState([]);   // preview for selected prog+sem
@@ -90,14 +93,32 @@ function TimetableGeneratorPage() {
       const resp = await api.post("scheduler/generate/", {
         program_id: Number(selectedProgramId),
         semester:   Number(selectedSemester),
-      });
-      setResult(resp.data);
+      }, { timeout: 120000 });
+
+      const data = resp.data;
+      setResult(data);
 
       // Refresh history
       const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
       setTimetables(asList(ttResp.data));
+
+      // If allocations were saved, navigate to timetables page after 2s
+      if (data.allocations > 0) {
+        setTimeout(() => navigate("/generated"), 2000);
+      }
     } catch (err) {
-      setError(extractError(err, "Generation failed."));
+      // Try to extract the response body even on error status codes
+      const errData = err?.response?.data;
+      if (errData && errData.status) {
+        setResult(errData);
+      } else {
+        setError(extractError(err, "Generation failed. Check server logs."));
+      }
+      // Refresh history even on error (timetable record may exist)
+      try {
+        const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
+        setTimetables(asList(ttResp.data));
+      } catch { /* ignore */ }
     } finally {
       setGenerating(false);
     }
@@ -252,13 +273,17 @@ function TimetableGeneratorPage() {
             <div style={{ marginTop: 16 }}>
               <div style={{
                 display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-                color: result.status === "success" ? "var(--brand)" : "#f59e0b",
+                color: result.status === "success" ? "var(--brand)"
+                     : result.status === "partial"  ? "#f59e0b"
+                     : "#ef4444",
                 fontWeight: 600, fontSize: "0.9rem",
               }}>
                 {result.status === "success"
                   ? <FaCheckCircle />
                   : <FaExclamationTriangle />}
-                {result.status === "success" ? "Fully Scheduled" : "Partially Scheduled"}
+                {result.status === "success" ? "Fully Scheduled"
+               : result.status === "partial"  ? "Partially Scheduled"
+               : `Generation Failed: ${result.reason || "unknown error"}`}
               </div>
 
               <div className="generator-result">
@@ -268,6 +293,18 @@ function TimetableGeneratorPage() {
                 </strong></div>
                 <div><span>ML Used</span><strong>{result.ml_used ? "Yes" : "No"}</strong></div>
               </div>
+
+              {(result.allocations ?? 0) > 0 && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  onClick={() => navigate("/generated")}
+                >
+                  <FaArrowRight style={{ fontSize: 12 }} />
+                  View Timetable
+                </button>
+              )}
 
               {/* Per-section breakdown */}
               {Array.isArray(result.sections) && result.sections.length > 0 && (
@@ -321,7 +358,12 @@ function TimetableGeneratorPage() {
                   <article key={tt.id} className="history-item">
                     <div className="history-main">
                       <h4>
-                        Term #{tt.term} — Version {tt.version}
+                        {tt.program_code
+                          ? `${tt.program_code} Sem ${tt.semester}`
+                          : tt.program_name
+                            ? `${tt.program_name} Sem ${tt.semester}`
+                            : `Term #${tt.term}`
+                        }{" "}— v{tt.version}
                         {tt.is_finalized && (
                           <span style={{
                             marginLeft: 8, fontSize: "0.7rem", background: "var(--brand)",
