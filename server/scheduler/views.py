@@ -164,11 +164,9 @@ class GenerateTimetableView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
  
-        http_status = (
-            status.HTTP_201_CREATED
-            if result["status"] in ("success", "partial")
-            else status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        # Always return 201 so the frontend can read the result body.
+        # The result["status"] field carries success/partial/failed.
+        http_status = status.HTTP_201_CREATED
 
         # Create in-app notification based on result and user's preferences
         config = SchedulerConfig.get()
