@@ -12,6 +12,7 @@ import TimetableGeneratorPage from "../pages/TimetableGeneratorPage";
 import GeneratedTimetablesPage from "../pages/GeneratedTimetablesPage";
 import SettingsPage from "../pages/SettingsPage";
 import CourseAssignmentPage from "../pages/CourseAssignmentPage";
+import FacultyEligibilityPage from "../pages/FacultyEligibilityPage";
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -59,6 +60,12 @@ function AppRoutes() {
         <Route path="/assignments" element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <CourseAssignmentPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/eligibility" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <FacultyEligibilityPage />
           </ProtectedRoute>
         } />
 

@@ -96,13 +96,13 @@ function NotificationBell() {
         <div style={{
           position: "absolute", top: "calc(100% + 8px)", right: 0,
           width: 340, maxHeight: 420, overflowY: "auto",
-          background: "var(--card-bg)", border: "1px solid var(--border)",
+          background: "var(--card)", border: "1px solid var(--stroke)",
           borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
           zIndex: 999,
         }}>
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "12px 16px", borderBottom: "1px solid var(--border)",
+            padding: "12px 16px", borderBottom: "1px solid var(--stroke)",
           }}>
             <strong style={{ fontSize: "0.9rem" }}>Notifications</strong>
             {unread > 0 && (
@@ -130,7 +130,7 @@ function NotificationBell() {
                 onClick={() => markOne(n.id)}
                 style={{
                   padding: "10px 16px",
-                  borderBottom: "1px solid var(--border)",
+                  borderBottom: "1px solid var(--stroke)",
                   cursor: "pointer",
                   background: n.is_read ? "transparent" : "var(--brand-alpha, rgba(99,102,241,0.06))",
                   display: "flex", gap: 10, alignItems: "flex-start",
