@@ -133,8 +133,8 @@ def compute_stats(df):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FEATURE VECTOR BUILDER — 112 dims
-# fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[16]
+# FEATURE VECTOR BUILDER — 114 dims
+# fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[18]
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_feature_vector(faculty, room, day, slot,
@@ -146,9 +146,9 @@ def build_feature_vector(faculty, room, day, slot,
                          fac_today_load=0, max_daily=4,
                          is_combined=0, working_days=None):
     """
-    112-dim feature vector for one candidate assignment.
+    114-dim feature vector for one candidate assignment.
 
-    Layout: [fac_emb(32) | ts_emb(32) | rm_emb(32) | manual(16)]
+    Layout: [fac_emb(32) | ts_emb(32) | rm_emb(32) | manual(18)]
 
     The 3 new features (13-15) encode *dynamic scheduling state*:
       13. faculty_load_today_ratio — how full the faculty's day already is.
@@ -261,7 +261,7 @@ def build_feature_vector(faculty, room, day, slot,
         is_working_day,           # 18: working day match
     ], dtype=np.float32)
 
-    return np.concatenate([fac_emb, ts_emb, rm_emb, manual])  # 112-dim
+    return np.concatenate([fac_emb, ts_emb, rm_emb, manual])  # 114-dim
 
 
 def get_feature_names():

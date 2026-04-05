@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 def create_templates():
-    base_dir = Path("c:/Users/akki2/OneDrive/Desktop/BCA sem-4/Minor project/Timetrix/server/ml_pipeline/data/templates")
+    base_dir = Path(__file__).resolve().parent / "templates"
     base_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Programs & Specializations Template

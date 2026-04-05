@@ -34,17 +34,21 @@ class Command(BaseCommand):
         self.stdout.write("Updated faculty_metadata.csv")
 
         # 2. Update rooms.csv
-        rooms = Room.objects.all()
+        rooms = Room.objects.select_related('building').all()
         room_data = []
         for r in rooms:
             room_data.append({
                 'room_id': r.room_number,
+                'building': r.building.name if r.building else 'Unknown',
+                'floor': r.floor,
                 'is_lab': 1 if r.room_type == 'LAB' else 0,
                 'capacity': r.capacity,
                 'floor_norm': r.floor / 5.0,
                 'room_type': r.room_type.lower(),
-                'lab_type': '', 
-                'is_shared': 1 if r.is_shared else 0
+                'lab_type': '',
+                'is_shared': 1 if r.is_shared else 0,
+                'is_active': 1 if r.is_active else 0,
+                'notes': '',
             })
         pd.DataFrame(room_data).to_csv(DATA_DIR / 'rooms.csv', index=False)
         self.stdout.write("Updated rooms.csv")

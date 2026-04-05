@@ -100,11 +100,20 @@ htmlcov/
 server/ml_pipeline/trained/rf_model.pkl
 
 # ==============================
+# IDE & AI Tool Configs (local only)
+# ==============================
+
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.mcp.json
+.opencode.json
+
+# ==============================
 # Misc
 # ==============================
 
 *.swp
 *.swo
 *.bak
-.vscode/
-.claude/

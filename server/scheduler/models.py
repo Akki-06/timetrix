@@ -19,7 +19,7 @@ class SchedulerConfig(models.Model):
     # Faculty weekly hour caps by role
     max_hours_dean     = models.PositiveIntegerField(default=6)
     max_hours_hod      = models.PositiveIntegerField(default=12)
-    max_hours_senior   = models.PositiveIntegerField(default=16)
+    max_hours_senior   = models.PositiveIntegerField(default=16)  # DEPRECATED: SENIOR role removed; field kept to avoid migration churn. PVC maps to max_hours_dean.
     max_hours_regular  = models.PositiveIntegerField(default=18)
     max_hours_visiting = models.PositiveIntegerField(default=8)
 
