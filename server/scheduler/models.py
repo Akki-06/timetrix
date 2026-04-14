@@ -188,7 +188,9 @@ class LectureAllocation(models.Model):
 
     faculty = models.ForeignKey(
         Faculty,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
 
     room = models.ForeignKey(
@@ -219,11 +221,10 @@ class LectureAllocation(models.Model):
                 name="unique_faculty_per_slot_per_timetable"
             ),
 
-            # Student group cannot have two classes at same time
-            models.UniqueConstraint(
-                fields=["timetable", "student_group", "timeslot"],
-                name="unique_group_per_slot_per_timetable"
-            ),
+            # NOTE: unique_group_per_slot_per_timetable was REMOVED.
+            # PE electives require multiple allocations for the same
+            # student_group at the same timeslot (one per PE option).
+            # The in-memory ConstraintTracker enforces non-PE uniqueness.
         ]
 
         indexes = [
