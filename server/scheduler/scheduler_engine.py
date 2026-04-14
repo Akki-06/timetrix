@@ -625,7 +625,7 @@ class SchedulerEngine:
         # Skip PC/standard-theory offerings for combined groups (e.g. A+B).
         # Combined groups only need Lab (PR), Project (PRJ), AEC, and PE courses;
         # theory is already covered by the individual section offerings (A, B).
-        COMBINED_ALLOWED_TYPES = {"PR", "PRJ", "AEC", "PE"}
+        COMBINED_ALLOWED_TYPES = {"PE"}
 
         # Build a map of all plain sections so we can derive working_days for
         # combined groups (A+B has empty working_days; we use the intersection
