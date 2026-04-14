@@ -625,7 +625,7 @@ class SchedulerEngine:
         # Skip PC/standard-theory offerings for combined groups (e.g. A+B).
         # Combined groups only need Lab (PR), Project (PRJ), AEC, and PE courses;
         # theory is already covered by the individual section offerings (A, B).
-        COMBINED_ALLOWED_TYPES = {"PR", "PRJ", "AEC"}
+        COMBINED_ALLOWED_TYPES = {"PR", "PRJ", "AEC", "PE"}
 
         # Build a map of all plain sections so we can derive working_days for
         # combined groups (A+B has empty working_days; we use the intersection
@@ -643,6 +643,23 @@ class SchedulerEngine:
                     intersection = days_sets[0].intersection(*days_sets[1:])
                     sg.working_days = sorted(intersection, key=lambda d: ["MON","TUE","WED","THU","FRI","SAT"].index(d))
 
+        # Build combined→individual section mapping for blocking
+        # e.g. A+B → [id_of_A, id_of_B]
+        self._combined_to_individual = {}
+        for sg in all_sgs.values():
+            if "+" in sg.name:
+                parts = sg.name.split("+")
+                individual_ids = [
+                    all_sgs[p].id for p in parts if p in all_sgs
+                ]
+                if individual_ids:
+                    self._combined_to_individual[sg.id] = individual_ids
+        if self._combined_to_individual:
+            log.info(
+                f"  Combined→individual mapping: "
+                f"{len(self._combined_to_individual)} combined groups"
+            )
+
         self.offerings = [
             o for o in
             CourseOffering.objects
@@ -655,6 +672,41 @@ class SchedulerEngine:
         for o in self.offerings:
             if o.student_group.name in all_sgs:
                 o.student_group.working_days = all_sgs[o.student_group.name].working_days
+
+        # ── Remove redundant overlapping offerings ────────────────────────────
+        # When both combined (e.g. A+B) AND individual (A, B) offerings exist
+        # for the same course:
+        #   PE courses: KEEP combined (A+B), REMOVE individual → schedule view
+        #               shows A+B allocations for all sections automatically.
+        #   Non-PE:     KEEP individual, REMOVE combined → avoids double-scheduling.
+        from collections import defaultdict as _dd
+        individual_by_course = _dd(set)
+        combined_by_course   = _dd(set)
+        course_type_map      = {}
+        for o in self.offerings:
+            course_type_map[o.course_id] = o.course.course_type
+            if "+" not in o.student_group.name:
+                individual_by_course[o.course_id].add(o.id)
+            else:
+                combined_by_course[o.course_id].add(o.id)
+
+        redundant_ids = set()
+        for cid in set(individual_by_course) & set(combined_by_course):
+            if course_type_map.get(cid) == "PE":
+                # PE: keep combined (A+B), remove individual (A, B)
+                redundant_ids |= individual_by_course[cid]
+            else:
+                # Non-PE: keep individual, remove combined
+                redundant_ids |= combined_by_course[cid]
+
+        if redundant_ids:
+            before = len(self.offerings)
+            self.offerings = [o for o in self.offerings if o.id not in redundant_ids]
+            log.info(
+                f"  Removed {before - len(self.offerings)} redundant overlapping "
+                f"offerings (PE→keep A+B, non-PE→keep individual)"
+            )
+
         log.info(f"  Offerings loaded: {len(self.offerings)}")
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -898,10 +950,65 @@ class SchedulerEngine:
         return self.ml.score(**self._score_params(fac, day, slot, is_lab, offering, room))
 
     # ═════════════════════════════════════════════════════════════════════════
+    # COMBINED-AWARE ASSIGN
+    # When assigning a combined section (e.g. A+B), also block constituent
+    # individual sections (A, B) so they don't get overlapping theory classes.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _assign_combined(self, fac_id, room_id, group_id, day, slot):
+        """Assign and also block constituent sections of combined groups."""
+        self.tracker.assign(fac_id, room_id, group_id, day, slot)
+        for individual_id in self._combined_to_individual.get(group_id, []):
+            self.tracker._group_busy[(day, slot)].add(individual_id)
+            self.tracker._group_day[individual_id][day] += 1
+
+    def _unassign_combined(self, fac_id, room_id, group_id, day, slot):
+        """Unassign and also unblock constituent sections."""
+        self.tracker.unassign(fac_id, room_id, group_id, day, slot)
+        for individual_id in self._combined_to_individual.get(group_id, []):
+            self.tracker._group_busy[(day, slot)].discard(individual_id)
+            self.tracker._group_day[individual_id][day] = max(
+                0, self.tracker._group_day[individual_id][day] - 1
+            )
+
+    def _assign_pe_slot(self, pe_assignments, day, slot):
+        """Assign multiple PE options at the same (day, slot).
+        pe_assignments: list of (fac_id, room_id, group_id) tuples.
+        Groups are counted ONCE even if multiple options use the same group.
+        """
+        groups_done = set()
+        for fac_id, room_id, group_id in pe_assignments:
+            # Faculty busy (each PE option has different faculty)
+            if fac_id:
+                self.tracker._faculty_busy[(day, slot)].add(fac_id)
+                self.tracker._fac_day[fac_id][day] += 1
+                self.tracker._fac_week[fac_id] += 1
+                self.tracker._fac_slots[fac_id][day].append(slot)
+            # Room busy (each PE option gets a different room)
+            self.tracker._room_busy[(day, slot)].add(room_id)
+            # Group busy — count ONCE per group, not per PE option
+            if group_id not in groups_done:
+                self.tracker._group_busy[(day, slot)].add(group_id)
+                self.tracker._group_day[group_id][day] += 1
+                groups_done.add(group_id)
+                # Also mark constituent individual sections
+                for ind_id in self._combined_to_individual.get(group_id, []):
+                    if ind_id not in groups_done:
+                        self.tracker._group_busy[(day, slot)].add(ind_id)
+                        self.tracker._group_day[ind_id][day] += 1
+                        groups_done.add(ind_id)
+
+    # ═════════════════════════════════════════════════════════════════════════
     # PHASE 2: LABS  (scarcest resource first, section-by-section)
     # ═════════════════════════════════════════════════════════════════════════
 
     def _schedule_labs(self, lab_offerings: list):
+        """
+        Phase 1: Scheduling Laboratory sessions (PR) and Projects (PRJ).
+        Labs are given the highest priority to schedule because they require 
+        consecutive double-slots, specific lab rooms, and only one lab per day 
+        for any group.
+        """
         """
         Labs need 2 consecutive slots + lab room — schedule them before theory.
 
@@ -986,8 +1093,8 @@ class SchedulerEngine:
                 if not ok:
                     continue
 
-                self.tracker.assign(fac.id, room.id, group_id, day, s1)
-                self.tracker.assign(fac.id, room.id, group_id, day, s2)
+                self._assign_combined(fac.id, room.id, group_id, day, s1)
+                self._assign_combined(fac.id, room.id, group_id, day, s2)
                 self.tracker.mark_group_lab_day(group_id, day)
 
                 for slot in (s1, s2):
@@ -1031,7 +1138,7 @@ class SchedulerEngine:
 
                 room_g1, room_g2 = free[0], free[1]
                 for slot in (s1, s2):
-                    self.tracker.assign(fac.id, room_g1.id, group_id, day, slot)
+                    self._assign_combined(fac.id, room_g1.id, group_id, day, slot)
                     # Mark g2 as busy without creating an allocation record
                     self.tracker._room_busy[(day, slot)].add(room_g2.id)
                     self.pending_saves.append({
@@ -1061,6 +1168,12 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def _schedule_theory(self, theory_offerings: list):
+        """
+        Phase 2: Scheduling Theory (PC, BSC, ESC, etc).
+        Theory subjects are scheduled one slot at a time. The system tries to spread
+        them evenly across the working days to prevent students or faculty from 
+        being overloaded on a single day.
+        """
         log.info(f"THEORY PHASE: {len(theory_offerings)} theory offerings")
         theory_offerings.sort(key=lambda o: -o.course.priority)
 
@@ -1084,6 +1197,41 @@ class SchedulerEngine:
                 elective_groups[o.elective_slot_group].append(o)
                 seen_in_elective.add(o.id)
 
+        # ── AUTO-MERGE PE GROUPS ──────────────────────────────────────────────
+        # Per PDF: ALL PE options for the same program+semester must land on the
+        # SAME (day, slot). Merge separate PE groups (PE1, PE2, …) and also
+        # include any ungrouped PE offerings.
+        pe_in_groups = []
+        non_pe_groups = {}
+        for gname, offs in elective_groups.items():
+            if all(o.course.course_type == "PE" for o in offs):
+                pe_in_groups.extend(offs)
+            else:
+                non_pe_groups[gname] = offs
+
+        # Grab ungrouped PE offerings too
+        ungrouped_pe = [
+            o for o in rest
+            if o.id not in seen_in_elective and o.course.course_type == "PE"
+        ]
+        all_pe = pe_in_groups + ungrouped_pe
+
+        if all_pe:
+            pe_by_term = defaultdict(list)
+            for o in all_pe:
+                pe_by_term[o.student_group.term_id].append(o)
+            for term_id, offs in pe_by_term.items():
+                grp_name = f"PE_auto_{term_id}"
+                non_pe_groups[grp_name] = offs
+                for o in offs:
+                    seen_in_elective.add(o.id)
+                n_courses = len({o.course_id for o in offs})
+                log.info(
+                    f"  PE auto-group '{grp_name}': {len(offs)} offerings, "
+                    f"{n_courses} distinct options"
+                )
+
+        elective_groups = non_pe_groups
         remaining = [o for o in rest if o.id not in seen_in_elective]
 
         # ── separate combined vs standard from remaining ───────────────────────
@@ -1114,36 +1262,95 @@ class SchedulerEngine:
     # ── 3a: parallel electives ────────────────────────────────────────────────
 
     def _schedule_electives(self, elective_groups: dict, course_days_used: dict):
-        MAX_GROUP_DAILY = len(TEACHING_SLOTS)
+        """
+        Phase 3: Scheduling Parallel Electives (PE).
+        Electives are tricky because multiple courses (e.g. Cyber Security, IoT) 
+        run at the exact same time for different sub-groups of students. 
+        This block automatically merges all related options so they can be assigned 
+        to the exact same day and slot, in multiple rooms, with different teachers.
+        """
+        """Schedule PE / elective groups so all options land on the SAME (day, slot).
 
+        Key rules from the PDF:
+          RULE 2 — OFF-DAY EXCLUSION (UNION): block days where ANY section has off.
+          RULE 3 — SAME SLOT ALL OPTIONS: N options → N rooms at one (day, slot).
+          RULE 4 — ALLOCATIONS: one row per option per offering.
+          RULE 5 — FRONTEND: concatenated display.
+        """
         for group_name, unit in elective_groups.items():
-            needed         = max(o.course.min_weekly_lectures for o in unit)
-            scheduled_count = 0
-            log.info(f"  Elective group {group_name!r}: {len(unit)} offerings, need {needed} sessions")
+            # ── Group offerings by course_id (each course = one PE option) ─────
+            by_course: dict = defaultdict(list)
+            for o in unit:
+                by_course[o.course_id].append(o)
 
+            n_options  = len(by_course)
+            needed     = max(o.course.min_weekly_lectures for o in unit)
+            all_gids   = {o.student_group_id for o in unit}
+            opt_names  = [offs[0].course.code for offs in by_course.values()]
+
+            log.info(
+                f"  Elective group {group_name!r}: {n_options} options "
+                f"({', '.join(opt_names)}), {len(unit)} offerings, "
+                f"need {needed} sessions"
+            )
+
+            # ── RULE 2: OFF-DAY EXCLUSION (UNION rule) ─────────────────────────
+            blocked_days = set()
+            for o in unit:
+                sg = o.student_group
+                if sg.working_days:
+                    blocked_days |= ({"MON","TUE","WED","THU","FRI"} - set(sg.working_days))
+            # Also check constituent sections for combined groups
+            # Build a quick lookup of individual section working_days
+            ind_working_days = {}
+            for o in getattr(self, 'offerings', []):
+                if "+" not in o.student_group.name and o.student_group.working_days:
+                    ind_working_days[o.student_group_id] = o.student_group.working_days
+            for gid in list(all_gids):
+                for ind_id in self._combined_to_individual.get(gid, []):
+                    wdays = ind_working_days.get(ind_id)
+                    if wdays:
+                        blocked_days |= ({"MON","TUE","WED","THU","FRI"} - set(wdays))
+            eligible_days = [d for d in DAYS if d not in blocked_days]
+            if blocked_days:
+                log.info(
+                    f"    Off-day UNION rule: blocked={blocked_days}, "
+                    f"eligible={eligible_days}"
+                )
+
+            # ── Collect unique faculty across options ──────────────────────────
+            option_faculty = {}  # course_id → faculty_id
+            for cid, offerings in by_course.items():
+                fac = offerings[0].assigned_faculty
+                option_faculty[cid] = fac.id if fac else None
+
+            scheduled_count = 0
             for _pass in range(needed):
                 slot_candidates = []
-                unit_group_ids  = {o.student_group_id for o in unit}
 
-                for day in DAYS:
-                    if any(day in course_days_used[o.course_id] for o in unit):
+                for day in eligible_days:
+                    # No course in this group should already be on this day
+                    if any(day in course_days_used[cid] for cid in by_course):
                         continue
                     for slot in TEACHING_SLOTS:
                         if (day, slot) not in self.slot_map:
                             continue
-                        if any(not self.tracker.is_group_free(gid, day, slot)
-                               for gid in unit_group_ids):
+                        # All groups must be free
+                        if any(
+                            not self.tracker.is_group_free(gid, day, slot)
+                            for gid in all_gids
+                        ):
                             continue
+                        # Each option's faculty must be free
                         fac_ok = True
-                        for o in unit:
-                            f = o.assigned_faculty
-                            if not f:
+                        for cid, fid in option_faculty.items():
+                            if not fid:
                                 continue
-                            m = self.faculty_meta.get(f.id)
+                            m = self.faculty_meta.get(fid)
                             if not m:
                                 continue
                             ok, _ = self.tracker.check(
-                                f.id, None, None, day, slot,
+                                fid, None, None, day, slot,
                                 m["max_daily"], m["max_weekly"], 99,
                             )
                             if not ok:
@@ -1151,9 +1358,10 @@ class SchedulerEngine:
                                 break
                         if not fac_ok:
                             continue
-                        busy_rooms = self.tracker._room_busy.get((day, slot), set())
-                        free_rooms = [r for r in self.theory_rooms if r.id not in busy_rooms]
-                        if len(free_rooms) < len(unit):
+                        # Need n_options rooms (one per PE option)
+                        busy = self.tracker._room_busy.get((day, slot), set())
+                        free = [r for r in self.theory_rooms if r.id not in busy]
+                        if len(free) < n_options:
                             continue
                         sc = 0.5 + (0.1 if slot <= 3 else 0.0)
                         slot_candidates.append((sc, day, slot))
@@ -1164,35 +1372,43 @@ class SchedulerEngine:
                 for sc, day, slot in slot_candidates:
                     if placed:
                         break
-                    busy_rooms = self.tracker._room_busy.get((day, slot), set())
-                    free_rooms = [r for r in self.theory_rooms if r.id not in busy_rooms]
-                    if len(free_rooms) < len(unit):
+                    busy = self.tracker._room_busy.get((day, slot), set())
+                    free = [r for r in self.theory_rooms if r.id not in busy]
+                    if len(free) < n_options:
                         continue
 
-                    for i, o in enumerate(unit):
-                        room   = free_rooms[i]
-                        fac_id = o.assigned_faculty_id
-                        self.tracker.assign(fac_id, room.id, o.student_group_id, day, slot)
-                        self.pending_saves.append({
-                            "offering_id"     : o.id,
-                            "student_group_id": o.student_group_id,
-                            "faculty_id"      : fac_id,
-                            "room_id"         : room.id,
-                            "timeslot_id"     : self.slot_map[(day, slot)].id,
-                            "score"           : sc,
-                        })
-                        course_days_used[o.course_id].add(day)
+                    # ── Place all PE options at this (day, slot) ───────────────
+                    pe_assignments = []
+                    for idx, (cid, offerings) in enumerate(by_course.items()):
+                        room   = free[idx]
+                        fac_id = option_faculty[cid]
+                        for o in offerings:
+                            pe_assignments.append((fac_id, room.id, o.student_group_id))
+                            self.pending_saves.append({
+                                "offering_id"     : o.id,
+                                "student_group_id": o.student_group_id,
+                                "faculty_id"      : fac_id,
+                                "room_id"         : room.id,
+                                "timeslot_id"     : self.slot_map[(day, slot)].id,
+                                "score"           : sc,
+                                "is_pe"           : True,
+                            })
+                        course_days_used[cid].add(day)
+
+                    # Batch-mark in tracker (groups counted ONCE)
+                    self._assign_pe_slot(pe_assignments, day, slot)
 
                     placed = True
                     scheduled_count += 1
                     log.info(
                         f"    Elective {group_name!r} pass {_pass+1} done "
-                        f"{day} S{slot}"
+                        f"{day} S{slot} ({n_options} options)"
                     )
 
                 if not placed:
                     log.warning(
-                        f"    Elective {group_name!r} pass {_pass+1} -- no valid slot found"
+                        f"    Elective {group_name!r} pass {_pass+1} "
+                        f"-- no valid slot found"
                     )
 
     # ── 3b: combined sections ─────────────────────────────────────────────────
@@ -1263,7 +1479,7 @@ class SchedulerEngine:
                 continue
 
             for gid in group_ids:
-                self.tracker.assign(fac.id, room.id, gid, day, slot)
+                self._assign_combined(fac.id, room.id, gid, day, slot)
             for o in unit:
                 self.pending_saves.append({
                     "offering_id"     : o.id,
@@ -1395,6 +1611,12 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def _repair_unscheduled(self) -> list:
+        """
+        Phase 4: ML Repair / Fallback Pass.
+        If the strict rules rejected some classes (running out of valid rooms or 
+        faculty workloads maxed out), this pass intelligently re-attempts 
+        scheduling them using machine learning priorities and relaxed constraints.
+        """
         if not self.unscheduled_offerings:
             return []
 
@@ -1605,18 +1827,35 @@ class SchedulerEngine:
             kf = (alloc["faculty_id"],       alloc["timeslot_id"])
             kr = (alloc["room_id"],           alloc["timeslot_id"])
             kg = (alloc["student_group_id"],  alloc["timeslot_id"])
-            if kf in seen_fac_slot or kr in seen_room_slot or kg in seen_grp_slot:
-                log.warning(
-                    f"  Dedup-skip: fac={alloc['faculty_id']} "
-                    f"room={alloc['room_id']} grp={alloc['student_group_id']} "
-                    f"ts={alloc['timeslot_id']}"
-                )
-                skipped += 1
-                continue
-            seen_fac_slot.add(kf)
-            seen_room_slot.add(kr)
-            seen_grp_slot.add(kg)
-            deduped.append(alloc)
+            is_pe = alloc.get("is_pe", False)
+
+            # PE electives: multiple options can share the same (group, slot).
+            # Only enforce room+slot and faculty+slot uniqueness.
+            if is_pe:
+                if kr in seen_room_slot:
+                    log.warning(
+                        f"  PE Dedup-skip: room={alloc['room_id']} "
+                        f"ts={alloc['timeslot_id']}"
+                    )
+                    skipped += 1
+                    continue
+                seen_room_slot.add(kr)
+                if kf and alloc["faculty_id"]:
+                    seen_fac_slot.add(kf)
+                deduped.append(alloc)
+            else:
+                if kf in seen_fac_slot or kr in seen_room_slot or kg in seen_grp_slot:
+                    log.warning(
+                        f"  Dedup-skip: fac={alloc['faculty_id']} "
+                        f"room={alloc['room_id']} grp={alloc['student_group_id']} "
+                        f"ts={alloc['timeslot_id']}"
+                    )
+                    skipped += 1
+                    continue
+                seen_fac_slot.add(kf)
+                seen_room_slot.add(kr)
+                seen_grp_slot.add(kg)
+                deduped.append(alloc)
 
         if skipped:
             log.warning(f"  Dedup removed {skipped} duplicate allocation(s).")
@@ -1674,6 +1913,17 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def run(self) -> dict:
+        """
+        Main Engine Entry Point.
+        This function handles the sequence of generating a timetable:
+        1. Setup & load data
+        2. Schedule strict classes (Labs)
+        3. Schedule standard classes (Theory)
+        4. Schedule parallel batches (Electives)
+        5. Repair any missed classes
+        6. Fill in free rooms
+        7. Save the whole timetable to the database.
+        """
         """
         Execute the full scheduling pipeline and return a summary dict.
         Return format matches what scheduler/views.py expects exactly.
