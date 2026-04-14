@@ -159,6 +159,8 @@ class GenerateTimetableView(APIView):
         import logging
         log = logging.getLogger(__name__)
         from academics.models import Course, CourseOffering
+        # NOTE: do NOT clear elective_slot_group — admin sets it before
+        # clicking Generate so parallel PE electives are grouped correctly.
         existing = CourseOffering.objects.filter(
             student_group__term=term
         ).count()
@@ -359,6 +361,7 @@ class TimetableScheduleView(APIView):
                 "end_time":           str(a.timeslot.end_time)[:5],
                 "student_group_name": sg.name,
                 "student_group_id":   sg.id,
+                "is_combined":        "+" in sg.name,
                 "program_code":       prog.code,
                 "program_name":       prog.name,
                 "semester":           term.semester,
@@ -391,9 +394,34 @@ class TimetableScheduleView(APIView):
             if not tt:
                 return Response({"allocations": [], "timetable": None})
 
-            allocs = LectureAllocation.objects.filter(
+            # Also include combined-group (e.g. A+B) allocations that contain
+            # this section, but only for slots that are NOT already occupied by
+            # a direct allocation for this section (avoids double-display).
+            combined_sgs = StudentGroup.objects.filter(
+                term=sg.term, name__contains=sg.name
+            ).exclude(pk=sg.pk)
+            combined_sgs = [c for c in combined_sgs if sg.name in c.name.split("+")]
+
+            direct_allocs = LectureAllocation.objects.filter(
                 timetable=tt, student_group=sg,
+            ).select_related(
+                "course_offering__course",
+                "course_offering__student_group__term__program",
+                "faculty", "room__building", "timeslot",
             )
+            direct_timeslot_ids = set(direct_allocs.values_list("timeslot_id", flat=True))
+
+            combined_allocs = LectureAllocation.objects.filter(
+                timetable=tt,
+                student_group_id__in=[c.pk for c in combined_sgs],
+            ).exclude(timeslot_id__in=direct_timeslot_ids).select_related(
+                "course_offering__course",
+                "course_offering__student_group__term__program",
+                "faculty", "room__building", "timeslot",
+            )
+
+            # Merge into a single list (already select_related above)
+            allocs = list(direct_allocs) + list(combined_allocs)
             tt_info = {
                 "id": tt.id, "version": tt.version,
                 "is_finalized": tt.is_finalized,
@@ -437,13 +465,16 @@ class TimetableScheduleView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        allocs = allocs.select_related(
-            "course_offering__course",
-            "course_offering__student_group__term__program",
-            "faculty",
-            "room__building",
-            "timeslot",
-        )
+        # Section view already has select_related applied and returns a list;
+        # faculty/room views return querysets that still need it.
+        if not isinstance(allocs, list):
+            allocs = allocs.select_related(
+                "course_offering__course",
+                "course_offering__student_group__term__program",
+                "faculty",
+                "room__building",
+                "timeslot",
+            )
 
         return Response({
             "allocations": self._serialise(allocs),

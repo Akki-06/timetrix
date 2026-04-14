@@ -262,7 +262,15 @@ class CourseOfferingViewSet(viewsets.ModelViewSet):
     )
     serializer_class = CourseOfferingSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["course", "student_group", "assigned_faculty"]
+    filterset_fields = [
+        "course",
+        "student_group",
+        "assigned_faculty",
+        # Related traversals used by the Generator page PE UI
+        "course__course_type",
+        "student_group__term__program",
+        "student_group__term__semester",
+    ]
 
 
 # ----------------------------
