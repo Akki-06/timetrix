@@ -23,7 +23,7 @@ from typing import Optional
 
 from django.db import transaction
 
-from academics.models      import AcademicTerm, CourseOffering, Course
+from academics.models      import AcademicTerm, CourseOffering, Course, StudentGroup
 from faculty.models        import Faculty, FacultySubjectEligibility, TeacherAvailability
 from infrastructure.models import Room, ProgramRoomMapping
 from scheduler.models      import Timetable, TimeSlot, LectureAllocation, SchedulerConfig
@@ -622,11 +622,39 @@ class SchedulerEngine:
         log.info(f"  Faculty loaded: {len(self.faculty_meta)}")
 
         # ── offerings ─────────────────────────────────────────────────────────
-        self.offerings = list(
+        # Skip PC/standard-theory offerings for combined groups (e.g. A+B).
+        # Combined groups only need Lab (PR), Project (PRJ), AEC, and PE courses;
+        # theory is already covered by the individual section offerings (A, B).
+        COMBINED_ALLOWED_TYPES = {"PR", "PRJ", "AEC"}
+
+        # Build a map of all plain sections so we can derive working_days for
+        # combined groups (A+B has empty working_days; we use the intersection
+        # of its constituent sections so e.g. if A has WED off, A+B does too).
+        all_sgs = {sg.name: sg for sg in StudentGroup.objects.filter(term=self.term)}
+        for sg in all_sgs.values():
+            if "+" in sg.name and not sg.working_days:
+                parts = sg.name.split("+")
+                days_sets = [
+                    set(all_sgs[p].working_days)
+                    for p in parts
+                    if p in all_sgs and all_sgs[p].working_days
+                ]
+                if days_sets:
+                    intersection = days_sets[0].intersection(*days_sets[1:])
+                    sg.working_days = sorted(intersection, key=lambda d: ["MON","TUE","WED","THU","FRI","SAT"].index(d))
+
+        self.offerings = [
+            o for o in
             CourseOffering.objects
             .filter(student_group__term=self.term)
             .select_related("course", "student_group", "assigned_faculty")
-        )
+            if "+" not in o.student_group.name
+            or o.course.course_type in COMBINED_ALLOWED_TYPES
+        ]
+        # Attach the corrected working_days to each offering's student_group in memory
+        for o in self.offerings:
+            if o.student_group.name in all_sgs:
+                o.student_group.working_days = all_sgs[o.student_group.name].working_days
         log.info(f"  Offerings loaded: {len(self.offerings)}")
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -697,37 +725,80 @@ class SchedulerEngine:
 
     def _eligible_faculty(self, offering: CourseOffering) -> list:
         """
-        Return faculty eligible for this offering, priority-sorted:
-          1. assigned_faculty (always first if set)
-          2. FacultySubjectEligibility records (by priority_weight)
-          3. ML-ranked all-faculty fallback (cached per course)
+        Return faculty eligible for this offering, priority-sorted.
 
-        If config.prioritize_senior_faculty, PVC/DEAN/HOD bubble to the top
-        (but assigned_faculty always stays at index 0).
+        Step 1: PR auto-faculty  — derive from theory offering's assigned faculty
+        Step 2: admin-assigned   — always position 0
+        Step 3: FacultySubjectEligibility (priority_weight desc)
+        Step 4: ML all-faculty fallback (cached per course)
+        Step 5: filter out faculty at weekly cap
+        Step 6: senior priority  — PVC/DEAN/HOD bubble up (assigned stays at 0)
         """
+        result = []
+
+        # ── Step 1: PR auto-faculty ───────────────────────────────────────────
+        # When a lab offering has no admin-assigned faculty, inherit the faculty
+        # from the matching theory offering of the same section (e.g.
+        # "Python Programming Lab" → look for "Python Programming").
+        if offering.course.course_type == "PR" and not offering.assigned_faculty:
+            raw_name = offering.course.name
+            # Strip common lab suffix variants to get theory name
+            theory_name = (
+                raw_name
+                .replace(" Lab", "").replace(" lab", "")
+                .replace("Lab ", "").replace("lab ", "")
+                .replace("Lab", "").replace("lab", "")
+                .strip()
+            )
+            for o in self.offerings:
+                if (
+                    o.course.course_type != "PR"
+                    and theory_name.lower() in o.course.name.lower()
+                    and o.student_group_id == offering.student_group_id
+                    and o.assigned_faculty
+                ):
+                    result = [o.assigned_faculty]
+                    log.debug(
+                        f"  PR auto-faculty: {offering.course.code} ← "
+                        f"{o.assigned_faculty.name} (theory={o.course.code})"
+                    )
+                    break
+
+        # ── Step 2: Admin-assigned faculty always at position 0 ──────────────
+        if offering.assigned_faculty and offering.assigned_faculty not in result:
+            result = [offering.assigned_faculty] + result
+
+        # ── Step 3: FacultySubjectEligibility records ─────────────────────────
         qs = (
             FacultySubjectEligibility.objects
             .filter(course=offering.course, faculty__is_active=True)
             .select_related("faculty")
             .order_by("-priority_weight")
         )
-        result = [e.faculty for e in qs]
+        for e in qs:
+            if e.faculty not in result:
+                result.append(e.faculty)
 
-        if offering.assigned_faculty:
-            if offering.assigned_faculty in result:
-                result = [offering.assigned_faculty] + [
-                    f for f in result if f != offering.assigned_faculty
-                ]
-            else:
-                result = [offering.assigned_faculty] + result
-
+        # ── Step 4: ML all-faculty fallback (last resort) ─────────────────────
         if not result:
             result = self._ml_rank_all_faculty(offering)
 
-        if self.config.prioritize_senior_faculty:
+        # ── Step 5: Filter out faculty at weekly cap ──────────────────────────
+        result = [
+            f for f in result
+            if self.tracker.faculty_week_load(f.id)
+            < self.faculty_meta.get(f.id, {}).get("max_weekly", 18)
+        ]
+
+        # ── Step 6: Senior priority ───────────────────────────────────────────
+        if self.config.prioritize_senior_faculty and len(result) > 1:
             _senior = {"PVC", "DEAN", "HOD"}
-            assigned = result[0] if (result and offering.assigned_faculty
-                                     and result[0] == offering.assigned_faculty) else None
+            assigned = (
+                result[0]
+                if (result and offering.assigned_faculty
+                    and result[0] == offering.assigned_faculty)
+                else None
+            )
             rest = result[1:] if assigned else result
             rest.sort(key=lambda f: (0 if f.role in _senior else 1))
             result = ([assigned] + rest) if assigned else rest
@@ -993,23 +1064,34 @@ class SchedulerEngine:
         log.info(f"THEORY PHASE: {len(theory_offerings)} theory offerings")
         theory_offerings.sort(key=lambda o: -o.course.priority)
 
+        # ── PRJ (Project Work) — consecutive slots in theory rooms ────────────
+        # PRJ requires 2 consecutive slots but uses theory (not lab) rooms.
+        # Reuse _schedule_one_lab() which already handles the non-lab pool case.
+        prj: list   = [o for o in theory_offerings if o.course.course_type == "PRJ"]
+        rest: list  = [o for o in theory_offerings if o.course.course_type != "PRJ"]
+
+        if prj:
+            log.info(f"  PRJ sub-phase: {len(prj)} project offering(s)")
+            for offering in prj:
+                self._schedule_one_lab(offering)
+
         # ── separate elective groups from the rest ────────────────────────────
         elective_groups: dict = defaultdict(list)
         seen_in_elective: set = set()
 
-        for o in theory_offerings:
+        for o in rest:
             if o.elective_slot_group:
                 elective_groups[o.elective_slot_group].append(o)
                 seen_in_elective.add(o.id)
 
-        remaining = [o for o in theory_offerings if o.id not in seen_in_elective]
+        remaining = [o for o in rest if o.id not in seen_in_elective]
 
         # ── separate combined vs standard from remaining ───────────────────────
         combined_map: dict = defaultdict(list)
         standard: list     = []
 
         for o in remaining:
-            if o.combined_token:
+            if o.combined_token and o.course.course_type != "PE":
                 key = (o.course_id, o.combined_token)
                 combined_map[key].append(o)
             else:
@@ -1037,7 +1119,7 @@ class SchedulerEngine:
         for group_name, unit in elective_groups.items():
             needed         = max(o.course.min_weekly_lectures for o in unit)
             scheduled_count = 0
-            log.info(f"  Elective group '{group_name}': {len(unit)} offerings, need {needed} sessions")
+            log.info(f"  Elective group {group_name!r}: {len(unit)} offerings, need {needed} sessions")
 
             for _pass in range(needed):
                 slot_candidates = []
@@ -1049,11 +1131,9 @@ class SchedulerEngine:
                     for slot in TEACHING_SLOTS:
                         if (day, slot) not in self.slot_map:
                             continue
-                        # All student groups must be free
                         if any(not self.tracker.is_group_free(gid, day, slot)
                                for gid in unit_group_ids):
                             continue
-                        # All assigned faculty must be free
                         fac_ok = True
                         for o in unit:
                             f = o.assigned_faculty
@@ -1071,12 +1151,10 @@ class SchedulerEngine:
                                 break
                         if not fac_ok:
                             continue
-                        # Need enough free theory rooms
                         busy_rooms = self.tracker._room_busy.get((day, slot), set())
                         free_rooms = [r for r in self.theory_rooms if r.id not in busy_rooms]
                         if len(free_rooms) < len(unit):
                             continue
-
                         sc = 0.5 + (0.1 if slot <= 3 else 0.0)
                         slot_candidates.append((sc, day, slot))
 
@@ -1108,13 +1186,13 @@ class SchedulerEngine:
                     placed = True
                     scheduled_count += 1
                     log.info(
-                        f"    Elective '{group_name}' pass {_pass+1} ✓ "
+                        f"    Elective {group_name!r} pass {_pass+1} done "
                         f"{day} S{slot}"
                     )
 
                 if not placed:
                     log.warning(
-                        f"    Elective '{group_name}' pass {_pass+1} — no valid slot found"
+                        f"    Elective {group_name!r} pass {_pass+1} -- no valid slot found"
                     )
 
     # ── 3b: combined sections ─────────────────────────────────────────────────
@@ -1419,6 +1497,96 @@ class SchedulerEngine:
         return fixed
 
     # ═════════════════════════════════════════════════════════════════════════
+    # PHASE 3e: IDLE ROOM PASS — resource packing after labs
+    # After labs are placed some rooms have free slots. Try to fill them with
+    # still-unscheduled offerings. All 8 hard constraints remain enforced.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _idle_room_pass(self):
+        if not self.unscheduled_offerings:
+            return
+
+        log.info(f"IDLE ROOM PASS: {len(self.unscheduled_offerings)} unscheduled offering(s)")
+
+        # Build free-slot inventory once: room_id → set of (day, slot)
+        all_rooms   = self.lab_rooms + self.theory_rooms
+        all_ds_keys = set(self.slot_map.keys())   # {(day, slot), ...}
+
+        free_inventory: dict = defaultdict(set)
+        for room in all_rooms:
+            for ds in all_ds_keys:
+                if room.id not in self.tracker._room_busy.get(ds, set()):
+                    free_inventory[room.id].add(ds)
+
+        recovered = []
+
+        for offering in list(self.unscheduled_offerings):
+            is_lab = offering.course.requires_lab_room
+            pool   = self.lab_rooms if is_lab else self.theory_rooms
+
+            eligible = self._eligible_faculty(offering)
+            if not eligible:
+                continue
+
+            placed = False
+            for room in pool:
+                if placed:
+                    break
+                if room.capacity < offering.student_group.strength:
+                    continue
+                for (day, slot) in sorted(free_inventory[room.id]):
+                    if placed:
+                        break
+                    if not self.tracker.is_group_free(
+                        offering.student_group_id, day, slot
+                    ):
+                        continue
+                    for fac in eligible:
+                        meta = self.faculty_meta.get(fac.id)
+                        if not meta:
+                            continue
+                        ok, _ = self.tracker.check(
+                            fac.id, room.id, offering.student_group_id,
+                            day, slot,
+                            meta["max_daily"], meta["max_weekly"], meta["max_consec"],
+                        )
+                        if ok:
+                            self.tracker.assign(
+                                fac.id, room.id, offering.student_group_id, day, slot
+                            )
+                            self.pending_saves.append({
+                                "offering_id"     : offering.id,
+                                "student_group_id": offering.student_group_id,
+                                "faculty_id"      : fac.id,
+                                "room_id"         : room.id,
+                                "timeslot_id"     : self.slot_map[(day, slot)].id,
+                                "score"           : 0.40,
+                            })
+                            free_inventory[room.id].discard((day, slot))
+                            recovered.append(offering)
+                            log.info(
+                                f"  IDLE ✓ {offering.course.code} | {fac.name} | "
+                                f"R{room.room_number} | {day} S{slot}"
+                            )
+                            placed = True
+                            break
+
+        self.unscheduled_offerings = [
+            o for o in self.unscheduled_offerings if o not in recovered
+        ]
+        if recovered:
+            recovered_codes = {o.course.code for o in recovered}
+            self.unscheduled = [
+                msg for msg in self.unscheduled
+                if not any(code in msg for code in recovered_codes)
+            ]
+
+        log.info(
+            f"IDLE ROOM PASS done: {len(recovered)} recovered, "
+            f"{len(self.unscheduled_offerings)} still unscheduled."
+        )
+
+    # ═════════════════════════════════════════════════════════════════════════
     # PHASE 4: ATOMIC DB SAVE
     # ═════════════════════════════════════════════════════════════════════════
 
@@ -1530,16 +1698,20 @@ class SchedulerEngine:
                 "ml_used"     : self.ml.available,
             }
 
-        # Split into lab and theory offerings
-        lab_offerings = [
-            o for o in self.offerings
-            if o.course.requires_lab_room or o.course.requires_consecutive_slots
+        # Split into lab (PR only) and theory offerings.
+        # PRJ (project work) needs consecutive slots but uses THEORY rooms —
+        # it goes into theory_offerings so it benefits from the lower-priority
+        # scheduling pass after labs have been placed.
+        lab_offerings    = [
+            o for o in self.offerings if o.course.requires_lab_room
         ]
-        theory_offerings = [o for o in self.offerings if o not in lab_offerings]
+        theory_offerings = [
+            o for o in self.offerings if not o.course.requires_lab_room
+        ]
 
         log.info(
-            f"Offerings split: {len(lab_offerings)} labs, "
-            f"{len(theory_offerings)} theory"
+            f"Offerings split: {len(lab_offerings)} labs (PR), "
+            f"{len(theory_offerings)} theory (incl. PRJ)"
         )
 
         # Phase 2 — labs (section-by-section, scarcest first)
@@ -1565,6 +1737,9 @@ class SchedulerEngine:
                     if o not in fixed
                 ]
 
+        # Phase 3e — idle room pass (pack free lab-room slots)
+        self._idle_room_pass()
+
         # Phase 4 — save
         try:
             saved = self._save()
@@ -1587,6 +1762,7 @@ class SchedulerEngine:
             "status"      : status,
             "timetable_id": self.timetable_id,
             "allocations" : saved,
+            "saved"       : saved,
             "avg_score"   : self.timetable.total_constraint_score,
             "unscheduled" : self.unscheduled,
             "unscheduled_reasons": {
@@ -1594,6 +1770,7 @@ class SchedulerEngine:
                 for msg in self.unscheduled
             },
             "ml_used"     : self.ml.available,
+            "warnings"    : self.unscheduled,   # alias for views that check 'warnings'
         }
 
         log.info(

@@ -26,6 +26,12 @@ function TimetableGeneratorPage() {
   const [result,         setResult]         = useState(null);
   const [error,          setError]          = useState("");
 
+  // PE elective slot group state: { [offeringId]: groupToken }
+  const [peOfferings,        setPeOfferings]        = useState([]);  // raw offering objects
+  const [peSlotGroups,       setPeSlotGroups]        = useState({});  // { id: string }
+  const [peEnabled,          setPeEnabled]           = useState({});  // { id: boolean } — false = skip PE parallel logic
+  const [peGroupSaving,      setPeGroupSaving]       = useState(false);
+
   // ── initial load ────────────────────────────────────────────────────────
   const loadBase = useCallback(async () => {
     try {
@@ -45,24 +51,58 @@ function TimetableGeneratorPage() {
 
   useEffect(() => { loadBase(); }, [loadBase]);
 
-  // ── load sections preview whenever program+semester changes ─────────────
+  // ── load sections + PE offerings whenever program+semester changes ───────
   useEffect(() => {
     if (!selectedProgramId || !selectedSemester) {
       setSections([]);
+      setPeOfferings([]);
+      setPeSlotGroups({});
+      setPeEnabled({});
       return;
     }
     const load = async () => {
       setSectionsLoading(true);
       try {
-        const resp = await api.get("academics/student-groups/", {
-          params: {
-            "term__program":  selectedProgramId,
-            "term__semester": selectedSemester,
-          },
+        // Load sections and PE course-offerings in parallel
+        const [sgResp, peResp] = await Promise.all([
+          api.get("academics/student-groups/", {
+            params: {
+              "term__program":  selectedProgramId,
+              "term__semester": selectedSemester,
+            },
+          }),
+          api.get("academics/course-offerings/", {
+            params: {
+              "student_group__term__program":  selectedProgramId,
+              "student_group__term__semester": selectedSemester,
+              "course__course_type":           "PE",
+            },
+          }),
+        ]);
+        setSections(asList(sgResp.data).sort((a, b) => a.name.localeCompare(b.name)));
+
+        // Deduplicate PE offerings by course (show one row per unique PE course)
+        // Also exclude placeholder PE courses like "Programme Elective-I" — show only real options
+        const allPe = asList(peResp.data);
+        const seen  = new Set();
+        const uniquePe = allPe.filter((o) => {
+          const name = (o.course_name || "").toLowerCase();
+          if (/(programme|program)\s*elective/i.test(name)) return false; // hide placeholders
+          if (seen.has(o.course)) return false;
+          seen.add(o.course);
+          return true;
         });
-        setSections(asList(resp.data).sort((a, b) => a.name.localeCompare(b.name)));
+        setPeOfferings(uniquePe);
+        // Pre-fill existing elective_slot_group values and enable state
+        const initGroups = {};
+        const initEnabled = {};
+        allPe.forEach((o) => { initGroups[o.id] = o.elective_slot_group || ""; });
+        uniquePe.forEach((o) => { initEnabled[o.id] = true; }); // all ON by default
+        setPeSlotGroups(initGroups);
+        setPeEnabled(initEnabled);
       } catch {
         setSections([]);
+        setPeOfferings([]);
       } finally {
         setSectionsLoading(false);
       }
@@ -130,6 +170,58 @@ function TimetableGeneratorPage() {
     setResult(null);
     setError("");
     setSections([]);
+    setPeOfferings([]);
+    setPeSlotGroups({});
+    setPeEnabled({});
+  };
+
+  // Save elective_slot_group values to all matching offerings via PATCH
+  const savePeSlotGroups = async () => {
+    if (!peOfferings.length) return;
+    setPeGroupSaving(true);
+    try {
+      // For each unique PE course, patch all offerings that share the same course
+      // Use the course-offerings list endpoint filtered by course to find all sections
+      const courseIds = [...new Set(peOfferings.map((o) => o.course))];
+      const allOffsResp = await api.get("academics/course-offerings/", {
+        params: {
+          "student_group__term__program":  selectedProgramId,
+          "student_group__term__semester": selectedSemester,
+          "course__course_type":           "PE",
+        },
+      });
+      const allOffs = asList(allOffsResp.data);
+      // Build a map of course_id → { token, enabled } from the local state
+      const courseMap = {};
+      peOfferings.forEach((rep) => {
+        courseMap[rep.course] = {
+          token:   peSlotGroups[rep.id] ?? "",
+          enabled: peEnabled[rep.id] !== false,
+        };
+      });
+      // PATCH each non-placeholder offering
+      const isPlaceholder = (o) => /(programme|program)\s*elective/i.test(o.course_name || "");
+      await Promise.all(
+        allOffs
+          .filter((o) => !isPlaceholder(o))
+          .map((o) => {
+            const { token, enabled } = courseMap[o.course] ?? { token: "", enabled: true };
+            return api.patch(`academics/course-offerings/${o.id}/`, {
+              elective_slot_group: (enabled && token) ? token : null,
+            });
+          })
+      );
+    } catch {
+      // Non-critical — generation will proceed anyway
+    } finally {
+      setPeGroupSaving(false);
+    }
+  };
+
+  // Override generate to save PE groups first
+  const handleGenerateWithPE = async () => {
+    await savePeSlotGroups();
+    handleGenerate();
   };
 
   // ── timetable history enriched with program name ─────────────────────────
@@ -254,14 +346,78 @@ function TimetableGeneratorPage() {
             </div>
           )}
 
+          {/* ── PE Elective Slot Groups ─────────────────────────────────── */}
+          {peOfferings.length > 0 && (
+            <div style={{
+              background: "rgba(168,85,247,0.07)",
+              border: "1px solid #a855f7",
+              borderRadius: 8, padding: 12, marginBottom: 16,
+            }}>
+              <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#a855f7", marginBottom: 6, letterSpacing: 0.5 }}>
+                PE ELECTIVE SLOT GROUPS
+              </p>
+              <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginBottom: 10, lineHeight: 1.4 }}>
+                Assign a shared group token to PE courses that must run in parallel (same slot, different rooms).
+                Leave blank to schedule each as independent theory.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {peOfferings.map((o) => {
+                  const on = peEnabled[o.id] !== false;
+                  return (
+                    <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {/* ON/OFF toggle */}
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={(e) =>
+                            setPeEnabled((prev) => ({ ...prev, [o.id]: e.target.checked }))
+                          }
+                          style={{ cursor: "pointer", width: 14, height: 14, accentColor: "#a855f7" }}
+                        />
+                        <span style={{ fontSize: "0.68rem", fontWeight: 600, color: on ? "#a855f7" : "var(--muted)", minWidth: 22 }}>
+                          {on ? "ON" : "OFF"}
+                        </span>
+                      </label>
+                      {/* Course name */}
+                      <span style={{
+                        flex: 1, fontSize: "0.8rem", fontWeight: 500,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        opacity: on ? 1 : 0.4,
+                      }}>
+                        {o.course_name || o.course_code || `Course #${o.course}`}
+                      </span>
+                      {/* Slot group token */}
+                      <input
+                        className="input"
+                        style={{ width: 130, fontSize: "0.8rem", padding: "4px 8px", opacity: on ? 1 : 0.35 }}
+                        placeholder="e.g. BCA4-PE1"
+                        disabled={!on}
+                        value={peSlotGroups[o.id] ?? ""}
+                        onChange={(e) =>
+                          setPeSlotGroups((prev) => ({ ...prev, [o.id]: e.target.value }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: 8 }}>
+                Toggle OFF to schedule that option independently (not in parallel). All sections inherit the same token.
+              </p>
+            </div>
+          )}
+
           <button
             type="button"
             className="btn-primary generator-btn"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
+            onClick={handleGenerateWithPE}
+            disabled={!canGenerate || peGroupSaving}
           >
             <FaMagic style={{ marginRight: 6 }} />
-            {generating
+            {peGroupSaving
+              ? "Saving PE groups..."
+              : generating
               ? `Scheduling ${sections.length} section${sections.length > 1 ? "s" : ""}...`
               : "Generate Timetable"}
           </button>

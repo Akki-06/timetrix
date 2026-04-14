@@ -84,6 +84,10 @@ function GeneratedTimetablesPage() {
   const [schedLoading, setSchedLoading] = useState(false);
   const [error, setError]               = useState("");
 
+  /* ── delete modal ── */
+  const [deleteModal, setDeleteModal]   = useState(null);  // { id, label } | null
+  const [deleting, setDeleting]         = useState(false);
+
   const mounted = useRef(false);
 
   /* ─────────────────── derived selectors ─────────────────── */
@@ -228,6 +232,33 @@ function GeneratedTimetablesPage() {
 
   useEffect(() => { loadSchedule(); }, [loadSchedule]);
 
+  /* ─────────────────── delete timetable ─────────────────── */
+  const confirmDelete = (tt) => {
+    setDeleteModal({
+      id: tt.id,
+      label: `v${tt.version}${tt.is_finalized ? " (Published)" : ""}`,
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteModal) return;
+    setDeleting(true);
+    try {
+      await api.delete(`scheduler/timetables/${deleteModal.id}/`);
+      // Remove from local list
+      setTimetables((prev) => prev.filter((t) => t.id !== deleteModal.id));
+      // If the deleted one was selected, reset selector
+      if (String(selTimetable) === String(deleteModal.id)) {
+        setSelTimetable("");
+      }
+      setDeleteModal(null);
+    } catch {
+      // keep modal open, show nothing — error is transient
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   /* ─────────────────── colour map ─────────────────── */
   const { colorMap, legend } = useMemo(() => {
     const codes = [...new Set(allocations.map((a) => a.course_code))].sort();
@@ -307,15 +338,55 @@ function GeneratedTimetablesPage() {
   }, [viewMode, selProgram, selSemester, selSection, selFaculty, selRoom,
       programs, studentGroups, faculties, rooms, buildings, ttInfo]);
 
-  /* ─────────────────── cell renderer ─────────────────── */
+  /* ─────────────────── cell renderers ─────────────────── */
+
+  // Return the short display name for a course (first word or course_code)
+  const shortName = (a) => {
+    const words = (a.course_name || a.course_code || "").split(" ");
+    return words.length > 1 ? words[0] : a.course_code;
+  };
+
+  // Render a merged PE chip — all elective options concatenated in one card
+  const renderPEChip = (allocations) => {
+    const c = { bg: "rgba(168,85,247,0.10)", border: "#a855f7" };
+    const line = allocations
+      .map((a) => `${shortName(a)} · ${a.building_code}-${a.room_number}`)
+      .join(" / ");
+    return (
+      <div key={`pe-${allocations[0].day}-${allocations[0].slot_number}`}
+        className="lecture-chip"
+        style={{ background: c.bg, borderLeftColor: c.border }}>
+        <div className="lecture-subject" style={{ fontSize: "0.72rem", lineHeight: 1.4 }}>
+          <span className="lab-tag" style={{ background: "#a855f7", color: "#fff", marginRight: 4 }}>PE</span>
+          {line}
+        </div>
+        {viewMode === "section" && (
+          <div className="lecture-meta" style={{ fontSize: "0.68rem" }}>
+            {allocations.map((a) => a.faculty_name).filter(Boolean).join(" / ")}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render a single allocation chip (PR lab, PRJ, standard theory)
   const renderChip = (a) => {
     const c = colorMap[a.course_code] || PALETTE[0];
-    const isLab = a.room_type === "LAB" || a.course_type === "PR";
+    const isLab      = a.room_type === "LAB" || a.course_type === "PR";
+    const isPRJ      = a.course_type === "PRJ";
+    const isCombined = a.is_combined;
+    // Detect G1/G2 split from section name
+    const isG1 = a.student_group_name?.toUpperCase().includes("G1");
+    const isG2 = a.student_group_name?.toUpperCase().includes("G2");
+    const splitPrefix = isG1 ? "G1 · " : isG2 ? "G2 · " : "";
+
     return (
       <div key={a.id} className="lecture-chip" style={{ background: c.bg, borderLeftColor: c.border }}>
         <div className="lecture-subject">
-          {a.course_name}
-          {isLab && <span className="lab-tag">Lab</span>}
+          {splitPrefix}{a.course_name}
+          {isLab  && <span className="lab-tag">Lab</span>}
+          {isPRJ  && <span className="lab-tag" style={{ background: "#0ea5e9", color: "#fff" }}>PRJ</span>}
+          {isCombined && <span className="lab-tag" style={{ background: "var(--brand)", color: "#fff" }}>Combined</span>}
         </div>
         {viewMode === "section" && (
           <>
@@ -336,6 +407,19 @@ function GeneratedTimetablesPage() {
           </>
         )}
       </div>
+    );
+  };
+
+  // Render all allocations in a cell — merge PE options into one card
+  const renderCell = (cells) => {
+    if (!cells.length) return null;
+    const peItems    = cells.filter((a) => a.course_type === "PE");
+    const nonPeItems = cells.filter((a) => a.course_type !== "PE");
+    return (
+      <>
+        {peItems.length > 0 && renderPEChip(peItems)}
+        {nonPeItems.map(renderChip)}
+      </>
     );
   };
 
@@ -413,15 +497,44 @@ function GeneratedTimetablesPage() {
                   ))}
                 </select>
               </div>
-              {role === "admin" && versionOptions.length > 1 && (
+              {role === "admin" && versionOptions.length > 0 && (
                 <div className="form-group">
                   <label className="form-label">Version</label>
-                  <select className="input" value={selTimetable} onChange={(e) => setSelTimetable(e.target.value)}>
-                    <option value="">Latest</option>
-                    {versionOptions.map((tt) => (
-                      <option key={tt.id} value={tt.id}>v{tt.version}{tt.is_finalized ? " (Published)" : ""}</option>
-                    ))}
-                  </select>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <select className="input" value={selTimetable} onChange={(e) => setSelTimetable(e.target.value)}>
+                      <option value="">Latest</option>
+                      {versionOptions.map((tt) => (
+                        <option key={tt.id} value={tt.id}>v{tt.version}{tt.is_finalized ? " (Published)" : ""}</option>
+                      ))}
+                    </select>
+                    {/* Delete the currently-selected version (or latest if none selected) */}
+                    {(() => {
+                      const ttToDel = selTimetable
+                        ? versionOptions.find((t) => String(t.id) === selTimetable)
+                        : versionOptions[0];
+                      if (!ttToDel) return null;
+                      return (
+                        <button
+                          type="button"
+                          title={`Delete timetable v${ttToDel.version}`}
+                          onClick={() => confirmDelete(ttToDel)}
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--danger, #ef4444)",
+                            color: "var(--danger, #ef4444)",
+                            borderRadius: "var(--radius)",
+                            padding: "6px 10px",
+                            cursor: "pointer",
+                            fontSize: 16,
+                            lineHeight: 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          🗑
+                        </button>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
             </>
@@ -549,7 +662,7 @@ function GeneratedTimetablesPage() {
                       const cells = gridData[day]?.[slot] || [];
                       return (
                         <td key={slot} className={cells.length ? "has-class" : "empty-cell"}>
-                          {cells.map(renderChip)}
+                          {renderCell(cells)}
                         </td>
                       );
                     })}
@@ -558,7 +671,7 @@ function GeneratedTimetablesPage() {
                       const cells = gridData[day]?.[slot] || [];
                       return (
                         <td key={slot} className={cells.length ? "has-class" : "empty-cell"}>
-                          {cells.map(renderChip)}
+                          {renderCell(cells)}
                         </td>
                       );
                     })}
@@ -573,13 +686,73 @@ function GeneratedTimetablesPage() {
           <div className="legend-row no-print">
             {legend.map((item) => (
               <div key={item.code} className="legend-item">
-                <span className="legend-box" style={{ background: item.color.border }} />
-                {item.name}{item.type === "PR" && " (Lab)"}
+                <span className="legend-box" style={{
+                  background: item.type === "PE"  ? "#a855f7"
+                            : item.type === "PRJ" ? "#0ea5e9"
+                            : item.color.border
+                }} />
+                {item.name}
+                {item.type === "PR"  && " (Lab)"}
+                {item.type === "PRJ" && " (Project)"}
+                {item.type === "PE"  && " (Elective)"}
               </div>
             ))}
           </div>
         )}
       </section>
+      {/* ── Delete confirmation modal ── */}
+      {deleteModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "var(--surface, #fff)",
+            border: "1px solid var(--stroke, #e5e7eb)",
+            borderRadius: "var(--radius, 8px)",
+            padding: "28px 32px",
+            maxWidth: 420, width: "90%",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+          }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+              Delete Timetable?
+            </h3>
+            <p style={{ margin: "0 0 20px", color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.5 }}>
+              You are about to permanently delete timetable{" "}
+              <strong>{deleteModal.label}</strong>. This will remove all{" "}
+              lecture allocations in this version and cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setDeleteModal(null)}
+                disabled={deleting}
+                style={{
+                  padding: "8px 18px", borderRadius: "var(--radius)",
+                  border: "1px solid var(--stroke)", background: "transparent",
+                  cursor: "pointer", fontSize: 14, color: "var(--text)",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{
+                  padding: "8px 18px", borderRadius: "var(--radius)",
+                  border: "none", background: "var(--danger, #ef4444)",
+                  color: "#fff", cursor: deleting ? "not-allowed" : "pointer",
+                  fontSize: 14, fontWeight: 600, opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
