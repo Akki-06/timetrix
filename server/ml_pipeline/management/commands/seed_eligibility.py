@@ -1,6 +1,6 @@
 # server/ml_pipeline/management/commands/seed_eligibility.py
 """
-Parses the 'Eligibility Detail' sheet in TIMETRIX_Faculty_Master_Data.xlsx
+Parses the 'Eligibility Detail' sheet in Faculty.xlsx
 and creates FacultySubjectEligibility records.
 
 Sheet columns: faculty_name, course_code, course_name, program, semester, section, type
@@ -19,7 +19,7 @@ from django.db import transaction
 log = logging.getLogger(__name__)
 
 DATA = Path(__file__).resolve().parent.parent.parent.parent / "ml_pipeline" / "data"
-FACULTY_XLSX = DATA / "TIMETRIX_Faculty_Master_Data.xlsx"
+FACULTY_XLSX = DATA / "Faculty.xlsx"
 
 
 class Command(BaseCommand):

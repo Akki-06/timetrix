@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { toNumber } from "../utils/spreadsheet";
 import { asList, extractError } from "../utils/helpers";
-import { FaBook, FaTrash, FaUniversity, FaEdit, FaTimes } from "react-icons/fa";
+import {
+  FaUniversity, FaTrash, FaEdit, FaTimes,
+  FaGraduationCap, FaLayerGroup, FaCalendarAlt, FaSearch,
+} from "react-icons/fa";
 
 const INITIAL_FORM = {
   department: "",
@@ -15,14 +17,91 @@ const INITIAL_FORM = {
   total_semesters: 8,
 };
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Single Program Card — displayed inside a department group grid
+   ══════════════════════════════════════════════════════════════════════════ */
+function ProgramCard({ prog, onEdit, onDelete }) {
+  return (
+    <div className="prog-detail-card">
+      {/* Top row: code badge + duration */}
+      <div className="pdc-top">
+        <code className="pdc-code">{prog.code}</code>
+        <span className="pdc-duration">
+          <FaCalendarAlt style={{ fontSize: 9, marginRight: 4 }} />
+          {prog.total_years} yrs
+        </span>
+      </div>
+
+      {/* Program display name */}
+      <div className="pdc-name">{prog.display_name || prog.name}</div>
+
+      {/* Meta: semesters */}
+      <div className="pdc-meta">
+        <span className="pdc-sems">
+          <FaLayerGroup style={{ fontSize: 10, marginRight: 4 }} />
+          {prog.total_semesters} semesters
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="pdc-actions">
+        <button
+          className="action-btn"
+          onClick={() => onEdit(prog)}
+          title="Edit program"
+        >
+          <FaEdit style={{ color: "#3b82f6" }} />
+        </button>
+        <button
+          className="action-btn danger"
+          onClick={() => onDelete(prog.id)}
+          title="Delete program"
+        >
+          <FaTrash />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Department Section — header + grid of program cards
+   ══════════════════════════════════════════════════════════════════════════ */
+function DeptSection({ deptName, programs, onEdit, onDelete }) {
+  return (
+    <div className="dept-section">
+      <div className="dept-section-header">
+        <FaUniversity className="dept-section-icon" />
+        <span className="dept-section-name">{deptName}</span>
+        <span className="dept-section-count">{programs.length} programs</span>
+      </div>
+      <div className="pdc-grid">
+        {programs.map((p) => (
+          <ProgramCard
+            key={p.id}
+            prog={p}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Main Page
+   ══════════════════════════════════════════════════════════════════════════ */
 function ProgramsPage() {
-  const [programs, setPrograms] = useState([]);
+  const [programs, setPrograms]     = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [error, setError]           = useState("");
+  const [success, setSuccess]       = useState("");
+  const [form, setForm]             = useState(INITIAL_FORM);
+  const [editId, setEditId]         = useState(null);
+  const [search, setSearch]         = useState("");
 
   const loadAll = useCallback(async () => {
     try {
@@ -40,28 +119,21 @@ function ProgramsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  const [editId, setEditId] = useState(null);
-
+  /* ── Submit ──────────────────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
-
+    setError(""); setSuccess(""); setSubmitting(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        code: form.code.trim(),
-        department: Number(form.department),
-        specialization: form.specialization.trim(),
-        total_years: Number(form.total_years),
-        total_semesters: Number(form.total_semesters),
+        name:             form.name.trim(),
+        code:             form.code.trim(),
+        department:       Number(form.department),
+        specialization:   form.specialization.trim(),
+        total_years:      Number(form.total_years),
+        total_semesters:  Number(form.total_semesters),
       };
-
       if (editId) {
         await api.patch(`academics/programs/${editId}/`, payload);
         setSuccess("Program updated successfully.");
@@ -82,22 +154,21 @@ function ProgramsPage() {
   const handleEdit = (prog) => {
     setEditId(prog.id);
     setForm({
-      department: prog.department,
-      name: prog.name,
-      code: prog.code,
-      specialization: prog.specialization || "",
-      total_years: prog.total_years,
+      department:      prog.department,
+      name:            prog.name,
+      code:            prog.code,
+      specialization:  prog.specialization || "",
+      total_years:     prog.total_years,
       total_semesters: prog.total_semesters,
     });
-    setError("");
-    setSuccess("");
+    setError(""); setSuccess("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
     setEditId(null);
     setForm(INITIAL_FORM);
-    setError("");
-    setSuccess("");
+    setError(""); setSuccess("");
   };
 
   const handleDelete = async (id) => {
@@ -110,13 +181,47 @@ function ProgramsPage() {
     }
   };
 
+  /* ── Search filter + group by department ────── */
+  const groupedPrograms = useMemo(() => {
+    const q = search.toLowerCase();
+    const filtered = q
+      ? programs.filter(
+          (p) =>
+            (p.display_name || p.name || "").toLowerCase().includes(q) ||
+            (p.code || "").toLowerCase().includes(q) ||
+            (p.specialization || "").toLowerCase().includes(q) ||
+            (p.department_name || "").toLowerCase().includes(q)
+        )
+      : programs;
+
+    // Group into { deptName -> [prog, ...] }
+    const map = {};
+    filtered.forEach((p) => {
+      const key = p.department_name || "Other / Unassigned";
+      if (!map[key]) map[key] = [];
+      map[key].push(p);
+    });
+
+    // Sort dept names alphabetically, programs inside by code
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dept, progs]) => ({
+        dept,
+        progs: [...progs].sort((a, b) => (a.code || "").localeCompare(b.code || "")),
+      }));
+  }, [programs, search]);
+
+  const totalFiltered = groupedPrograms.reduce((s, g) => s + g.progs.length, 0);
+
   return (
     <DashboardLayout>
+      {/* ── Page Head ── */}
       <div className="page-head">
         <h1>Program Management</h1>
-        <p>Create and manage academic programs under departments.</p>
+        <p>Create and manage academic programs, organised by department.</p>
       </div>
 
+      {/* ── Bulk Upload ── */}
       <BulkUploadCard
         title="Upload Programs"
         endpoint="academics/programs/bulk-upload/"
@@ -134,15 +239,17 @@ function ProgramsPage() {
         onUploadComplete={loadAll}
       />
 
+      {/* ── Two-column: Form left | Programs right ── */}
       <div className="faculty-two-col">
-        {/* ── LEFT: Add Program Form ── */}
+
+        {/* ── LEFT: Add / Edit Form ── */}
         <section className="data-card faculty-form-card">
           <h3>
             <FaUniversity style={{ marginRight: 8, color: "var(--brand)" }} />
             {editId ? "Update Program" : "Add New Program"}
           </h3>
 
-          {error && <p className="upload-error">{error}</p>}
+          {error   && <p className="upload-error">{error}</p>}
           {success && <p className="upload-success">{success}</p>}
 
           <form className="faculty-register-form" onSubmit={handleSubmit}>
@@ -152,12 +259,10 @@ function ProgramsPage() {
               <select
                 className="input"
                 value={form.department}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, department: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
                 required
               >
-                <option value="">Choose department</option>
+                <option value="">— Choose department —</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name} ({d.code})
@@ -166,21 +271,17 @@ function ProgramsPage() {
               </select>
             </div>
 
-            {/* Program Name */}
+            {/* Name */}
             <div className="form-group">
               <label className="form-label">Program Name *</label>
               <input
                 className="input"
                 placeholder="e.g. BTech, BCA, MCA"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, name: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 required
               />
-              <span className="input-hint">
-                Degree name — BTech, BCA, MCA, BSc, MTech etc.
-              </span>
+              <span className="input-hint">Degree level — BTech, BCA, MCA, BSc, MTech etc.</span>
             </div>
 
             {/* Specialization */}
@@ -188,15 +289,11 @@ function ProgramsPage() {
               <label className="form-label">Specialization</label>
               <input
                 className="input"
-                placeholder="e.g. Computer Science, AIML, Cyber Security"
+                placeholder="e.g. Computer Science, AIML, Full Stack"
                 value={form.specialization}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, specialization: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, specialization: e.target.value }))}
               />
-              <span className="input-hint">
-                Leave blank for programs without specialization (e.g. BCA, MCA)
-              </span>
+              <span className="input-hint">Leave blank for programs without a specialization (e.g. BCA, MCA)</span>
             </div>
 
             {/* Code */}
@@ -204,31 +301,24 @@ function ProgramsPage() {
               <label className="form-label">Program Code *</label>
               <input
                 className="input"
-                placeholder="e.g. BTech CSE, BCA, MCA"
+                placeholder="e.g. BTech CSE, BCA (FSD)"
                 value={form.code}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, code: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
                 required
               />
-              <span className="input-hint">
-                Unique short code used in course assignments and timetables
-              </span>
+              <span className="input-hint">Unique identifier used in course assignments and timetables</span>
             </div>
 
-            {/* Years and Semesters side by side */}
+            {/* Years + Semesters */}
             <div style={{ display: "flex", gap: 12 }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Total Years *</label>
                 <input
                   className="input"
                   type="number"
-                  min="1"
-                  max="6"
+                  min="1" max="6"
                   value={form.total_years}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, total_years: e.target.value }))
-                  }
+                  onChange={(e) => setForm((p) => ({ ...p, total_years: e.target.value }))}
                   required
                 />
               </div>
@@ -237,122 +327,79 @@ function ProgramsPage() {
                 <input
                   className="input"
                   type="number"
-                  min="1"
-                  max="12"
+                  min="1" max="12"
                   value={form.total_semesters}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, total_semesters: e.target.value }))
-                  }
+                  onChange={(e) => setForm((p) => ({ ...p, total_semesters: e.target.value }))}
                   required
                 />
               </div>
             </div>
 
-            <div className="form-group form-group-btn">
-              <div className="form-actions" style={{ display: "flex", gap: "10px" }}>
+            <div className="form-group form-group-btn" style={{ display: "flex", gap: 10 }}>
               <button
                 type="submit"
                 className="btn btn-primary"
                 disabled={submitting}
-                style={{ flex: 1 }}
+                style={{ flex: 1, justifyContent: "center" }}
               >
-                {submitting ? "Saving..." : editId ? "Update Program" : "Create Program"}
+                <FaGraduationCap style={{ marginRight: 8 }} />
+                {submitting ? "Saving…" : editId ? "Update Program" : "Create Program"}
               </button>
               {editId && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={cancelEdit}
-                >
+                <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
                   <FaTimes />
                 </button>
               )}
             </div>
-            </div>
           </form>
         </section>
 
-        {/* ── RIGHT: Existing Programs ── */}
-        <section className="data-card faculty-list-card">
-          <h3>Existing Programs ({programs.length})</h3>
-          {loading ? (
-            <p className="upload-help">Loading programs...</p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Program</th>
-                    <th>Department</th>
-                    <th>Duration</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {programs.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        style={{
-                          textAlign: "center",
-                          color: "var(--muted)",
-                          padding: 24,
-                        }}
-                      >
-                        No programs yet. Add one using the form.
-                      </td>
-                    </tr>
-                  ) : (
-                    programs.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <strong>{p.code}</strong>
-                        </td>
-                        <td>
-                          <div className="fac-name-cell">
-                            <FaUniversity
-                              style={{
-                                color: "var(--brand)",
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span>{p.display_name}</span>
-                          </div>
-                        </td>
-                        <td>
-                          {p.department_name || (
-                            <span style={{ color: "var(--muted)" }}>—</span>
-                          )}
-                        </td>
-                        <td>
-                          {p.total_years} yrs / {p.total_semesters} sem
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button
-                              className="action-btn"
-                              onClick={() => handleEdit(p)}
-                              title="Edit Program"
-                            >
-                              <FaEdit style={{ color: "#3b82f6" }} />
-                            </button>
-                            <button
-                              className="action-btn"
-                              onClick={() => handleDelete(p.id)}
-                              title="Delete Program"
-                            >
-                              <FaTrash />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+        {/* ── RIGHT: Department-grouped Program List ── */}
+        <section className="data-card faculty-list-card" style={{ padding: 0, overflow: "hidden" }}>
+          {/* Panel header */}
+          <div className="prog-list-header">
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
+                Programs
+              </h3>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
+                {programs.length} programs across {Object.keys(
+                  programs.reduce((m, p) => { m[p.department_name || "Other"] = 1; return m; }, {})
+                ).length} departments
+              </p>
             </div>
-          )}
+            {/* Search */}
+            <div className="pdc-search-wrap">
+              <FaSearch className="pdc-search-icon" />
+              <input
+                className="input pdc-search-input"
+                placeholder="Search programs…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="dept-list-body">
+            {loading ? (
+              <p className="upload-help" style={{ padding: "20px 20px" }}>Loading programs…</p>
+            ) : totalFiltered === 0 ? (
+              <p className="upload-help" style={{ padding: "20px 20px" }}>
+                {search ? "No programs match your search." : "No programs yet. Add one using the form."}
+              </p>
+            ) : (
+              groupedPrograms.map(({ dept, progs }) => (
+                <DeptSection
+                  key={dept}
+                  deptName={dept}
+                  programs={progs}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))
+            )}
+          </div>
         </section>
       </div>
     </DashboardLayout>

@@ -32,10 +32,18 @@ class Faculty(models.Model):
         related_name="faculty_members"
     )
 
+    designation = models.CharField(
+        max_length=100, blank=True, default="",
+        help_text="Human-readable title, e.g. Professor, Assistant Professor"
+    )
+
     # Constraint Parameters
     max_lectures_per_day = models.PositiveIntegerField(default=4)
     max_consecutive_lectures = models.PositiveIntegerField(default=2)
     max_weekly_load = models.PositiveIntegerField(default=18)
+
+    teaches_theory = models.BooleanField(default=True)
+    teaches_lab = models.BooleanField(default=True)
 
     is_active = models.BooleanField(default=True)
 
@@ -126,3 +134,67 @@ class FacultySubjectEligibility(models.Model):
 
     def __str__(self):
         return f"{self.faculty.name} → {self.course.code}"
+
+
+# ----------------------------
+# FACULTY PROGRAM EXCLUSION
+# ----------------------------
+
+class FacultyProgramExclusion(models.Model):
+    """Faculty CANNOT teach any course in this program."""
+
+    faculty = models.ForeignKey(
+        Faculty,
+        on_delete=models.CASCADE,
+        related_name="excluded_programs"
+    )
+
+    program = models.ForeignKey(
+        'academics.Program',
+        on_delete=models.CASCADE,
+        related_name="excluded_faculty"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["faculty", "program"],
+                name="unique_faculty_program_excl"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.faculty.name} ✕ {self.program.name}"
+
+
+# ----------------------------
+# FACULTY SEMESTER EXCLUSION
+# ----------------------------
+
+class FacultySemesterExclusion(models.Model):
+    """Faculty CANNOT teach any course in this program's semester."""
+
+    faculty = models.ForeignKey(
+        Faculty,
+        on_delete=models.CASCADE,
+        related_name="excluded_semesters"
+    )
+
+    program = models.ForeignKey(
+        'academics.Program',
+        on_delete=models.CASCADE,
+        related_name="semester_excluded_faculty"
+    )
+
+    semester = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["faculty", "program", "semester"],
+                name="unique_faculty_sem_excl"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.faculty.name} ✕ {self.program.name} S{self.semester}"

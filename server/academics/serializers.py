@@ -51,6 +51,8 @@ class AcademicTermSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     program_name = serializers.CharField(source="program.display_name", read_only=True, default=None)
+    # Human-readable code with internal program suffix stripped (e.g. 24COA191 not 24COA191_BCA)
+    display_code = serializers.CharField(read_only=True)
 
     def validate(self, data):
         return data
@@ -87,13 +89,15 @@ class StudentGroupSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class CourseOfferingSerializer(serializers.ModelSerializer):
-    course_code    = serializers.CharField(source="course.code", read_only=True, default=None)
-    course_name    = serializers.CharField(source="course.name", read_only=True, default=None)
-    course_type    = serializers.CharField(source="course.course_type", read_only=True, default=None)
-    credits        = serializers.IntegerField(source="course.credits", read_only=True, default=0)
+    course_code         = serializers.CharField(source="course.code",         read_only=True, default=None)
+    # Display-friendly code with internal suffix stripped — USE THIS on the frontend
+    course_display_code = serializers.CharField(source="course.display_code", read_only=True, default=None)
+    course_name    = serializers.CharField(source="course.name",         read_only=True, default=None)
+    course_type    = serializers.CharField(source="course.course_type",   read_only=True, default=None)
+    credits        = serializers.IntegerField(source="course.credits",   read_only=True, default=0)
     course_semester = serializers.IntegerField(source="course.semester", read_only=True, default=None)
     faculty_name   = serializers.CharField(source="assigned_faculty.name", read_only=True, default=None)
-    section_name   = serializers.CharField(source="student_group.name", read_only=True, default=None)
+    section_name   = serializers.CharField(source="student_group.name",  read_only=True, default=None)
 
     def validate(self, data):
         return data

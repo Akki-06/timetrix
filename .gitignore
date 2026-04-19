@@ -33,12 +33,10 @@ ENV/
 .env
 .env.*
 *.env
+server/.env
 
 # ==============================
 # VS Code
-# Only ignore user-specific files;
-# keep settings.json so Python interpreter
-# path is shared with teammates.
 # ==============================
 
 .vscode/*
@@ -52,6 +50,8 @@ ENV/
 .DS_Store
 Thumbs.db
 desktop.ini
+ehthumbs.db
+*.lnk
 
 # ==============================
 # React / Node
@@ -62,6 +62,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-store/
 
 # Build outputs
 dist/
@@ -92,12 +93,23 @@ htmlcov/
 .pytest_cache/
 
 # ==============================
-# ML Pipeline
+# ML Pipeline — Data & Models
 # ==============================
 
-# rf_model.pkl is ~125 MB — exceeds GitHub's 100 MB hard limit.
-# All other trained artifacts and datasets ARE tracked.
-server/ml_pipeline/trained/rf_model.pkl
+# Raw data files (sensitive university data — never push)
+server/ml_pipeline/data/*.xlsx
+server/ml_pipeline/data/*.csv
+server/ml_pipeline/data/*.json
+
+# Keep templates (blank upload templates are safe to share)
+!server/ml_pipeline/data/templates/
+
+# Trained model artifacts (too large + reproducible from training scripts)
+server/ml_pipeline/trained/*.pkl
+server/ml_pipeline/trained/*.pt
+server/ml_pipeline/trained/*.gpickle
+server/ml_pipeline/trained/*.json
+server/ml_pipeline/trained/*.png
 
 # ==============================
 # IDE & AI Tool Configs (local only)
@@ -109,6 +121,8 @@ server/ml_pipeline/trained/rf_model.pkl
 .windsurfrules
 .mcp.json
 .opencode.json
+.code-review-graph/
+.gemini/
 
 # ==============================
 # Misc
@@ -117,3 +131,6 @@ server/ml_pipeline/trained/rf_model.pkl
 *.swp
 *.swo
 *.bak
+*.tmp
+*.temp
+*.orig

@@ -11,7 +11,7 @@ from django.shortcuts       import get_object_or_404
 from academics.models       import AcademicTerm, StudentGroup
 from faculty.models         import Faculty
 from infrastructure.models  import Room
-from .scheduler_engine      import SchedulerEngine
+from scheduler.engine        import SchedulerEngine
 
 from .models import TimeSlot, Timetable, LectureAllocation, SchedulerConfig, Notification
 from .serializers import (
@@ -345,26 +345,27 @@ class TimetableScheduleView(APIView):
             term = sg.term
             prog = term.program
             data.append({
-                "id":                 a.id,
-                "course_code":        course.code,
-                "course_name":        course.name,
-                "course_type":        course.course_type,
-                "faculty_name":       a.faculty.name if a.faculty else None,
-                "faculty_id":         a.faculty.id if a.faculty else None,
-                "room_number":        a.room.room_number,
-                "room_type":          a.room.room_type,
-                "building_code":      a.room.building.code,
-                "room_id":            a.room.id,
-                "day":                a.timeslot.day,
-                "slot_number":        a.timeslot.slot_number,
-                "start_time":         str(a.timeslot.start_time)[:5],
-                "end_time":           str(a.timeslot.end_time)[:5],
-                "student_group_name": sg.name,
-                "student_group_id":   sg.id,
-                "is_combined":        "+" in sg.name,
-                "program_code":       prog.code,
-                "program_name":       prog.name,
-                "semester":           term.semester,
+                "id":                   a.id,
+                "course_code":          course.display_code,   # human-readable (no _SUFFIX)
+                "course_code_internal": course.code,           # raw DB code kept for lookups
+                "course_name":          course.name,
+                "course_type":          course.course_type,
+                "faculty_name":         a.faculty.name if a.faculty else None,
+                "faculty_id":           a.faculty.id if a.faculty else None,
+                "room_number":          a.room.room_number,
+                "room_type":            a.room.room_type,
+                "building_code":        a.room.building.code,
+                "room_id":              a.room.id,
+                "day":                  a.timeslot.day,
+                "slot_number":          a.timeslot.slot_number,
+                "start_time":           str(a.timeslot.start_time)[:5],
+                "end_time":             str(a.timeslot.end_time)[:5],
+                "student_group_name":   sg.name,
+                "student_group_id":     sg.id,
+                "is_combined":          "+" in sg.name,
+                "program_code":         prog.code,
+                "program_name":         prog.name,
+                "semester":             term.semester,
             })
         return data
 
