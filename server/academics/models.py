@@ -27,6 +27,10 @@ class Program(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=50, unique=True)
     specialization = models.CharField(max_length=150, blank=True, default="")
+    short_form = models.CharField(
+        max_length=20, blank=True, default="",
+        help_text="Short abbreviation e.g. BTCSE, BCAFSD — used for internal suffixes and compact displays"
+    )
     total_years = models.PositiveIntegerField(default=4)
     total_semesters = models.PositiveIntegerField(default=8)
 
@@ -127,7 +131,7 @@ _TYPE_PRIORITY = {
 
 
 class Course(models.Model):
-    code = models.CharField(max_length=20, unique=True)
+    code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=150)
     credits = models.PositiveIntegerField(default=3)
 
@@ -147,7 +151,7 @@ class Course(models.Model):
     )
     
     parent_course_code = models.CharField(
-        max_length=20,
+        max_length=50,
         null=True,
         blank=True,
         help_text="If this is an elective choice, the code of the placeholder course (e.g. PE-I)"
@@ -185,8 +189,31 @@ class Course(models.Model):
             models.Index(fields=["course_type"]),
         ]
 
+    # Known internal suffixes added for DB uniqueness when same base code
+    # appears in multiple programs. Stripped for display only.
+    _DISPLAY_SUFFIXES = (
+        "_BTCSCS", "_BTAIML",            # BTech CSE specializations (longer first)
+        "_BCAFSD", "_BCACS",             # BCA specializations
+        "_BSCIT",  "_BTCSE", "_BTCVL",  # UG programs
+        "_BTAE",   "_BTECE", "_BTEE",
+        "_BTME",   "_BTDS",
+        "_MTGEO",  "_MTSTR", "_MTTRN",  # MTech programs
+        "_MTCSE",  "_MTME",  "_MTDC",
+        "_MTSG",
+        "_BCA",    "_MCA",               # PG / remaining
+    )
+
+    @property
+    def display_code(self) -> str:
+        """Return the human-readable course code with internal program suffix stripped."""
+        c = self.code
+        for sfx in self._DISPLAY_SUFFIXES:
+            if c.upper().endswith(sfx.upper()):
+                return c[: -len(sfx)]
+        return c
+
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return f"{self.display_code} - {self.name}"
 
 
 # ----------------------------

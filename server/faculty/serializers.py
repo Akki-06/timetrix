@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Faculty, TeacherAvailability, FacultySubjectEligibility
+from .models import (
+    Faculty, TeacherAvailability, FacultySubjectEligibility,
+    FacultyProgramExclusion, FacultySemesterExclusion,
+)
 
 
 # ----------------------------
@@ -77,4 +80,24 @@ class FacultySubjectEligibilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FacultySubjectEligibility
+        fields = "__all__"
+
+
+# ----------------------------
+# FACULTY PROGRAM EXCLUSION
+# ----------------------------
+
+class FacultyProgramExclusionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FacultyProgramExclusion
+        fields = "__all__"
+
+
+# ----------------------------
+# FACULTY SEMESTER EXCLUSION
+# ----------------------------
+
+class FacultySemesterExclusionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FacultySemesterExclusion
         fields = "__all__"

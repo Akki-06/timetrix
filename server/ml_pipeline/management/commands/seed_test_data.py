@@ -20,9 +20,9 @@ log = logging.getLogger(__name__)
 
 BASE = Path(__file__).resolve().parent.parent.parent.parent    # server/
 DATA = BASE / "ml_pipeline" / "data"
-ROOMS_CSV = DATA / "rooms.csv"
-SLOTS_CSV = DATA / "timeslots.csv"
-PROGRAMS_XLSX = DATA / "TIMETRIX_Programs_Master_Data.xlsx"
+ROOMS_CSV = DATA / "Rooms.csv"
+SLOTS_CSV = DATA / "Timeslots.csv"
+PROGRAMS_XLSX = DATA / "Programs.xlsx"
 
 
 class Command(BaseCommand):
@@ -56,10 +56,10 @@ class Command(BaseCommand):
         try:
             import openpyxl
             wb = openpyxl.load_workbook(PROGRAMS_XLSX, read_only=True)
-            ws = wb["Programs"]
+            ws = wb.active  # first sheet (Programs)
             rows = list(ws.iter_rows(values_only=True))
             header = rows[0]
-            # header: (name, code, specialization, department_code, total_years, total_semesters)
+            # header: Program, Code, Specialization, Short Form, Department, Years, Semesters
         except Exception as e:
             self.stderr.write(f"Could not read Programs Master: {e}")
             self.stderr.write("Creating minimal default department + program.")
@@ -87,21 +87,27 @@ class Command(BaseCommand):
         dept_count = 0
         prog_count = 0
 
+        hdr = [str(h).strip() if h else "" for h in header]
+        col_idx = {h: i for i, h in enumerate(hdr)}
+
         for row in rows[1:]:
-            name, code, spec, dept_code, years, sems = row
+            if not any(row):
+                continue
+            name      = str(row[col_idx.get("Program", 0)] or "").strip()
+            code      = str(row[col_idx.get("Code", 1)] or "").strip()
+            spec      = str(row[col_idx.get("Specialization", 2)] or "").strip()
+            short_form = str(row[col_idx.get("Short Form", 3)] or "").strip()
+            dept_name_raw = str(row[col_idx.get("Department", 4)] or "").strip()
+            years     = int(row[col_idx.get("Years", 5)] or 4)
+            sems      = int(row[col_idx.get("Semesters", 6)] or years * 2)
             if not code:
                 continue
+            dept_name = dept_name_raw or "Unassigned"
+            dept_code = dept_name_raw.replace("Department of ", "").replace(" ", "")[:10].upper()
 
-            code = str(code).strip()
-            dept_code = str(dept_code or "CSE").strip()
-            spec = str(spec or "").strip()
-            name = str(name or code).strip()
-            years = int(years or 4)
-            sems = int(sems or years * 2)
-
-            dept_name = DEPT_NAMES.get(dept_code, dept_code)
             dept, created = Department.objects.get_or_create(
-                code=dept_code, defaults={"name": dept_name}
+                name=dept_name,
+                defaults={"code": dept_code},
             )
             if created:
                 dept_count += 1
@@ -111,6 +117,7 @@ class Command(BaseCommand):
                 defaults={
                     "name": name,
                     "specialization": spec,
+                    "short_form": short_form,
                     "department": dept,
                     "total_years": years,
                     "total_semesters": sems,

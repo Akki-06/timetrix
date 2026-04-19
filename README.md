@@ -1,290 +1,41 @@
-# ⏱️ TIMETRIX
-### 🧠 AI-Driven Constraint-Aware Academic Timetable Generation System
-
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+# ⏱️ TIMETRIX
+
+### AI-Driven Constraint-Aware Academic Timetable Generation System
+
+<br/>
+
+![Python](https://img.shields.io/badge/Python_3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django_6.0-092E20?style=for-the-badge&logo=django&logoColor=white)
 ![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch_2.10-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn_1.8-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
 
-</div>
+<br/>
+
+*An intelligent, full-stack platform that automates university timetable scheduling using Graph Neural Networks, Random Forest prediction, and Constraint-Based Optimization — solving one of academia's hardest operational challenges.*
+
+<br/>
 
 ---
+
+</div>
 
 ## 🚀 Overview
 
-**TIMETRIX** is an intelligent academic timetable generation platform that automates university scheduling using a hybrid approach of **Graph Neural Networks, Random Forest Prediction, and Constraint-based Optimization**.
+**TIMETRIX** transforms the tedious, error-prone process of academic timetable creation into an automated, AI-powered workflow. Traditional manual scheduling is an **NP-hard combinatorial problem** involving hundreds of interacting variables:
 
-Timetable scheduling is a **complex NP-hard problem** involving multiple interacting entities:
+| Entity | Constraints |
+|:-------|:-----------|
+| 👩‍🏫 **Faculty** | Availability windows, workload caps, subject eligibility, teaching preferences |
+| 📚 **Courses** | Theory/Lab types, contact hours, consecutive slot requirements, parallel electives |
+| 🧑‍🎓 **Student Sections** | Program, semester, group size, no double-booking |
+| 🏫 **Rooms & Labs** | Capacity limits, type matching, building assignments |
+| ⏰ **Time Slots** | Daily limits, lunch breaks, Saturday support |
 
-| Entity | Role |
-|--------|------|
-| 👩‍🏫 Faculty | Availability, workload limits, subject eligibility |
-| 📚 Courses | Theory/Lab, contact hours, priority |
-| 🧑‍🎓 Student Sections | Groups, program, semester |
-| 🏫 Rooms & Labs | Capacity, type, building |
-| ⏰ Time Slots | Days, slots, lunch breaks |
-
-Manual scheduling leads to conflicts, inefficient resource usage, and heavy administrative overhead. TIMETRIX automates **80–90% of timetable creation** while respecting all academic constraints.
-
----
-
-## 🧠 Scheduling Architecture
-
-TIMETRIX uses a **multi-stage hybrid AI + constraint solving pipeline**:
-
-```
- Historical Timetable Data  (1300+ rows, 22 features)
-            ↓
- Dataset Cleaning & Feature Engineering
-            ↓
- Heterogeneous Graph Construction  (NetworkX)
-            ↓
- Graph Neural Network — GraphSAGE  (2 layers, 32-dim embeddings)
-            ↓
- Node Embeddings  (faculty + course + section → 96-dim concat)
-            ↓
- Random Forest Slot Predictor  (111-dim input → suitability score)
-            ↓
- Constraint-Based Scheduler  (hard + soft constraints)
-            ↓
- ✅ Final Conflict-Free Timetable
-```
-
----
-
-## ✨ Core Features
-
-### 📚 Academic Management
-- Departments, Programs, Academic Terms
-- Course definitions (12 types: theory, lab, elective, life skills, etc.)
-- Student sections with strength and program mapping
-- Course offerings with faculty assignment and weekly load
-
-### 👩‍🏫 Faculty Management
-- Faculty profiles with role-based workload limits
-
-  | Role | Max Weekly Hours |
-  |------|-----------------|
-  | Dean | 6 hrs |
-  | HOD | 12 hrs |
-  | Senior | 16 hrs |
-  | Regular | 18 hrs |
-  | Visiting | 18 hrs |
-
-- Subject eligibility with priority weights
-- Availability slots (day/time window configuration)
-- Bulk upload via Excel (`.xlsx`)
-
-### 🏫 Infrastructure Management
-- Buildings, classrooms, laboratories
-- Room capacity, type, and floor tracking
-- Program-room priority mapping
-
-### 🤖 Intelligent Scheduling
-- **Lab-first strategy** — schedule labs before theory (limited lab rooms)
-- **Consecutive slot enforcement** — lab sessions span 2 contiguous slots
-- **Faculty workload balancing** — role-based hour limits respected
-- **Conflict detection** — faculty / room / group double-booking prevention
-- **ML-based candidate ranking** — RF scores all (faculty, room, day, slot) combos
-- **Graceful degradation** — heuristic fallback if ML models unavailable
-- **Lunch break protection** — enforced across all sections
-- **Saturday support** — configurable weekend classes
-- **Version management** — multiple timetable versions per term; auto-pruning of history
-- **Auto-publish** — optional finalization on generation
-- **In-app notifications** — generation success/failure alerts with bell icon
-
-### 📊 Timetable Viewing — Role-Based
-The `/timetables` page adapts its available views by logged-in role:
-
-| Role | Available Views |
-|------|----------------|
-| **Admin** | Program/Section · Faculty Schedule · Room Occupancy |
-| **Teacher** | Faculty Schedule · Program/Section |
-| **Student** | Program/Section |
-
-- **Program/Section view** — select Program → Semester → Section; shows color-coded weekly grid
-- **Faculty view** — select any faculty; shows their full weekly schedule across all programs
-- **Room view** — select any room; shows which group/faculty occupies each slot
-- **Dynamic color palette** — 15 distinct colors auto-assigned per course; legend shown below grid
-- **Version selector** — admins can view older timetable versions (not just latest)
-- **PDF export** via browser print
-
-### ⚙️ Scheduler Configuration
-A global settings panel (admin only) controls:
-- Faculty hour caps per role
-- Max lectures per day and consecutive lecture limits
-- Allow/deny weekend classes (Saturday)
-- Enforce room type matching
-- Auto-publish on generation
-- Notification preferences
-- Timetable history retention limit
-
-### 📱 Responsive UI
-- Mobile-first layout with 4 breakpoints (1200px, 900px, 768px, 480px)
-- Sidebar collapses to icon strip on desktop; slides in as overlay drawer on mobile
-- Light / dark theme toggle
-
----
-
-## 🤖 Machine Learning Architecture
-
-### 🕸️ Graph Neural Network — GraphSAGE
-
-Scheduling data is modeled as a **heterogeneous graph** where each entity is a typed node:
-
-#### Node Types & Feature Dimensions
-
-| Node Type | Feature Dim | Key Features |
-|-----------|-------------|-------------|
-| Faculty | 8-dim | Designation, max hours, teaching type, breadth, employment, roles |
-| Course | 7-dim | Type, hours, lab flag, elective, semester, program, consecutive |
-| Section | 5-dim | Program, semester, section ID, type, strength |
-| Room | 6-dim | Lab flag, capacity, floor, type, lab-type, shared |
-| TimeSlot | 8-dim | Cyclic time encoding (sin/cos for time and day) |
-
-#### Graph Relationships (Edges)
-
-```
-Faculty   ──── teaches ────────► Course
-Course    ──── belongs_to ──────► Section
-Course    ──── scheduled_in ────► TimeSlot
-Course    ──── uses ────────────► Room
-Section   ──── occupied_at ─────► TimeSlot
-Room      ──── occupied_at ─────► TimeSlot
-Faculty   ──── available_at ────► TimeSlot
-```
-
-**Frameworks:** PyTorch 2.10 · PyTorch Geometric 2.7 · NetworkX 3.6
-
-The GNN is trained via **link prediction** (real edges vs. 7-type negative samples) and produces **32-dimensional node embeddings** that capture hidden scheduling patterns.
-
----
-
-### 🌲 Random Forest Slot Predictor
-
-The RF model ranks scheduling candidates by **slot suitability probability**.
-
-#### Input Features — 111 Dimensions Total
-
-```
-faculty_embedding   (32-dim)  ─┐
-timeslot_embedding  (32-dim)   ├─ GNN embeddings (96-dim)
-room_embedding      (32-dim)  ─┘
-+
-load_remaining         (1)    ─┐
-is_known_slot          (1)     │
-fac_course_affinity    (1)     │
-slot_popularity        (1)     │
-day_popularity         (1)     │ Manual features (15-dim)
-is_lab                 (1)     │
-is_consecutive_lab     (1)     │
-is_morning             (1)     │
-is_post_lunch          (1)     │
-semester_norm          (1)     │
-contact_norm           (1)     │
-breadth_norm           (1)     │
-fac_today_ratio        (1)     │
-slot_adjacent_density  (1)     │
-near_weekly_cap        (1)    ─┘
-```
-
-#### Output — Suitability Score
-
-```
-Tue 10:35  →  0.86  ✅ High suitability
-Wed 11:30  →  0.72  ✅ Good
-Fri 09:40  →  0.21  ❌ Poor fit
-```
-
-Candidates are ranked by score before being validated against hard constraints.
-
-#### ML Bug Fixes (resolved)
-- **Day-string mismatch**: Training data stored days as `"Monday"`; scheduler passed `"MON"`. Fixed via `DAY_FULL` mapping applied consistently to `is_known_slot` and `day_popularity` features.
-- **Saturday support**: `TimeSlot.DayChoices` extended with `SAT` so weekend scheduling config works end-to-end.
-
----
-
-### ⚙️ Constraint-Based Scheduler
-
-ML predictions are validated against strict scheduling rules:
-
-#### Hard Constraints (Never Violated)
-- Teacher cannot teach two classes simultaneously
-- Room cannot host two classes simultaneously
-- Lab sessions must occupy exactly 2 consecutive slots
-- Faculty weekly workload limits (role-based)
-- Lunch break protection
-
-#### Soft Constraints (Optimized)
-- Faculty time preferences and availability windows
-- Affinity-based room-course matching
-- Workload distribution across the week
-
-The scheduler selects the **highest-ranked ML candidate** that satisfies all hard constraints. If no ML candidate is available, a heuristic fallback activates.
-
----
-
-## 📊 Dataset
-
-TIMETRIX trains on **historical timetable records from the university**:
-
-```
-Rows:     1300+
-Features: 22
-```
-
-Key dataset fields:
-
-| Field | Description |
-|-------|-------------|
-| `academic_year` | Year of the record |
-| `semester_type` | Odd / Even |
-| `program` | Degree program |
-| `semester` | 1–8 |
-| `section` | Student section |
-| `course_code` | Unique course identifier |
-| `faculty` | Assigned faculty name |
-| `room` | Room allocated |
-| `day` / `day_index` | Scheduled day |
-| `slot_index` | Time slot position |
-| `session_type` | Theory / Lab |
-| `is_lab` | Boolean lab flag |
-| `contact_hours_weekly` | Teaching load |
-
-Each row represents a **single historical scheduling decision** used to train the ML pipeline.
-
----
-
-## 🧱 Tech Stack
-
-### Backend
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![Django](https://img.shields.io/badge/Django_6.0-092E20?logo=django&logoColor=white)
-![DRF](https://img.shields.io/badge/Django_REST_Framework_3.16-red)
-![CORS](https://img.shields.io/badge/django--cors--headers-blue)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
-
-### Frontend
-![React](https://img.shields.io/badge/React_19-20232A?logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite_7-646CFF?logo=vite&logoColor=white)
-![React Router](https://img.shields.io/badge/React_Router_7-CA4245?logo=react-router&logoColor=white)
-![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white)
-![xlsx](https://img.shields.io/badge/xlsx-Export-green)
-
-### Machine Learning
-![PyTorch](https://img.shields.io/badge/PyTorch_2.10-EE4C2C?logo=pytorch&logoColor=white)
-![PyG](https://img.shields.io/badge/PyTorch_Geometric_2.7-orange)
-![scikit-learn](https://img.shields.io/badge/scikit--learn_1.8-F7931E?logo=scikit-learn&logoColor=white)
-![NetworkX](https://img.shields.io/badge/NetworkX_3.6-black)
-
-### Data Processing
-![Pandas](https://img.shields.io/badge/Pandas_3.0-150458?logo=pandas&logoColor=white)
-![NumPy](https://img.shields.io/badge/NumPy_2.4-013243?logo=numpy&logoColor=white)
-![Matplotlib](https://img.shields.io/badge/Matplotlib_3.10-11557C)
+TIMETRIX automates **80–90% of timetable creation** while respecting every constraint — producing conflict-free, balanced schedules in seconds.
 
 ---
 
@@ -293,150 +44,479 @@ Each row represents a **single historical scheduling decision** used to train th
 ```
 TIMETRIX/
 │
-├── client/                          # React + Vite frontend
+├── 📂 client/                               # ⚛️  React 19 + Vite 7 Frontend
+│   ├── public/
 │   ├── src/
-│   │   ├── api/                     # Axios API service layer
-│   │   ├── components/              # Reusable UI components
-│   │   │   ├── Sidebar.jsx          # Collapsible nav (mobile overlay)
-│   │   │   ├── TopNavbar.jsx        # Header with theme, notifications, user
-│   │   │   ├── BulkUploadCard.jsx
-│   │   │   ├── StatsSection.jsx
-│   │   │   ├── ActivitySection.jsx
-│   │   │   └── TermStatusSection.jsx
-│   │   ├── contexts/
-│   │   │   ├── AuthContext.jsx      # Demo auth (admin / teacher / student)
-│   │   │   └── ThemeContext.jsx     # Light / dark theme
-│   │   ├── layouts/
-│   │   │   └── DashboardLayout.jsx  # Sidebar + navbar shell
-│   │   ├── pages/
-│   │   │   ├── LoginPage.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── ProgramsPage.jsx
-│   │   │   ├── SectionsPage.jsx
-│   │   │   ├── FacultyPage.jsx
-│   │   │   ├── CoursesPage.jsx
-│   │   │   ├── InfrastructurePage.jsx
-│   │   │   ├── TimetableGeneratorPage.jsx
-│   │   │   ├── GeneratedTimetablesPage.jsx  # Role-based views
-│   │   │   └── SettingsPage.jsx
-│   │   ├── routes/AppRoutes.jsx     # Role-guarded routes
-│   │   ├── styles/global.css        # Single responsive stylesheet
-│   │   └── utils/helpers.js
+│   │   ├── 📂 api/
+│   │   │   └── api.js                       #     Axios instance + interceptors
+│   │   │
+│   │   ├── 📂 components/                   #     Reusable UI components
+│   │   │   ├── Sidebar.jsx                  #     Collapsible nav (mobile overlay)
+│   │   │   ├── TopNavbar.jsx                #     Header bar (theme, notifications, user)
+│   │   │   ├── BulkUploadCard.jsx           #     Excel upload with validation
+│   │   │   ├── ProtectedRoute.jsx           #     Role-based route guard
+│   │   │   ├── StatsSection.jsx             #     Dashboard stat cards
+│   │   │   ├── TermStatusSection.jsx        #     Active term indicator
+│   │   │   └── ActivitySection.jsx          #     Recent activity feed
+│   │   │
+│   │   ├── 📂 contexts/                     #     React Context providers
+│   │   │   ├── AuthContext.jsx              #     Auth state (admin/teacher/student)
+│   │   │   └── ThemeContext.jsx             #     Light / Dark theme toggle
+│   │   │
+│   │   ├── 📂 layouts/
+│   │   │   └── DashboardLayout.jsx          #     Sidebar + Navbar shell
+│   │   │
+│   │   ├── 📂 pages/                        #     Full page views
+│   │   │   ├── LoginPage.jsx                #     Animated login with role selection
+│   │   │   ├── Dashboard.jsx                #     Overview stats + recent activity
+│   │   │   ├── ProgramsPage.jsx             #     Program CRUD + bulk upload
+│   │   │   ├── SectionsPage.jsx             #     Student group management
+│   │   │   ├── FacultyPage.jsx              #     Faculty cards, eligibility, detail view
+│   │   │   ├── CoursesPage.jsx              #     Course catalog by program
+│   │   │   ├── CourseAssignmentPage.jsx     #     Course offering ↔ faculty binding
+│   │   │   ├── FacultyEligibilityPage.jsx   #     Eligibility management
+│   │   │   ├── InfrastructurePage.jsx       #     Buildings, rooms, labs
+│   │   │   ├── TimetableGeneratorPage.jsx   #     Trigger + monitor schedule generation
+│   │   │   ├── GeneratedTimetablesPage.jsx  #     Role-based timetable viewer
+│   │   │   └── SettingsPage.jsx             #     Global scheduler configuration
+│   │   │
+│   │   ├── 📂 routes/
+│   │   │   └── AppRoutes.jsx                #     Route definitions + guards
+│   │   │
+│   │   ├── 📂 styles/
+│   │   │   └── global.css                   #     4700+ line design system
+│   │   │
+│   │   ├── 📂 utils/
+│   │   │   └── helpers.js                   #     Shared utility functions
+│   │   │
+│   │   ├── App.jsx                          #     Root component
+│   │   └── main.jsx                         #     Entry point
+│   │
+│   ├── index.html
 │   ├── package.json
 │   └── vite.config.js
 │
-├── server/                          # Django backend
+├── 📂 server/                               # 🐍  Django 6.0 Backend
 │   ├── manage.py
-│   ├── config/                      # Django configuration
-│   │   ├── settings.py
-│   │   ├── urls.py
+│   │
+│   ├── 📂 config/                           #     Django project settings
+│   │   ├── settings.py                      #     CORS, apps, DB, middleware
+│   │   ├── urls.py                          #     Root URL routing (/api/...)
 │   │   ├── asgi.py
 │   │   └── wsgi.py
-│   ├── academics/                   # Departments, Programs, Courses, Terms, Groups
-│   ├── faculty/                     # Faculty profiles, availability, eligibility
-│   ├── infrastructure/              # Buildings, rooms, program-room mapping
-│   ├── scheduler/                   # Scheduling engine + API
-│   │   ├── scheduler_engine.py      # ML-integrated scheduling logic
-│   │   ├── models.py                # TimeSlot, Timetable, LectureAllocation, Notification
+│   │
+│   ├── 📂 academics/                        #     🎓 Academic domain
+│   │   ├── models.py                        #     Department, Program, Course, Term, StudentGroup, CourseOffering
 │   │   ├── serializers.py
-│   │   ├── views.py                 # Generate, Schedule, Config, Notifications
-│   │   └── urls.py
-│   └── ml_pipeline/                 # Machine learning pipeline
-│       ├── data/                    # Training datasets (gitignored)
-│       ├── trained/                 # Saved model artifacts (gitignored)
-│       │   ├── gnn_model.pt             # GraphSAGE weights
-│       │   ├── rf_model.pkl             # Random Forest classifier
-│       │   ├── node_embeddings.pkl      # 32-dim node embeddings
-│       │   ├── timetrix_graph.gpickle   # NetworkX graph
-│       │   └── rf_feature_metadata.pkl  # Scaler + feature info
-│       ├── graph_builder.py         # Heterogeneous graph construction
-│       ├── gnn_model.py             # GraphSAGE implementation
-│       ├── random_forest_model.py   # RF predictor v2
-│       └── visualize_embeddings.py  # Embedding visualization
+│   │   ├── views.py                         #     CRUD + bulk upload endpoints
+│   │   ├── urls.py
+│   │   └── migrations/
+│   │
+│   ├── 📂 faculty/                          #     👩‍🏫 Faculty domain
+│   │   ├── models.py                        #     Faculty, Availability, Eligibility, ProgramExclusion, SemesterExclusion
+│   │   ├── serializers.py
+│   │   ├── views.py                         #     CRUD + workload + bulk upload
+│   │   ├── urls.py
+│   │   └── migrations/
+│   │
+│   ├── 📂 infrastructure/                   #     🏫 Infrastructure domain
+│   │   ├── models.py                        #     Building, Room, ProgramRoomMapping
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   └── migrations/
+│   │
+│   ├── 📂 scheduler/                        #     🤖 Scheduling engine
+│   │   ├── models.py                        #     TimeSlot, Timetable, LectureAllocation, Notification, SchedulerConfig
+│   │   ├── serializers.py
+│   │   ├── views.py                         #     Generate, Schedule, Config, Notifications
+│   │   ├── urls.py
+│   │   ├── 📂 engine/                       #     ⚙️  Core scheduling logic
+│   │   │   ├── runner.py                    #     Main SchedulerEngine (~1900 lines)
+│   │   │   ├── constants.py                 #     Days, slots, valid pairs
+│   │   │   ├── constraint_tracker.py        #     Real-time constraint monitoring
+│   │   │   ├── difficulty.py                #     Course difficulty scoring
+│   │   │   ├── feasibility.py               #     Pre-run feasibility checks
+│   │   │   ├── ml_scorer.py                 #     ML model integration layer
+│   │   │   └── observability.py             #     Logging + metrics
+│   │   └── 📂 management/commands/          #     Django management commands
+│   │
+│   └── 📂 ml_pipeline/                      #     🧠 Machine Learning pipeline
+│       ├── graph_builder.py                 #     Heterogeneous graph construction (NetworkX)
+│       ├── gnn_model.py                     #     GraphSAGE training + embedding generation
+│       ├── random_forest_model.py           #     RF slot predictor training
+│       ├── visualize_embeddings.py          #     Embedding visualization + analysis
+│       │
+│       ├── 📂 data/                         #     📊 Training datasets (⚠️ gitignored)
+│       │   ├── .gitkeep
+│       │   ├── generate_templates.py        #     Template generator script
+│       │   └── 📂 templates/               #     Blank Excel upload templates
+│       │       ├── TIMETRIX_Programs_Template.xlsx
+│       │       ├── TIMETRIX_Courses_Template.xlsx
+│       │       ├── TIMETRIX_Faculty_Template.xlsx
+│       │       ├── TIMETRIX_Rooms_Template.xlsx
+│       │       └── TIMETRIX_CourseOfferings_Template.xlsx
+│       │
+│       └── 📂 trained/                      #     🏋️ Model artifacts (⚠️ gitignored)
+│           └── .gitkeep
 │
-├── requirements.txt
+├── requirements.txt                         #     Python dependencies
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🌐 API Endpoints
+## 🧠 Scheduling Architecture
 
-### Academics
-| Endpoint | Methods | Description |
-|----------|---------|-------------|
-| `/api/academics/departments/` | CRUD | Department management |
-| `/api/academics/programs/` | CRUD | Program management |
-| `/api/academics/terms/` | CRUD | Academic terms |
-| `/api/academics/courses/` | CRUD | Course catalog |
-| `/api/academics/student-groups/` | CRUD | Section management |
-| `/api/academics/course-offerings/` | CRUD | Course-section-faculty binding |
+TIMETRIX uses a **multi-stage hybrid AI + constraint solving pipeline**:
 
-### Faculty
-| Endpoint | Methods | Description |
-|----------|---------|-------------|
-| `/api/faculty/faculty/` | CRUD | Faculty profiles |
-| `/api/faculty/availability/` | CRUD | Availability windows |
-| `/api/faculty/eligibility/` | CRUD | Subject eligibility |
-
-### Infrastructure
-| Endpoint | Methods | Description |
-|----------|---------|-------------|
-| `/api/infrastructure/building/` | CRUD | Buildings |
-| `/api/infrastructure/room/` | CRUD | Rooms and labs |
-| `/api/infrastructure/program-room-map/` | CRUD | Room priority per program |
-
-### Scheduler
-| Endpoint | Methods | Description |
-|----------|---------|-------------|
-| `/api/scheduler/timeslots/` | CRUD | Time slot definitions |
-| `/api/scheduler/timetables/` | CRUD | Timetable versions |
-| `/api/scheduler/allocations/` | CRUD | Individual lecture slots |
-| `/api/scheduler/generate/` | POST | Trigger timetable generation |
-| `/api/scheduler/schedule/` | GET | Enriched view (section / faculty / room) |
-| `/api/scheduler/config/` | GET · PUT · PATCH | Global scheduler settings |
-| `/api/scheduler/notifications/` | GET · PATCH · DELETE | In-app notifications |
-| `/api/scheduler/notifications/mark-all-read/` | PATCH | Bulk mark read |
-
-#### `GET /api/scheduler/schedule/` — Query Parameters
-
-| `view` | Required param | Returns |
-|--------|---------------|---------|
-| `section` | `student_group_id` (+ optional `timetable_id`) | Section weekly timetable |
-| `faculty` | `faculty_id` | Faculty weekly schedule across all programs |
-| `room` | `room_id` | Room occupancy across all programs |
+```
+                    ┌─────────────────────────────────────────┐
+                    │   Historical Timetable Data             │
+                    │   1300+ rows · 22 features              │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   Feature Engineering & Cleaning        │
+                    │   Normalize, encode, compute metrics    │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   Heterogeneous Graph Construction      │
+                    │   5 node types · 7 edge types           │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   GraphSAGE GNN (2 layers · 32-dim)     │
+                    │   Link prediction → node embeddings     │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   Random Forest Slot Predictor          │
+                    │   96-dim embeddings + 15-dim features   │
+                    │         → suitability score             │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   Constraint-Based Scheduler            │
+                    │   Hard + soft constraint enforcement    │
+                    └──────────────┬──────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────┐
+                    │   ✅ Conflict-Free Timetable             │
+                    └─────────────────────────────────────────┘
+```
 
 ---
 
-## ⚙️ Installation
+## ✨ Core Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 📚 Academic Management
+- Department → Program → Course hierarchy
+- 12 course types (theory, lab, elective, life skills, etc.)
+- Student sections with strength tracking
+- Course offerings with faculty binding
+- Bulk Excel upload for all entities
+
+</td>
+<td width="50%">
+
+### 👩‍🏫 Faculty Management
+- Role-based workload limits (Dean → Regular)
+- **3-level exclusion system:**
+  - 🔴 Program-level — block entire program
+  - 🟠 Semester-level — block specific semester
+  - 🟡 Course-level — block individual course
+- Availability slot configuration
+- Designation, department, teaching type
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🏫 Infrastructure
+- Buildings, classrooms, laboratories
+- Room capacity, type, and floor tracking
+- Program-room priority mapping
+- Lab vs. classroom enforcement
+
+</td>
+<td>
+
+### 🤖 Intelligent Scheduling
+- Lab-first strategy with 2-slot enforcement
+- ML-powered candidate ranking (GraphSAGE + RF)
+- Heuristic fallback when ML unavailable
+- Faculty workload balancing
+- Conflict detection & prevention
+- Lunch break protection
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 📊 Timetable Viewer
+- **Section view** — program/semester/section grid
+- **Faculty view** — full weekly schedule
+- **Room view** — occupancy matrix
+- Dynamic 15-color palette with legend
+- Version history & PDF export
+- Role-based access control
+
+</td>
+<td>
+
+### ⚙️ Configuration & UX
+- Global scheduler settings panel
+- Auto-publish & notification triggers
+- 🔔 In-app notification bell
+- 🌙 Dark / Light theme
+- 📱 Fully responsive (4 breakpoints)
+- Mobile sidebar as overlay drawer
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🤖 Machine Learning Architecture
+
+### 🕸️ Graph Neural Network — GraphSAGE
+
+Scheduling data is modeled as a **heterogeneous graph**:
+
+| Node Type | Dim | Features |
+|:----------|:---:|:---------|
+| **Faculty** | 8 | Designation, max hours, teaching type, breadth, employment |
+| **Course** | 7 | Type, hours, lab flag, elective, semester, consecutive |
+| **Section** | 5 | Program, semester, section ID, type, strength |
+| **Room** | 6 | Lab flag, capacity, floor, type, shared |
+| **TimeSlot** | 8 | Cyclic sin/cos encoding for time and day |
+
+```
+Faculty   ─── teaches ──────────► Course
+Course    ─── belongs_to ────────► Section
+Course    ─── scheduled_in ──────► TimeSlot
+Course    ─── uses ──────────────► Room
+Section   ─── occupied_at ───────► TimeSlot
+Room      ─── occupied_at ───────► TimeSlot
+Faculty   ─── available_at ──────► TimeSlot
+```
+
+The GNN produces **32-dimensional embeddings** via link prediction training.
+
+---
+
+### 🌲 Random Forest Slot Predictor
+
+**Input: 111 dimensions** → **Output: Suitability score (0–1)**
+
+```
+ GNN Embeddings (96-dim)           Manual Features (15-dim)
+ ┌──────────────────────┐          ┌─────────────────────────┐
+ │ faculty_emb    (32)  │          │ load_remaining      (1) │
+ │ timeslot_emb   (32)  │    +     │ fac_course_affinity (1) │
+ │ room_emb       (32)  │          │ is_lab / morning    (1) │
+ └──────────────────────┘          │ slot_popularity     (1) │
+                                   │ ... 11 more features    │
+                                   └─────────────────────────┘
+                         ↓
+            ┌────────────────────────┐
+            │  Random Forest Model   │
+            │  (VotingClassifier)    │
+            └────────┬───────────────┘
+                     ↓
+    Tue 10:35 → 0.86 ✅    Fri 09:40 → 0.21 ❌
+```
+
+---
+
+### ⚙️ Constraint Engine
+
+| Type | Rule |
+|:-----|:-----|
+| 🔴 **Hard** | No double-booking (faculty / room / group) |
+| 🔴 **Hard** | Labs must occupy 2 consecutive slots |
+| 🔴 **Hard** | Faculty weekly workload limits (role-based) |
+| 🔴 **Hard** | Lunch break protection |
+| 🟢 **Soft** | Faculty time preferences & availability |
+| 🟢 **Soft** | Room-course affinity matching |
+| 🟢 **Soft** | Balanced workload distribution |
+
+---
+
+## 🧱 Tech Stack
+
+<table>
+<tr>
+<td align="center" width="25%">
+
+**Backend**
+
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django_6.0-092E20?logo=django&logoColor=white)
+![DRF](https://img.shields.io/badge/DRF_3.16-red)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
+</td>
+<td align="center" width="25%">
+
+**Frontend**
+
+![React](https://img.shields.io/badge/React_19-20232A?logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite_7-646CFF?logo=vite&logoColor=white)
+![Router](https://img.shields.io/badge/Router_7-CA4245?logo=react-router&logoColor=white)
+![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white)
+
+</td>
+<td align="center" width="25%">
+
+**Machine Learning**
+
+![PyTorch](https://img.shields.io/badge/PyTorch_2.10-EE4C2C?logo=pytorch&logoColor=white)
+![PyG](https://img.shields.io/badge/PyG_2.7-orange)
+![sklearn](https://img.shields.io/badge/sklearn_1.8-F7931E?logo=scikit-learn&logoColor=white)
+
+</td>
+<td align="center" width="25%">
+
+**Data & Viz**
+
+![Pandas](https://img.shields.io/badge/Pandas-150458?logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
+![NetworkX](https://img.shields.io/badge/NetworkX-black)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🌐 API Reference
+
+<details>
+<summary><b>📚 Academics</b> — <code>/api/academics/</code></summary>
+
+| Endpoint | Methods | Description |
+|:---------|:--------|:------------|
+| `departments/` | CRUD | Department management |
+| `programs/` | CRUD | Program management |
+| `terms/` | CRUD | Academic terms |
+| `courses/` | CRUD | Course catalog |
+| `student-groups/` | CRUD | Section management |
+| `course-offerings/` | CRUD | Course ↔ faculty binding |
+| `programs/bulk-upload/` | POST | Excel bulk import |
+| `courses/bulk-upload/` | POST | Excel bulk import |
+
+</details>
+
+<details>
+<summary><b>👩‍🏫 Faculty</b> — <code>/api/faculty/</code></summary>
+
+| Endpoint | Methods | Description |
+|:---------|:--------|:------------|
+| `faculty/` | CRUD | Faculty profiles |
+| `teacher-availability/` | CRUD | Availability windows |
+| `faculty-subject-eligibility/` | CRUD | Course exclusions |
+| `program-exclusions/` | CRUD | Program-level exclusions |
+| `semester-exclusions/` | CRUD | Semester-level exclusions |
+| `faculty/bulk-upload/` | POST | Excel bulk import |
+| `faculty/workload/` | GET | Workload summary |
+
+</details>
+
+<details>
+<summary><b>🏫 Infrastructure</b> — <code>/api/infrastructure/</code></summary>
+
+| Endpoint | Methods | Description |
+|:---------|:--------|:------------|
+| `building/` | CRUD | Building management |
+| `room/` | CRUD | Rooms and labs |
+| `program-room-map/` | CRUD | Room priority per program |
+
+</details>
+
+<details>
+<summary><b>🤖 Scheduler</b> — <code>/api/scheduler/</code></summary>
+
+| Endpoint | Methods | Description |
+|:---------|:--------|:------------|
+| `timeslots/` | CRUD | Time slot definitions |
+| `timetables/` | CRUD | Timetable versions |
+| `allocations/` | CRUD | Lecture slot allocations |
+| `generate/` | POST | Trigger timetable generation |
+| `schedule/` | GET | Enriched schedule view |
+| `config/` | GET · PUT · PATCH | Global scheduler settings |
+| `notifications/` | GET · PATCH · DELETE | In-app notifications |
+| `notifications/mark-all-read/` | PATCH | Bulk mark read |
+
+**Schedule View Query Parameters:**
+
+| `view` | Required Param | Returns |
+|:-------|:--------------|:--------|
+| `section` | `student_group_id` | Section weekly timetable |
+| `faculty` | `faculty_id` | Faculty weekly schedule |
+| `room` | `room_id` | Room occupancy grid |
+
+</details>
+
+---
+
+## ⚙️ Installation & Setup
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- pip
 
-### 1. Backend Setup
+- **Python** 3.10+
+- **Node.js** 18+
+- **pip** (Python package manager)
+
+### 1️⃣ Clone the Repository
 
 ```bash
-cd server
+git clone https://github.com/Akki-06/timetrix.git
+cd timetrix
+```
+
+### 2️⃣ Backend Setup
+
+```bash
+# Create and activate virtual environment
 python -m venv venv
 
 # Windows
 venv\Scripts\activate
-
 # macOS / Linux
 source venv/bin/activate
 
+# Install dependencies
 pip install -r requirements.txt
+
+# Run migrations
+cd server
 python manage.py makemigrations
 python manage.py migrate
+
+# Start the backend server
 python manage.py runserver
 ```
 
-Backend runs at → `http://127.0.0.1:8000`
+> Backend runs at → `http://127.0.0.1:8000`
 
-### 2. Frontend Setup
+### 3️⃣ Frontend Setup
 
 ```bash
 cd client
@@ -444,69 +524,98 @@ npm install
 npm run dev
 ```
 
-Frontend runs at → `http://localhost:5173`
+> Frontend runs at → `http://localhost:5173`
 
-### 3. Demo Login Credentials
+### 4️⃣ Demo Login
 
 | Role | Username | Password |
-|------|----------|----------|
-| Admin | `admin` | `admin123` |
-| Teacher | `teacher` | `teacher123` |
-| Student | `student` | `student123` |
+|:-----|:---------|:---------|
+| 🔑 Admin | `admin` | `admin123` |
+| 👩‍🏫 Teacher | `teacher` | `teacher123` |
+| 🧑‍🎓 Student | `student` | `student123` |
 
-### 4. ML Pipeline (Optional — pre-trained models included)
+### 5️⃣ ML Pipeline (Optional)
+
+Pre-trained models are not included in the repo (gitignored due to size). To train from scratch:
 
 ```bash
-# Build graph from dataset
+cd server
+
+# Step 1: Build heterogeneous graph from dataset
 python manage.py build_graph
 
-# Train GNN (generates node embeddings)
+# Step 2: Train GraphSAGE GNN (generates node embeddings)
 python ml_pipeline/gnn_model.py
 
-# Train Random Forest predictor
+# Step 3: Train Random Forest slot predictor
 python ml_pipeline/random_forest_model.py
 ```
 
+> ⚠️ Training requires the dataset files in `server/ml_pipeline/data/`. Contact the author for sample data.
+
 ---
 
-## 📊 Development Status
+## 📊 Dataset
+
+TIMETRIX trains on **historical timetable records** from a real university:
+
+```
+Records:   1,300+
+Features:  22
+```
+
+| Field | Description |
+|:------|:-----------|
+| `academic_year` | Year of the record |
+| `semester_type` | Odd / Even |
+| `program` | Degree program |
+| `semester` | 1–8 |
+| `course_code` | Unique course identifier |
+| `faculty` | Assigned faculty name |
+| `room` | Room allocated |
+| `day` / `slot_index` | Scheduled day and time slot |
+| `session_type` | Theory / Lab |
+| `contact_hours_weekly` | Teaching load |
+
+> ⚠️ Raw dataset files are **gitignored** for data privacy. Only blank upload templates are included.
+
+---
+
+## 📊 Status & Roadmap
 
 ### ✅ Completed
 
-- [x] Backend — 4 Django apps, 15+ models, full CRUD REST APIs
-- [x] Role-based frontend — 10 pages (Login, Dashboard, Programs, Sections, Faculty, Courses, Infrastructure, Generator, Timetables, Settings)
-- [x] Demo authentication — Admin / Teacher / Student roles with route guards
-- [x] Historical timetable dataset — 1300+ rows, 22 features
-- [x] Heterogeneous graph — 5 node types, 7 edge types
-- [x] GraphSAGE GNN — trained, 32-dim embeddings generated
-- [x] Random Forest slot predictor v2 — 111-dim input, VotingClassifier ensemble
-- [x] Constraint-based scheduler with ML integration and heuristic fallback
-- [x] ML pipeline day-string bug fixed (`"MON"` → `"Monday"` mapping for inference)
-- [x] Saturday / weekend scheduling support
-- [x] Lab-first scheduling with consecutive slot enforcement
-- [x] Bulk data upload (Excel) for Faculty and Courses
+- [x] Full Django REST backend — 4 apps, 20+ models, complete CRUD APIs
+- [x] Modern React 19 frontend — 12 pages, glassmorphism design, dark/light theme
+- [x] Demo auth with role-based route guards (Admin / Teacher / Student)
+- [x] Heterogeneous graph — 5 node types, 7 edge types (NetworkX)
+- [x] GraphSAGE GNN — 32-dim embeddings via link prediction
+- [x] Random Forest slot predictor — 111-dim input, VotingClassifier ensemble
+- [x] Constraint-based scheduler with ML integration + heuristic fallback
+- [x] Lab-first scheduling with consecutive 2-slot enforcement
+- [x] Parallel elective support
+- [x] 3-level faculty exclusion system (program → semester → course)
+- [x] Faculty detail view with workload stats + eligibility breakdown
+- [x] Sortable faculty list (name, designation, workload)
+- [x] Bulk Excel upload for Programs, Courses, Faculty, Rooms
 - [x] Timetable version management with auto-pruning
-- [x] Auto-publish and notification triggers on generation
-- [x] In-app notification bell with real-time polling
-- [x] Role-based timetable views — Section / Faculty Schedule / Room Occupancy
-- [x] Dynamic color-coded timetable grid with per-course legend
-- [x] Global Scheduler Settings panel (hour caps, constraints, toggles)
-- [x] Responsive UI — mobile sidebar overlay, 4-breakpoint CSS, light/dark theme
-
-### 🔄 In Progress
-
-- [ ] Advanced constraint reporting and conflict visualization
-- [ ] Timetable analytics dashboard (workload distribution, room utilization)
+- [x] Role-based timetable views (Section / Faculty / Room)
+- [x] Dynamic color-coded timetable grid with legend
+- [x] In-app notifications with bell icon
+- [x] Auto-publish on generation
+- [x] Global scheduler settings panel
+- [x] Responsive UI — mobile sidebar, 4 breakpoints
 
 ### 🔮 Future Enhancements
 
-- [ ] Reinforcement learning based optimization
+- [ ] Reinforcement learning optimization
 - [ ] Genetic algorithm fallback scheduler
 - [ ] Docker containerization
 - [ ] PostgreSQL production database
-- [ ] Real JWT-based authentication with user-section/faculty linkage
+- [ ] Real JWT authentication with user linkage
 - [ ] Multi-institution / multi-campus support
 - [ ] iCal / Google Calendar export
+- [ ] Advanced analytics dashboard
 
 ---
 
@@ -517,6 +626,13 @@ BCA Student · Full-Stack Developer · AI Systems Enthusiast
 
 ---
 
-## 📄 License
+<div align="center">
 
-Developed for academic and educational purposes.
+*Developed for academic and educational purposes.*
+
+<br/>
+
+![Made with ❤️](https://img.shields.io/badge/Made_with-❤️-red?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Active-success?style=flat-square)
+
+</div>

@@ -388,6 +388,14 @@ class CourseBulkUploadView(APIView):
                             
                     if "semester" in col and row[col["semester"]]:
                         semester = int(row[col["semester"]])
+                        # Guard: reject semesters that exceed the program's total
+                        if program and semester > program.total_semesters:
+                            errors.append(
+                                f"Row {row_num}: semester {semester} exceeds "
+                                f"{program.code}'s max ({program.total_semesters} sems). "
+                                f"Course '{code}' skipped."
+                            )
+                            continue
                         
                     if "parent_pe_code" in col and row[col["parent_pe_code"]]:
                         parent_code = str(row[col["parent_pe_code"]]).strip()

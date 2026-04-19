@@ -1,442 +1,40 @@
 """
-TIMETRIX — Scheduler Engine v4
+TIMETRIX Scheduler Engine — orchestrator.
 
-Four-phase greedy constraint-satisfaction engine with ML-assisted ranking.
+Four-phase greedy constraint-satisfaction with ML-assisted ranking:
+    1 LOAD   2 LABS   3 THEORY (PE → combined → standard → repair → idle)   4 SAVE
 
-Phase 1 : LOAD       — one DB hit per table, everything in memory
-Phase 2 : LABS       — scarcest resource first, section-by-section
-Phase 3 : THEORY     — 3a electives  3b combined  3c standard  3d repair
-Phase 4 : SAVE       — atomic bulk_create with deduplication
-
-Hard constraints enforced in ConstraintTracker (O(1) in-memory).
-ML (GNN-embeddings + Random Forest) ranks candidates; room selected
-deterministically via program-affinity priority tiers.
+Helpers live in sibling modules: constants, ml_scorer, constraint_tracker,
+observability, difficulty, feasibility.
 """
 
 import logging
 import math
-import pickle
 import random
 from collections import Counter, defaultdict
-from pathlib import Path
 from typing import Optional
 
 from django.db import transaction
 
 from academics.models      import AcademicTerm, CourseOffering, Course, StudentGroup
-from faculty.models        import Faculty, FacultySubjectEligibility, TeacherAvailability
+from faculty.models        import (Faculty, FacultySubjectEligibility,
+                                    TeacherAvailability, FacultyProgramExclusion,
+                                    FacultySemesterExclusion)
 from infrastructure.models import Room, ProgramRoomMapping
 from scheduler.models      import Timetable, TimeSlot, LectureAllocation, SchedulerConfig
 
+from scheduler.engine.constants          import (
+    DAYS, DAY_FULL, TEACHING_SLOTS, VALID_CONSECUTIVE_PAIRS,
+)
+from scheduler.engine.ml_scorer          import MLScorer
+from scheduler.engine.constraint_tracker import ConstraintTracker
+from scheduler.engine.observability      import RejectionLog, RunTimer
+from scheduler.engine.difficulty         import DifficultyScorer
+from scheduler.engine.feasibility        import FeasibilityChecker
+
 log = logging.getLogger(__name__)
 
-# ── path constants ────────────────────────────────────────────────────────────
-BASE_DIR      = Path(__file__).resolve().parent.parent
-TRAINED_DIR   = BASE_DIR / "ml_pipeline" / "trained"
-RF_MODEL_PATH = TRAINED_DIR / "rf_model.pkl"
-RF_META_PATH  = TRAINED_DIR / "rf_feature_metadata.pkl"
-EMBED_PATH    = TRAINED_DIR / "node_embeddings.pkl"
 
-# ── scheduling constants ──────────────────────────────────────────────────────
-DAYS               = ["MON", "TUE", "WED", "THU", "FRI"]
-DAY_FULL           = {
-    "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
-    "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday",
-}
-TEACHING_SLOTS     = [1, 2, 3, 4, 5, 6]
-# Slot 4→5 spans the lunch break — NOT consecutive
-VALID_CONSECUTIVE_PAIRS = [(1, 2), (2, 3), (3, 4), (5, 6)]
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ML SCORER
-# ═════════════════════════════════════════════════════════════════════════════
-
-class MLScorer:
-    """
-    Wraps the GNN-embedding + Random-Forest pipeline for candidate scoring.
-
-    At scoring time the GNN embeddings are already pre-computed and stored in
-    node_embeddings.pkl — no graph inference happens at runtime.
-
-    Falls back to heuristic scoring if model files are missing.
-    """
-
-    def __init__(self):
-        self.rf            = None
-        self.scaler        = None
-        self.embeddings: dict = {}
-        self.max_hours_map: dict = {}
-        self.stats: dict   = {}
-        self.threshold     = 0.5
-        self._fac_max_freq: dict = {}
-        self._try_load()
-
-    def _try_load(self):
-        try:
-            with open(RF_MODEL_PATH, "rb") as f:
-                self.rf = pickle.load(f)
-            if RF_META_PATH.exists():
-                with open(RF_META_PATH, "rb") as f:
-                    meta = pickle.load(f)
-                self.scaler        = meta.get("scaler")
-                self.max_hours_map = meta.get("max_hours_map", {})
-                self.stats         = meta.get("stats", {})
-                self.threshold     = meta.get("optimal_threshold", 0.5)
-                # Pre-compute per-faculty max course frequency to avoid O(N) scan per score call
-                self._fac_max_freq: dict = {}
-                for (fac, _), v in self.stats.get("fac_course_freq", {}).items():
-                    if v > self._fac_max_freq.get(fac, 0):
-                        self._fac_max_freq[fac] = v
-            else:
-                log.warning("RF metadata not found; running without scaler/stats.")
-                self._fac_max_freq = {}
-            with open(EMBED_PATH, "rb") as f:
-                self.embeddings = pickle.load(f)
-            log.info(f"ML scorer: loaded RF + embeddings (threshold={self.threshold:.3f}).")
-        except FileNotFoundError:
-            log.warning(
-                "ML models not found in ml_pipeline/trained/. "
-                "Using heuristic scoring only. "
-                "Run gnn_model.py and random_forest_model.py to enable ML."
-            )
-
-    @property
-    def available(self) -> bool:
-        return self.rf is not None
-
-    # ── public entry point ────────────────────────────────────────────────────
-
-    def score(
-        self,
-        faculty_name: str,
-        room_number: str,
-        day: str,
-        slot: int,
-        is_lab: bool,
-        contact_hours: int,
-        semester: int,
-        current_load: int,
-        course_name: Optional[str]   = None,
-        room_type: Optional[str]     = None,
-        room_capacity: Optional[int] = None,
-        requires_consecutive_slots: bool = False,
-        is_elective: bool            = False,
-        section_name: Optional[str]  = None,
-        program_code: Optional[str]  = None,
-        current_load_today: int      = 0,
-        max_daily: int               = 4,
-        is_combined: bool            = False,
-        working_days: Optional[list] = None,
-    ) -> float:
-        if self.available:
-            return self._ml_score(
-                faculty_name, room_number, day, slot,
-                is_lab, contact_hours, semester, current_load,
-                course_name=course_name, room_type=room_type,
-                room_capacity=room_capacity,
-                requires_consecutive_slots=requires_consecutive_slots,
-                is_elective=is_elective, section_name=section_name,
-                program_code=program_code,
-                current_load_today=current_load_today,
-                max_daily=max_daily,
-                is_combined=is_combined, working_days=working_days,
-            )
-        return self._heuristic_score(day, slot, is_lab, current_load,
-                                     self.max_hours_map.get(faculty_name, 18))
-
-    # ── 114-dim feature vector → RF ──────────────────────────────────────────
-
-    def _ml_score(
-        self,
-        faculty_name, room_number, day, slot,
-        is_lab, contact_hours, semester, current_load,
-        course_name=None, room_type=None, room_capacity=None,
-        requires_consecutive_slots=False, is_elective=False,
-        section_name=None, program_code=None,
-        current_load_today: int = 0,
-        max_daily: int = 4,
-        is_combined: bool = False,
-        working_days: Optional[list] = None,
-    ) -> float:
-        """
-        Build a 114-dim feature vector and score via the trained RF model.
-        Layout: fac_emb[32] + ts_emb[32] + rm_emb[32] + manual[18] = 114
-        Must match random_forest_model.py exactly.
-        """
-        try:
-            import numpy as np
-            feat = self._build_feat(
-                faculty_name, room_number, day, slot,
-                is_lab, contact_hours, semester, current_load,
-                course_name=course_name, room_type=room_type,
-                room_capacity=room_capacity,
-                requires_consecutive_slots=requires_consecutive_slots,
-                is_elective=is_elective, section_name=section_name,
-                program_code=program_code,
-                current_load_today=current_load_today,
-                max_daily=max_daily,
-                is_combined=is_combined, working_days=working_days,
-            ).reshape(1, -1)
-            if self.scaler is not None:
-                feat = self.scaler.transform(feat)
-            return float(self.rf.predict_proba(feat)[0][1])
-
-        except Exception as exc:
-            log.warning(f"ML scoring failed ({exc}); using heuristic.")
-            return self._heuristic_score(day, slot, is_lab, current_load,
-                                         self.max_hours_map.get(faculty_name, 18))
-
-    def _build_feat(
-        self,
-        faculty_name, room_number, day, slot,
-        is_lab, contact_hours, semester, current_load,
-        course_name=None, room_type=None, room_capacity=None,
-        requires_consecutive_slots=False, is_elective=False,
-        section_name=None, program_code=None,
-        current_load_today=0, max_daily=4,
-        is_combined=False, working_days=None,
-    ):
-        """Build a 114-dim feature vector (numpy array, not yet scaled)."""
-        import numpy as np
-        EMBED_DIM = 32
-        ZERO = np.zeros(EMBED_DIM, dtype=np.float32)
-
-        fac_emb = self.embeddings.get(f"FAC::{faculty_name}", ZERO)
-        ts_emb  = self.embeddings.get(f"TSL::{DAY_FULL.get(day, day)[:3].upper()}_S{slot}", ZERO)
-        rm_emb  = self.embeddings.get(f"RRM::{room_number}", ZERO)
-
-        max_h    = self.max_hours_map.get(faculty_name, 18)
-        day_full = DAY_FULL.get(day, day)
-
-        load_remaining     = max(0.0, (max_h - current_load) / max(max_h, 1))
-        actual_slots       = self.stats.get("fac_actual_slots", {}).get(faculty_name, set())
-        is_known_slot      = 1.0 if (day_full, slot) in actual_slots else 0.0
-        freq               = self.stats.get("fac_course_freq", {}).get((faculty_name, course_name or ""), 0)
-        fac_max_freq       = self._fac_max_freq.get(faculty_name, 1)
-        fac_course_affinity = freq / max(fac_max_freq, 1)
-        slot_pop           = self.stats.get("slot_popularity", {}).get(slot, 0.5)
-        day_pop            = self.stats.get("day_popularity", {}).get(day_full, 0.5)
-        is_lab_f           = float(is_lab)
-        is_consecutive_lab = 1.0 if requires_consecutive_slots else 0.0
-        is_morning         = 1.0 if slot <= 3 else 0.0
-        is_post_lunch      = 1.0 if slot >= 5 else 0.0
-        sem_norm           = float(semester) / 8.0
-        contact_norm       = float(contact_hours) / 8.0
-        breadth            = self.stats.get("fac_course_count", {}).get(faculty_name, 1)
-        breadth_norm       = min(breadth / 10.0, 1.0)
-        fac_today_ratio    = float(current_load_today) / max(float(max_daily), 1.0)
-        adj_left           = self.stats.get("slot_popularity", {}).get(slot - 1, 0.5)
-        adj_right          = self.stats.get("slot_popularity", {}).get(slot + 1, 0.5)
-        slot_adjacent_density = (adj_left + adj_right) / 2.0
-        near_weekly_cap    = 1.0 if current_load >= max_h * 0.85 else 0.0
-        overload_severity  = max(0.0, (current_load - max_h) / max(max_h, 1))
-        combined_val       = 1.0 if is_combined else 0.0
-        _wd                = working_days if working_days is not None else list(DAY_FULL.values())
-        is_working_day_val = 1.0 if DAY_FULL.get(day, day) in _wd else 0.0
-
-        manual = np.array([
-            load_remaining, is_known_slot, fac_course_affinity, slot_pop,
-            day_pop, is_lab_f, is_consecutive_lab, is_morning, is_post_lunch,
-            sem_norm, contact_norm, breadth_norm, fac_today_ratio,
-            slot_adjacent_density, near_weekly_cap, overload_severity,
-            combined_val, is_working_day_val,
-        ], dtype=np.float32)
-
-        return np.concatenate([fac_emb, ts_emb, rm_emb, manual])
-
-    def score_batch(self, param_list: list) -> list:
-        """
-        Score multiple candidates in one RF call.
-        param_list: list of kwargs dicts for _build_feat().
-        Returns list of float scores (same order).
-        """
-        if not self.available or not param_list:
-            return [self._heuristic_score(
-                p["day"], p["slot"], p.get("is_lab", False),
-                p.get("current_load", 0), self.max_hours_map.get(p["faculty_name"], 18)
-            ) for p in param_list]
-        try:
-            import numpy as np
-            feats = np.stack([self._build_feat(**p) for p in param_list])
-            if self.scaler is not None:
-                feats = self.scaler.transform(feats)
-            proba = self.rf.predict_proba(feats)[:, 1]
-            return proba.tolist()
-        except Exception as exc:
-            log.warning(f"Batch ML scoring failed ({exc}); falling back to per-item heuristic.")
-            return [self._heuristic_score(
-                p["day"], p["slot"], p.get("is_lab", False),
-                p.get("current_load", 0), self.max_hours_map.get(p["faculty_name"], 18)
-            ) for p in param_list]
-
-    # ── heuristic fallback ────────────────────────────────────────────────────
-
-    def _heuristic_score(
-        self, day: str, slot: int, is_lab: bool,
-        current_load: int, max_load: int = 18,
-    ) -> float:
-        score = 0.5
-
-        if is_lab:
-            if slot in (1, 2):  score += 0.20
-            elif slot == 3:     score += 0.10
-            elif slot >= 5:     score -= 0.10
-        else:
-            if slot in (2, 3):  score += 0.08
-            elif slot == 1:     score += 0.04
-            elif slot >= 5:     score += 0.02
-
-        if day in ("TUE", "WED", "THU"):  score += 0.05
-        elif day in ("MON", "FRI"):       score -= 0.02
-
-        ratio = current_load / max(max_load, 1)
-        if ratio > 0.9:    score -= 0.30
-        elif ratio > 0.7:  score -= 0.10
-
-        return max(0.0, min(1.0, score))
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# CONSTRAINT TRACKER
-# In-memory O(1) conflict detection. No DB queries inside the loop.
-# ═════════════════════════════════════════════════════════════════════════════
-
-class ConstraintTracker:
-    """
-    Tracks every assignment made during a scheduling run.
-    assign() / unassign() implement atomic pair operations for labs.
-    """
-
-    def __init__(self):
-        self._faculty_busy   = defaultdict(set)   # (day,slot) → {fac_id,...}
-        self._room_busy      = defaultdict(set)   # (day,slot) → {room_id,...}
-        self._group_busy     = defaultdict(set)   # (day,slot) → {group_id,...}
-        self._fac_day        = defaultdict(lambda: defaultdict(int))
-        self._fac_week       = defaultdict(int)
-        self._fac_slots      = defaultdict(lambda: defaultdict(list))
-        self._group_day      = defaultdict(lambda: defaultdict(int))
-        self._group_lab_days = defaultdict(set)
-        self.section_room_count = defaultdict(lambda: defaultdict(int))
-
-    # ── hard constraint check ─────────────────────────────────────────────────
-
-    def check(
-        self,
-        fac_id, room_id, group_id,
-        day, slot,
-        max_daily, max_weekly, max_consec,
-    ) -> tuple[bool, str]:
-        key = (day, slot)
-
-        if fac_id is not None and fac_id in self._faculty_busy[key]:
-            return False, f"faculty {fac_id} busy at {day} S{slot}"
-        if room_id is not None and room_id in self._room_busy[key]:
-            return False, f"room {room_id} busy at {day} S{slot}"
-        if group_id is not None and group_id in self._group_busy[key]:
-            return False, f"group {group_id} busy at {day} S{slot}"
-
-        if fac_id is not None:
-            if self._fac_week[fac_id] >= max_weekly:
-                return False, f"faculty {fac_id} at weekly limit {max_weekly}"
-            if self._fac_day[fac_id][day] >= max_daily:
-                return False, f"faculty {fac_id} at daily limit {max_daily} on {day}"
-
-            existing = sorted(self._fac_slots[fac_id][day])
-            if existing:
-                tentative = sorted(existing + [slot])
-                run = 1
-                for i in range(1, len(tentative)):
-                    run = run + 1 if tentative[i] == tentative[i - 1] + 1 else 1
-                    if run > max_consec:
-                        return False, (
-                            f"faculty {fac_id} would have {run} consecutive "
-                            f"slots on {day} (max {max_consec})"
-                        )
-        return True, ""
-
-    def check_pair(
-        self,
-        fac_id, room_id, group_id,
-        day, s1, s2,
-        max_daily, max_weekly, max_consec,
-    ) -> tuple[bool, str]:
-        """Atomically check both slots of a consecutive lab pair."""
-        ok, reason = self.check(fac_id, room_id, group_id, day, s1,
-                                max_daily, max_weekly, max_consec)
-        if not ok:
-            return False, reason
-        self.assign(fac_id, room_id, group_id, day, s1)
-        ok2, reason2 = self.check(fac_id, room_id, group_id, day, s2,
-                                   max_daily, max_weekly, max_consec)
-        self.unassign(fac_id, room_id, group_id, day, s1)
-        return ok2, reason2
-
-    # ── assignment / rollback ─────────────────────────────────────────────────
-
-    def assign(self, fac_id, room_id, group_id, day, slot):
-        key = (day, slot)
-        if fac_id is not None:
-            self._faculty_busy[key].add(fac_id)
-            self._fac_day[fac_id][day]  += 1
-            self._fac_week[fac_id]      += 1
-            self._fac_slots[fac_id][day].append(slot)
-        if room_id is not None:
-            self._room_busy[key].add(room_id)
-        if group_id is not None:
-            self._group_busy[key].add(group_id)
-            self._group_day[group_id][day] += 1
-            if room_id is not None:
-                self.section_room_count[group_id][room_id] += 1
-
-    def unassign(self, fac_id, room_id, group_id, day, slot):
-        key = (day, slot)
-        if fac_id is not None:
-            self._faculty_busy[key].discard(fac_id)
-            self._fac_day[fac_id][day]  -= 1
-            self._fac_week[fac_id]      -= 1
-            slots = self._fac_slots[fac_id][day]
-            if slot in slots:
-                slots.remove(slot)
-        if room_id is not None:
-            self._room_busy[key].discard(room_id)
-        if group_id is not None:
-            self._group_busy[key].discard(group_id)
-            self._group_day[group_id][day] = max(
-                0, self._group_day[group_id][day] - 1
-            )
-
-    # ── query helpers ─────────────────────────────────────────────────────────
-
-    def faculty_week_load(self, fac_id) -> int:
-        return self._fac_week[fac_id]
-
-    def faculty_day_load(self, fac_id, day) -> int:
-        return self._fac_day[fac_id][day]
-
-    def group_day_load(self, group_id, day) -> int:
-        return self._group_day[group_id][day]
-
-    def group_has_lab_today(self, group_id, day) -> bool:
-        return day in self._group_lab_days[group_id]
-
-    def mark_group_lab_day(self, group_id, day):
-        self._group_lab_days[group_id].add(day)
-
-    def is_group_free(self, group_id, day, slot) -> bool:
-        return group_id not in self._group_busy.get((day, slot), set())
-
-    def preferred_room_for_section(self, group_id) -> Optional[int]:
-        """Return the room_id most used by this group so far, or None."""
-        usage = self.section_room_count.get(group_id)
-        if not usage:
-            return None
-        return max(usage, key=usage.get)
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# SCHEDULER ENGINE
-# ═════════════════════════════════════════════════════════════════════════════
 
 class SchedulerEngine:
     """One instance per scheduling run."""
@@ -466,11 +64,16 @@ class SchedulerEngine:
         self.rejection_reasons             = defaultdict(Counter)
 
         # Cache: ML-ranked faculty fallback keyed by course_id
-        # Built once per course per run; reused by repair pass.
         self._ml_faculty_cache: dict[int, list] = {}
 
         # Room sort key (built in _load, used wherever room pool is sliced)
         self._room_sort_key = None
+
+        # Observability (#10), difficulty (#1), feasibility (#3)
+        self.rejection_log   = RejectionLog()
+        self.timer           = RunTimer()
+        self.difficulty      = None    # built after load
+        self.feasibility     = None    # built after load
 
     # ── internal helpers ──────────────────────────────────────────────────────
 
@@ -623,7 +226,7 @@ class SchedulerEngine:
 
         # ── offerings ─────────────────────────────────────────────────────────
         # Skip PC/standard-theory offerings for combined groups (e.g. A+B).
-        # Combined groups only need Lab (PR), Project (PRJ), AEC, and PE courses;
+        # Combined groups only need PE courses;
         # theory is already covered by the individual section offerings (A, B).
         COMBINED_ALLOWED_TYPES = {"PE"}
 
@@ -711,8 +314,8 @@ class SchedulerEngine:
 
     # ═════════════════════════════════════════════════════════════════════════
     # ML-RANKED FACULTY FALLBACK
-    # Used when no FacultySubjectEligibility records exist for a course.
-    # Result is cached per course_id for the duration of the run.
+    # Used as the primary faculty pool for all courses.
+    # FacultySubjectEligibility records (exclusions) are applied afterward.
     # ═════════════════════════════════════════════════════════════════════════
 
     def _ml_rank_all_faculty(self, offering: CourseOffering) -> list:
@@ -820,20 +423,38 @@ class SchedulerEngine:
         if offering.assigned_faculty and offering.assigned_faculty not in result:
             result = [offering.assigned_faculty] + result
 
-        # ── Step 3: FacultySubjectEligibility records ─────────────────────────
-        qs = (
+        # ── Step 3: Build exclusion set (course + program + semester) ────────
+        # A faculty is excluded if they have ANY exclusion covering this course.
+        excluded_ids = set(
             FacultySubjectEligibility.objects
-            .filter(course=offering.course, faculty__is_active=True)
-            .select_related("faculty")
-            .order_by("-priority_weight")
+            .filter(course=offering.course)
+            .values_list("faculty_id", flat=True)
         )
-        for e in qs:
-            if e.faculty not in result:
-                result.append(e.faculty)
+        # Program-level exclusion: faculty excluded from entire program
+        if offering.course.program_id:
+            excluded_ids |= set(
+                FacultyProgramExclusion.objects
+                .filter(program_id=offering.course.program_id)
+                .values_list("faculty_id", flat=True)
+            )
+        # Semester-level exclusion: faculty excluded from specific semester
+        if offering.course.program_id and offering.course.semester:
+            excluded_ids |= set(
+                FacultySemesterExclusion.objects
+                .filter(
+                    program_id=offering.course.program_id,
+                    semester=offering.course.semester,
+                )
+                .values_list("faculty_id", flat=True)
+            )
 
-        # ── Step 4: ML all-faculty fallback (last resort) ─────────────────────
+        # ── Step 4: ML all-faculty ranking (always used now) ──────────────────
         if not result:
             result = self._ml_rank_all_faculty(offering)
+
+        # Filter out excluded faculty
+        if excluded_ids:
+            result = [f for f in result if f.id not in excluded_ids]
 
         # ── Step 5: Filter out faculty at weekly cap ──────────────────────────
         result = [
@@ -1003,17 +624,9 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def _schedule_labs(self, lab_offerings: list):
-        """
-        Phase 1: Scheduling Laboratory sessions (PR) and Projects (PRJ).
-        Labs are given the highest priority to schedule because they require 
-        consecutive double-slots, specific lab rooms, and only one lab per day 
-        for any group.
-        """
-        """
-        Labs need 2 consecutive slots + lab room — schedule them before theory.
+        """Phase 2 — labs (PR/PRJ). Two consecutive slots + lab room; one lab/day/group.
 
-        CRITICAL: Process section-by-section (all of section A before section B)
-        to prevent competing for the same lab room simultaneously.
+        Processed section-by-section so two sections never race for the same lab room.
         """
         log.info(f"LAB PHASE: {len(lab_offerings)} lab offerings")
 
@@ -1071,15 +684,17 @@ class SchedulerEngine:
                     score_params.append(self._score_params(fac, day, s1, True, offering))
 
         scores = self.ml.score_batch(score_params) if score_params else []
+        # Morning pairs (s1 in 1-3) get a small sort bonus so they're tried first.
+        _MB = {1: 0.06, 2: 0.05, 3: 0.04, 4: 0.00, 5: -0.02, 6: -0.03}
         candidates = [
-            (sc, tb, day, s1, s2, fac, meta)
+            (sc + _MB.get(s1, 0.0), sc, tb, day, s1, s2, fac, meta)
             for tb, ((day, s1, s2, fac, meta), sc) in enumerate(zip(raw, scores))
         ]
         candidates.sort(reverse=True)
 
         if not is_split:
             # ── whole-section lab ─────────────────────────────────────────────
-            for sc, _tb, day, s1, s2, fac, meta in candidates:
+            for _sort_sc, sc, _tb, day, s1, s2, fac, meta in candidates:
                 if scheduled:
                     break
                 room = self._pick_room(pool, group_id, day, s1, group.strength,
@@ -1116,7 +731,7 @@ class SchedulerEngine:
         else:
             # ── G1/G2 split: need 2 rooms free at both slots ─────────────────
             half = group.strength // 2
-            for sc, _tb, day, s1, s2, fac, meta in candidates:
+            for _sort_sc, sc, _tb, day, s1, s2, fac, meta in candidates:
                 if scheduled:
                     break
                 busy_s1 = self.tracker._room_busy.get((day, s1), set())
@@ -1168,12 +783,7 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def _schedule_theory(self, theory_offerings: list):
-        """
-        Phase 2: Scheduling Theory (PC, BSC, ESC, etc).
-        Theory subjects are scheduled one slot at a time. The system tries to spread
-        them evenly across the working days to prevent students or faculty from 
-        being overloaded on a single day.
-        """
+        """Phase 3 — theory (PE → combined → standard). Sessions spread across days."""
         log.info(f"THEORY PHASE: {len(theory_offerings)} theory offerings")
         theory_offerings.sort(key=lambda o: -o.course.priority)
 
@@ -1262,20 +872,11 @@ class SchedulerEngine:
     # ── 3a: parallel electives ────────────────────────────────────────────────
 
     def _schedule_electives(self, elective_groups: dict, course_days_used: dict):
-        """
-        Phase 3: Scheduling Parallel Electives (PE).
-        Electives are tricky because multiple courses (e.g. Cyber Security, IoT) 
-        run at the exact same time for different sub-groups of students. 
-        This block automatically merges all related options so they can be assigned 
-        to the exact same day and slot, in multiple rooms, with different teachers.
-        """
-        """Schedule PE / elective groups so all options land on the SAME (day, slot).
+        """Phase 3a — parallel PE electives: N options share one (day, slot) across N rooms.
 
-        Key rules from the PDF:
-          RULE 2 — OFF-DAY EXCLUSION (UNION): block days where ANY section has off.
-          RULE 3 — SAME SLOT ALL OPTIONS: N options → N rooms at one (day, slot).
-          RULE 4 — ALLOCATIONS: one row per option per offering.
-          RULE 5 — FRONTEND: concatenated display.
+        Rules:
+          - OFF-DAY EXCLUSION (UNION): skip any day where any member section is off.
+          - SAME SLOT: one (day, slot) serves all options; one allocation row per option.
         """
         for group_name, unit in elective_groups.items():
             # ── Group offerings by course_id (each course = one PE option) ─────
@@ -1551,13 +1152,14 @@ class SchedulerEngine:
                     sp_std.append(self._score_params(fac, day, slot, False, offering))
 
         scores_std = self.ml.score_batch(sp_std) if sp_std else []
+        _MB = {1: 0.06, 2: 0.05, 3: 0.04, 4: 0.00, 5: -0.02, 6: -0.03}
         candidates = [
-            (sc, tb, day, slot, fac, meta)
+            (sc + _MB.get(slot, 0.0), sc, tb, day, slot, fac, meta)
             for tb, ((day, slot, fac, meta), sc) in enumerate(zip(raw_std, scores_std))
         ]
         candidates.sort(reverse=True)
 
-        for sc, _tb, day, slot, fac, meta in candidates:
+        for _sort_sc, sc, _tb, day, slot, fac, meta in candidates:
             if scheduled >= needed:
                 break
             if day in course_days_used[course.id]:
@@ -1663,13 +1265,14 @@ class SchedulerEngine:
                         sp_rep.append(self._score_params(fac, day, slot, False, offering))
 
             scores_rep = self.ml.score_batch(sp_rep) if sp_rep else []
+            _MB = {1: 0.06, 2: 0.05, 3: 0.04, 4: 0.00, 5: -0.02, 6: -0.03}
             candidates = [
-                (sc, tb, day, slot, fac, meta)
+                (sc + _MB.get(slot, 0.0), sc, tb, day, slot, fac, meta)
                 for tb, ((day, slot, fac, meta), sc) in enumerate(zip(raw_rep, scores_rep))
             ]
             candidates.sort(reverse=True)
 
-            for sc, _tb, day, slot, fac, meta in candidates:
+            for _sort_sc, sc, _tb, day, slot, fac, meta in candidates:
                 if sched_now >= still_need:
                     break
                 if self.tracker.group_day_load(group_id, day) >= MAX_GRP_DAILY:
@@ -1809,6 +1412,262 @@ class SchedulerEngine:
         )
 
     # ═════════════════════════════════════════════════════════════════════════
+    # PHASE 3f: EVICTION-REPAIR  (improvement #4)
+    # Evict low-score allocations to make room for unscheduled offerings and
+    # retry placement. Only allocations with soft_constraint_score < 0.5 and
+    # is_pe=False are eligible for eviction. Each unscheduled offering gets
+    # at most one eviction attempt per slot; if the re-placement fails we
+    # roll back the eviction immediately.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _eviction_repair(self) -> list:
+        if not self.unscheduled_offerings:
+            return []
+
+        log.info(
+            f"EVICTION REPAIR: {len(self.unscheduled_offerings)} "
+            "offering(s) still unscheduled"
+        )
+        EVICT_THRESHOLD = 0.5
+        recovered: list = []
+
+        for offering in list(self.unscheduled_offerings):
+            course   = offering.course
+            group    = offering.student_group
+            group_id = group.id
+            needed   = course.min_weekly_lectures
+            have     = sum(1 for a in self.pending_saves
+                           if a["offering_id"] == offering.id)
+            still_need = needed - have
+            if still_need <= 0:
+                recovered.append(offering)
+                continue
+
+            eligible = self._eligible_faculty(offering)
+            if not eligible:
+                continue
+            is_lab  = course.requires_lab_room
+            pool    = self.lab_rooms if is_lab else self.theory_rooms
+            placed  = 0
+
+            # Candidate victims: low-score non-PE allocations.
+            victims = [
+                i for i, a in enumerate(self.pending_saves)
+                if not a.get("is_pe", False)
+                and a["score"] < EVICT_THRESHOLD
+                and a["student_group_id"] != group_id
+            ]
+            victims.sort(key=lambda i: self.pending_saves[i]["score"])
+
+            for vi in victims:
+                if placed >= still_need:
+                    break
+                victim = self.pending_saves[vi]
+                vkey   = self.slot_id_to_key.get(victim["timeslot_id"])
+                if not vkey:
+                    continue
+                vday, vslot = vkey
+
+                # Is this slot viable for the current offering's group?
+                if not self.tracker.is_group_free(group_id, vday, vslot):
+                    continue
+                if group.working_days and vday not in group.working_days:
+                    continue
+
+                # Evict.
+                self.tracker.unassign(
+                    victim["faculty_id"], victim["room_id"],
+                    victim["student_group_id"], vday, vslot,
+                )
+
+                # Try to place the unscheduled offering in the freed slot.
+                room = self._pick_room(pool, group_id, vday, vslot, group.strength)
+                if not room:
+                    # Rollback eviction.
+                    self.tracker.assign(
+                        victim["faculty_id"], victim["room_id"],
+                        victim["student_group_id"], vday, vslot,
+                    )
+                    continue
+
+                chosen_fac = None
+                chosen_meta = None
+                for fac in eligible:
+                    meta = self.faculty_meta.get(fac.id)
+                    if not meta:
+                        continue
+                    ok, _ = self.tracker.check(
+                        fac.id, room.id, group_id, vday, vslot,
+                        meta["max_daily"], meta["max_weekly"], meta["max_consec"],
+                    )
+                    if ok:
+                        chosen_fac = fac
+                        chosen_meta = meta
+                        break
+
+                if not chosen_fac:
+                    self.tracker.assign(
+                        victim["faculty_id"], victim["room_id"],
+                        victim["student_group_id"], vday, vslot,
+                    )
+                    continue
+
+                self.tracker.assign(
+                    chosen_fac.id, room.id, group_id, vday, vslot,
+                )
+                # Remove victim from pending_saves and insert replacement.
+                self.pending_saves.pop(vi)
+                # Append evicted offering back to unscheduled (its spot was
+                # taken; we keep it so the repair loop can try again later).
+                self.pending_saves.append({
+                    "offering_id"     : offering.id,
+                    "student_group_id": group_id,
+                    "faculty_id"      : chosen_fac.id,
+                    "room_id"         : room.id,
+                    "timeslot_id"     : self.slot_map[(vday, vslot)].id,
+                    "score"           : 0.50,   # eviction-replaced
+                })
+                placed += 1
+                log.info(
+                    f"  EVICT ✓ {course.code} took (vday={vday} S{vslot}) "
+                    f"score={victim['score']:.2f} → {chosen_fac.name}"
+                )
+
+                # Victim offering becomes unscheduled; feed it into list if not
+                # already tracked.
+                victim_offering_id = victim["offering_id"]
+                if not any(o.id == victim_offering_id for o in self.unscheduled_offerings):
+                    try:
+                        vo = CourseOffering.objects.get(pk=victim_offering_id)
+                        self.unscheduled_offerings.append(vo)
+                    except CourseOffering.DoesNotExist:
+                        pass
+
+            if placed >= still_need:
+                recovered.append(offering)
+                log.info(
+                    f"  EVICTION REPAIR: {course.code} ({group.name}) "
+                    f"resolved via {placed} eviction(s)"
+                )
+
+        log.info(
+            f"EVICTION REPAIR done: {len(recovered)} recovered "
+            f"({len(self.unscheduled_offerings) - len(recovered)} still unscheduled)"
+        )
+        return recovered
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # PHASE 3g: GROUP SLOT PACKING
+    # After required sessions are placed, groups below TARGET_FILL get extra
+    # sessions scheduled (beyond min_weekly_lectures) to reach ~75% fill.
+    # Only theory courses (no consecutive constraint) are added; hard
+    # constraints (busy/caps) are always enforced.  Morning slots (1-3) first.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _pack_group_slots(self, target_fill: float = 0.80):
+        total_slots = len(self.slot_map)          # 30 (5 days × 6 slots)
+        target_n    = int(total_slots * target_fill)  # 24 at 0.80
+
+        # Build a group-id → {(day,slot)} map of already-used slots
+        used: dict[int, set] = {}
+        for key, gids in self.tracker._group_busy.items():
+            for gid in gids:
+                used.setdefault(gid, set()).add(key)
+
+        # Build group-id → list[offering] from all non-lab single-slot offerings
+        group_offerings: dict[int, list] = {}
+        for o in self.offerings:
+            if o.course.requires_consecutive_slots or o.course.requires_lab_room:
+                continue
+            if o.course.course_type in {"PE", "PRJ"}:
+                continue
+            gid = o.student_group_id
+            group_offerings.setdefault(gid, []).append(o)
+
+        # Per-offering extra-session counter so no offering is repeated > 2×min
+        extra_count: dict[int, int] = {}
+
+        _MB = {1: 0.06, 2: 0.05, 3: 0.04, 4: 0.00, 5: -0.02, 6: -0.03}
+        total_packed = 0
+
+        for gid, offerings in group_offerings.items():
+            already_used = used.get(gid, set())
+            current_n    = len(already_used)
+            if current_n >= target_n:
+                continue
+
+            need_extra = target_n - current_n
+            group = offerings[0].student_group
+
+            # Free slots for this group.
+            # FIX: binary pre-lunch/post-lunch split — slots 1-3 (pre-lunch) are
+            # always tried before slots 4-6 (post-lunch). Within each half, lower
+            # slot numbers come first. Days are alphabetically stable.
+            free = sorted(
+                [
+                    (day, slot)
+                    for (day, slot) in self.slot_map.keys()
+                    if (day, slot) not in already_used
+                    and (not group.working_days or day in group.working_days)
+                    and self.tracker.is_group_free(gid, day, slot)
+                ],
+                key=lambda ds: (0 if ds[1] <= 3 else 1, ds[1], ds[0]),  # pre-lunch FIRST
+            )
+
+            placed = 0
+            for day, slot in free:
+                if placed >= need_extra:
+                    break
+
+                for offering in offerings:
+                    # FIX: raised cap to 3× min so 3-credit courses can fill
+                    # enough slots to hit the 80% weekly target.
+                    cap = offering.course.min_weekly_lectures * 3
+                    if extra_count.get(offering.id, 0) >= cap:
+                        continue
+
+                    eligible = self._eligible_faculty(offering)
+                    for fac in eligible:
+                        meta = self.faculty_meta.get(fac.id)
+                        if not meta:
+                            continue
+                        room = self._pick_room(
+                            self.theory_rooms, gid, day, slot, group.strength
+                        )
+                        if not room:
+                            continue
+                        ok, _ = self.tracker.check(
+                            fac.id, room.id, gid, day, slot,
+                            meta["max_daily"], meta["max_weekly"], meta["max_consec"],
+                        )
+                        if not ok:
+                            continue
+
+                        self.tracker.assign(fac.id, room.id, gid, day, slot)
+                        self.pending_saves.append({
+                            "offering_id"     : offering.id,
+                            "student_group_id": gid,
+                            "faculty_id"      : fac.id,
+                            "room_id"         : room.id,
+                            "timeslot_id"     : self.slot_map[(day, slot)].id,
+                            "score"           : 0.42,   # packing session marker
+                        })
+                        already_used.add((day, slot))
+                        extra_count[offering.id] = extra_count.get(offering.id, 0) + 1
+                        placed += 1
+                        total_packed += 1
+                        log.info(
+                            f"  PACK ✓ {offering.course.code} | {fac.name} | "
+                            f"{day} S{slot} (extra #{extra_count[offering.id]})"
+                        )
+                        break
+                    else:
+                        continue
+                    break   # move to next free slot after placing one session
+
+        log.info(f"PACK PASS done: {total_packed} extra sessions added.")
+
+    # ═════════════════════════════════════════════════════════════════════════
     # PHASE 4: ATOMIC DB SAVE
     # ═════════════════════════════════════════════════════════════════════════
 
@@ -1913,20 +1772,9 @@ class SchedulerEngine:
     # ═════════════════════════════════════════════════════════════════════════
 
     def run(self) -> dict:
-        """
-        Main Engine Entry Point.
-        This function handles the sequence of generating a timetable:
-        1. Setup & load data
-        2. Schedule strict classes (Labs)
-        3. Schedule standard classes (Theory)
-        4. Schedule parallel batches (Electives)
-        5. Repair any missed classes
-        6. Fill in free rooms
-        7. Save the whole timetable to the database.
-        """
-        """
-        Execute the full scheduling pipeline and return a summary dict.
-        Return format matches what scheduler/views.py expects exactly.
+        """Execute the full scheduling pipeline and return a summary dict.
+
+        Return shape matches what scheduler/views.py expects exactly.
         """
         log.info(
             f"Scheduler started — timetable={self.timetable_id}, "
@@ -1934,7 +1782,8 @@ class SchedulerEngine:
         )
 
         # Phase 1 — load
-        self._load()
+        with self.timer.phase("load"):
+            self._load()
 
         if not self.offerings:
             return {
@@ -1946,17 +1795,48 @@ class SchedulerEngine:
                 "unscheduled" : [],
                 "unscheduled_reasons": {},
                 "ml_used"     : self.ml.available,
+                "timings"     : self.timer.as_dict(),
             }
 
-        # Split into lab (PR only) and theory offerings.
-        # PRJ (project work) needs consecutive slots but uses THEORY rooms —
-        # it goes into theory_offerings so it benefits from the lower-priority
-        # scheduling pass after labs have been placed.
+        # Forward-feasibility (#3) initialized once the pools are known.
+        self.feasibility = FeasibilityChecker(
+            tracker      = self.tracker,
+            total_slots  = len(TEACHING_SLOTS) * len(DAYS),
+            theory_rooms = len(self.theory_rooms),
+            lab_rooms    = len(self.lab_rooms),
+        )
+
+        # Build eligibility map for difficulty scoring (#1).
+        # Uses the same eligibility path as main scheduling to stay consistent.
+        elig_map = {}
+        for o in self.offerings:
+            try:
+                elig_map[o.id] = self._eligible_faculty(o)
+            except Exception:
+                elig_map[o.id] = []
+
+        self.difficulty = DifficultyScorer(
+            offerings            = self.offerings,
+            eligible_faculty_map = elig_map,
+            lab_room_count       = len(self.lab_rooms),
+            theory_room_count    = len(self.theory_rooms),
+        )
+        # Hardest-first ordering (#1). Phase routers still get their own sub-sort,
+        # but this primes the overall order used when the phase methods iterate.
+        ranked = self.difficulty.sorted_offerings(reverse=True)
+        # Stable: keep original items but reorder list in memory.
+        self.offerings = ranked
+
+        # FIX: use OR — a PR course may have requires_lab_room=False if the admin
+        # didn't tick the box, but requires_consecutive_slots=True always on PR.
+        # _schedule_one_lab() already selects the pool correctly per course flag.
         lab_offerings    = [
-            o for o in self.offerings if o.course.requires_lab_room
+            o for o in self.offerings
+            if o.course.requires_lab_room or o.course.requires_consecutive_slots
         ]
         theory_offerings = [
-            o for o in self.offerings if not o.course.requires_lab_room
+            o for o in self.offerings
+            if not (o.course.requires_lab_room or o.course.requires_consecutive_slots)
         ]
 
         log.info(
@@ -1964,47 +1844,62 @@ class SchedulerEngine:
             f"{len(theory_offerings)} theory (incl. PRJ)"
         )
 
-        # Phase 2 — labs (section-by-section, scarcest first)
-        if lab_offerings:
-            self._schedule_labs(lab_offerings)
+        with self.timer.phase("labs"):
+            if lab_offerings:
+                self._schedule_labs(lab_offerings)
 
-        # Phase 3 — theory (electives → combined → standard)
-        if theory_offerings:
-            self._schedule_theory(theory_offerings)
+        with self.timer.phase("theory"):
+            if theory_offerings:
+                self._schedule_theory(theory_offerings)
 
-        # Phase 3d — repair pass
-        if self.unscheduled_offerings:
-            fixed = self._repair_unscheduled()
-            if fixed:
-                fixed_codes = {o.course.code for o in fixed}
-                # Remove repaired entries from unscheduled list
-                self.unscheduled = [
-                    msg for msg in self.unscheduled
-                    if not any(code in msg for code in fixed_codes)
-                ]
-                self.unscheduled_offerings = [
-                    o for o in self.unscheduled_offerings
-                    if o not in fixed
-                ]
+        with self.timer.phase("repair"):
+            if self.unscheduled_offerings:
+                fixed = self._repair_unscheduled()
+                if fixed:
+                    fixed_codes = {o.course.code for o in fixed}
+                    self.unscheduled = [
+                        msg for msg in self.unscheduled
+                        if not any(code in msg for code in fixed_codes)
+                    ]
+                    self.unscheduled_offerings = [
+                        o for o in self.unscheduled_offerings if o not in fixed
+                    ]
 
-        # Phase 3e — idle room pass (pack free lab-room slots)
-        self._idle_room_pass()
+            # Eviction-repair (#4) — only if repair still couldn't place everyone.
+            if self.unscheduled_offerings:
+                evicted = self._eviction_repair()
+                if evicted:
+                    evicted_codes = {o.course.code for o in evicted}
+                    self.unscheduled = [
+                        msg for msg in self.unscheduled
+                        if not any(code in msg for code in evicted_codes)
+                    ]
+                    self.unscheduled_offerings = [
+                        o for o in self.unscheduled_offerings if o not in evicted
+                    ]
 
-        # Phase 4 — save
-        try:
-            saved = self._save()
-        except Exception as exc:
-            log.error(f"DB save failed: {exc}")
-            return {
-                "status"      : "failed",
-                "reason"      : str(exc),
-                "timetable_id": self.timetable_id,
-                "allocations" : 0,
-                "avg_score"   : 0.0,
-                "unscheduled" : self.unscheduled,
-                "unscheduled_reasons": {},
-                "ml_used"     : self.ml.available,
-            }
+        with self.timer.phase("idle_pack"):
+            self._idle_room_pass()
+
+        with self.timer.phase("slot_pack"):
+            self._pack_group_slots(target_fill=0.80)
+
+        with self.timer.phase("save"):
+            try:
+                saved = self._save()
+            except Exception as exc:
+                log.error(f"DB save failed: {exc}")
+                return {
+                    "status"      : "failed",
+                    "reason"      : str(exc),
+                    "timetable_id": self.timetable_id,
+                    "allocations" : 0,
+                    "avg_score"   : 0.0,
+                    "unscheduled" : self.unscheduled,
+                    "unscheduled_reasons": {},
+                    "ml_used"     : self.ml.available,
+                    "timings"     : self.timer.as_dict(),
+                }
 
         status = "success" if not self.unscheduled else "partial"
 
@@ -2019,12 +1914,14 @@ class SchedulerEngine:
                 msg.split(" — ")[0]: self._top_reasons(msg.split(" — ")[0])
                 for msg in self.unscheduled
             },
-            "ml_used"     : self.ml.available,
-            "warnings"    : self.unscheduled,   # alias for views that check 'warnings'
+            "ml_used"        : self.ml.available,
+            "warnings"       : self.unscheduled,
+            "timings"        : self.timer.as_dict(),
+            "rejection_top"  : self.rejection_log.summary(5),
         }
 
         log.info(
-            f"Scheduler done — status={status}, "
-            f"saved={saved}, unscheduled={len(self.unscheduled)}"
+            f"Scheduler done — status={status}, saved={saved}, "
+            f"unscheduled={len(self.unscheduled)}, total={self.timer.total():.2f}s"
         )
         return result

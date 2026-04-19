@@ -1,7 +1,7 @@
 # server/ml_pipeline/management/commands/backfill_course_programs.py
 """
 Backfills missing program/semester on Course records by reading
-TIMETRIX_Courses_Master_Data.xlsx and linking each course to its program.
+Courses.xlsx and linking each course to its program.
 
 Run after courses and programs are uploaded:
     python manage.py backfill_course_programs
@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 DATA = Path(__file__).resolve().parent.parent.parent.parent / "ml_pipeline" / "data"
-COURSES_XLSX = DATA / "TIMETRIX_Courses_Master_Data.xlsx"
+COURSES_XLSX = DATA / "Courses.xlsx"
 
 
 class Command(BaseCommand):

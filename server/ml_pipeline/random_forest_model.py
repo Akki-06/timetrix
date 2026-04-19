@@ -40,7 +40,7 @@ from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier
                                VotingClassifier)
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import (roc_auc_score, classification_report,
@@ -323,6 +323,17 @@ def build_positive_samples(df, embeddings, max_hours_map, stats):
         today_load = fac_day_load[faculty][day]
         max_d      = 4   # default max_daily; not stored in training CSVs
 
+        # FIX (Change 1): Cap the weekly load used for positive feature vectors
+        # at (max_hours - 1) so positives NEVER appear "overloaded" to the model.
+        # Without this cap, late rows for busy faculty accumulate load > max_h,
+        # creating positive samples that look overloaded — this confuses Type 3
+        # negatives (which are also overloaded) and makes the model ignore
+        # load_remaining / overload_severity as discriminative features.
+        max_h_pos   = max_hours_map.get(faculty, 18)
+        capped_load = min(fac_load[faculty], max(0, max_h_pos - 1))
+        capped_fac_weekly_load = dict(fac_load)  # copy
+        capped_fac_weekly_load[faculty] = capped_load
+
         feat = build_feature_vector(
             faculty              = faculty,
             room                 = str(row["room"]).strip(),
@@ -334,7 +345,7 @@ def build_positive_samples(df, embeddings, max_hours_map, stats):
             semester_int         = int(row["semester_int"]),
             course_name          = str(row["course_name"]).strip(),
             embeddings           = embeddings,
-            fac_weekly_load      = fac_load,
+            fac_weekly_load      = capped_fac_weekly_load,  # capped, not raw
             max_hours_map        = max_hours_map,
             stats                = stats,
             fac_today_load       = today_load,
@@ -386,7 +397,9 @@ def build_negative_samples(df, embeddings, max_hours_map, stats,
     # Faculty → their known available (day, slot) from real data
     fac_known_slots = stats["fac_actual_slots"]
 
-    per_type = max(1, n_negatives // 7)
+    # Type 3 (overload) gets 2× share — it's the most critical constraint.
+    # The divisor 8 gives the same total budget but lets Type 3 use 2 shares.
+    per_type = max(1, n_negatives // 8)
 
     def add(faculty, room, day, slot, is_lab, consec, hours, sem,
             course, load=0, today_load=0):
@@ -452,17 +465,33 @@ def build_negative_samples(df, embeddings, max_hours_map, stats,
         count += 1
     log.info(f"    Generated: {count}")
 
-    # ── Type 3: Faculty heavily overloaded
-    log.info("  Type 3: faculty overload...")
+    # ── Type 3: Faculty overload — EXACT CLONE of real positive rows
+    # FIX (Change 2+3): The OLD approach picked random rows with random high loads.
+    # The GNN embeddings for those random combos differed from real positives, so
+    # the model learned to distinguish valid vs invalid by *embedding match*, not
+    # by load features. Result: the sanity check for overloaded faculty scored 0.998
+    # instead of < 0.4 — the model was completely ignoring load_remaining.
+    #
+    # NEW approach: clone REAL positive rows (same faculty, room, day, slot, course)
+    # but inject load = max_h + high. Now both the positive and negative share the
+    # SAME embeddings — the model MUST use load_remaining / overload_severity to
+    # distinguish them. This is a «contrastive pair» strategy.
+    #
+    # Type 3 budget is doubled (2 * per_type) because overload is the most critical
+    # constraint to enforce — it must dominate the negative distribution.
+    log.info("  Type 3: faculty overload (contrastive pairs from real positives)...")
     count = 0
-    for _ in range(per_type * 3):
-        if count >= per_type: break
+    for _ in range(per_type * 6):  # attempt 6x to fill 2x budget
+        if count >= per_type * 2: break
         row   = rng.choice(rows)
         fac   = row["faculty"]
         max_h = max_hours.get(fac, 18)
-        load  = max_h + rng.randint(4, 10)   # clearly over weekly limit
-        # Also simulate a full day (daily limit reached) — make extreme
-        today = rng.randint(5, 8)
+        # Inject clearly-over-cap load (4–12 hours above weekly limit)
+        load  = max_h + rng.randint(4, 12)
+        # Simulate the day already being packed (over daily limit)
+        today = rng.randint(5, 9)
+        # Use EXACT same room/day/slot/course as the real row — only load differs.
+        # This creates a minimal contrastive pair: everything identical except load.
         add(fac, row["room"], row["day"], row["slot_index"],
             row["is_lab"], row["is_consecutive_lab"],
             row["contact_hours_weekly"], row["semester_int"],
@@ -556,6 +585,74 @@ def build_negative_samples(df, embeddings, max_hours_map, stats,
         count += 1
     log.info(f"    Generated: {count}")
 
+    # ── Type 8: lab course assigned to theory room (room-type violation)
+    # Hard-mined: the scheduler should NEVER put a lab course in a THEORY room.
+    log.info("  Type 8: lab course placed in theory room...")
+    theory_rooms = [
+        str(r["room_id"]) for _, r in rooms_df.iterrows()
+        if str(r.get("room_type", "")).upper() == "THEORY"
+    ]
+    count = 0
+    for _ in range(per_type * 4):
+        if count >= per_type: break
+        if not lab_rows or not theory_rooms: break
+        row  = rng.choice(lab_rows)
+        room = rng.choice(theory_rooms)
+        add(row["faculty"], room, row["day"], row["slot_index"],
+            is_lab=1, consec=row.get("is_consecutive_lab", 1),
+            hours=row["contact_hours_weekly"],
+            sem=row["semester_int"],
+            course=row["course_name"])
+        count += 1
+    log.info(f"    Generated: {count}")
+
+    # ── Type 9: cross-semester mismatch (faculty teaching a course in a
+    # semester they've never taught — simulates assignment error).
+    log.info("  Type 9: cross-semester faculty mismatch...")
+    all_sem_set = sorted(df["semester_int"].dropna().unique().tolist())
+    fac_sem_freq = defaultdict(set)
+    for _, r in df.iterrows():
+        fac_sem_freq[r["faculty"]].add(r["semester_int"])
+    count = 0
+    for _ in range(per_type * 4):
+        if count >= per_type: break
+        if not all_sem_set: break
+        row = rng.choice(df.to_dict("records"))
+        unknown_sems = [s for s in all_sem_set if s not in fac_sem_freq.get(row["faculty"], set())]
+        if not unknown_sems:
+            continue
+        bad_sem = rng.choice(unknown_sems)
+        add(row["faculty"], row["room"], row["day"], row["slot_index"],
+            is_lab=row.get("is_lab", 0), consec=row.get("is_consecutive_lab", 0),
+            hours=row["contact_hours_weekly"],
+            sem=bad_sem,
+            course=row["course_name"])
+        count += 1
+    log.info(f"    Generated: {count}")
+
+    # ── Type 10: high-load day clustering — same faculty getting packed into
+    # ≥4 sessions on the same day (simulates the scheduler ignoring daily caps).
+    log.info("  Type 10: faculty over-packed on a single day...")
+    count = 0
+    fac_day_freq = defaultdict(int)
+    for _, r in df.iterrows():
+        fac_day_freq[(r["faculty"], r["day"])] += 1
+    over_packed_examples = [
+        (fac, day) for (fac, day), n in fac_day_freq.items() if n >= 4
+    ]
+    # If no natural examples, synthesize: pick random faculty+day and flood.
+    for _ in range(per_type * 4):
+        if count >= per_type: break
+        row = rng.choice(df.to_dict("records"))
+        # 5th/6th slot stacked onto an already-busy day = violation
+        add(row["faculty"], row["room"], row["day"], rng.choice([5, 6]),
+            is_lab=0, consec=0,
+            hours=row["contact_hours_weekly"],
+            sem=row["semester_int"],
+            course=row["course_name"])
+        count += 1
+    log.info(f"    Generated: {count}")
+
     log.info(f"  Total negatives: {len(X)}")
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.int32)
 
@@ -591,11 +688,16 @@ def train(X, y):
     X_scaled = scaler.fit_transform(X)
 
     # ── Step 1: plain RF for baseline metrics ─────────────────────────────────
+    # FIX (Change 4): Regularized RF — shallower trees and larger leaf requirements
+    # prevent memorization of noise while preserving the strong signal.
+    # max_depth 20→14: stops the tree from growing arbitrary long decision paths.
+    # min_samples_leaf 1→4: each leaf must represent at least 4 real examples.
+    # min_samples_split 2→8: a node must have ≥8 samples before it can split.
     rf_base = RandomForestClassifier(
         n_estimators     = 400,
-        max_depth        = 20,
-        min_samples_leaf = 1,
-        min_samples_split= 2,
+        max_depth        = 14,          # was 20 — reduced to prevent memorization
+        min_samples_leaf = 4,           # was 1 — needs ≥4 samples at each leaf
+        min_samples_split= 8,           # was 2 — needs ≥8 samples to attempt split
         max_features     = "sqrt",
         class_weight     = "balanced",
         random_state     = SEED,
@@ -639,13 +741,15 @@ def train(X, y):
     # ── Step 3: GradientBoosting ───────────────────────────────────────────────
     # GB has a different bias/variance profile from RF and is naturally better
     # calibrated, making it a complementary estimator for the ensemble.
-    log.info("  Training GradientBoosting (n=200, depth=5)...")
+    # FIX (Change 5): Regularized GB — fewer estimators, shallower trees, min_leaf.
+    log.info("  Training GradientBoosting (n=150, depth=4)...")
     gb = GradientBoostingClassifier(
-        n_estimators  = 200,
-        max_depth     = 5,
-        learning_rate = 0.05,
-        subsample     = 0.8,
-        random_state  = SEED,
+        n_estimators     = 150,         # was 200 — fewer trees, less overfitting
+        max_depth        = 4,           # was 5 — shallower
+        learning_rate    = 0.05,
+        subsample        = 0.8,
+        min_samples_leaf = 4,           # new — leaf regularization
+        random_state     = SEED,
     )
     gb.fit(X_scaled, y)
     log.info("  GradientBoosting done.")
@@ -663,22 +767,65 @@ def train(X, y):
     final_model.fit(X_scaled, y)
     log.info("  Ensemble done.")
 
-    # ── Step 5: threshold tuning ───────────────────────────────────────────────
-    # Find the classification threshold that maximises F1 on training data.
-    # Slightly optimistic (training set), but gives a calibrated starting
-    # point for the scheduler's candidate filtering.
-    y_scores = final_model.predict_proba(X_scaled)[:, 1]
-    precisions, recalls, thresholds = precision_recall_curve(y, y_scores)
-    # F1 = 2*P*R/(P+R); arrays are one longer than thresholds so slice [:-1]
+    # ── Step 5: held-out threshold tuning (improvement #9) ───────────────────
+    # Threshold tuning on the training set is optimistic. Instead, hold out
+    # ~20% of the data, fit on 80%, and tune F1 on the val slice.
+    X_tr, X_val, y_tr, y_val = train_test_split(
+        X_scaled, y, test_size=0.20, stratify=y, random_state=SEED,
+    )
+    log.info(f"  Threshold tuning on held-out set: "
+             f"train={len(y_tr)} val={len(y_val)} "
+             f"(val_pos={int(y_val.sum())})")
+
+    # Mirror the regularized RF/GB configs in the val model for fair threshold.
+    val_model = VotingClassifier(
+        estimators = [
+            ("rf", CalibratedClassifierCV(
+                estimator=RandomForestClassifier(
+                    n_estimators=400, max_depth=14,
+                    min_samples_leaf=4, min_samples_split=8,
+                    max_features="sqrt", class_weight="balanced",
+                    random_state=SEED, n_jobs=-1,
+                ),
+                method="isotonic", cv=3,
+            )),
+            ("gb", GradientBoostingClassifier(
+                n_estimators=150, max_depth=4, learning_rate=0.05,
+                subsample=0.8, min_samples_leaf=4, random_state=SEED,
+            )),
+        ],
+        voting="soft", n_jobs=-1,
+    )
+    val_model.fit(X_tr, y_tr)
+    y_val_scores = val_model.predict_proba(X_val)[:, 1]
+    val_auc = float(roc_auc_score(y_val, y_val_scores))
+    log.info(f"  Held-out val AUC: {val_auc:.4f}")
+
+    precisions, recalls, thresholds = precision_recall_curve(y_val, y_val_scores)
     denom = precisions[:-1] + recalls[:-1]
     denom = np.where(denom > 0, denom, 1.0)
     f1_scores = 2 * precisions[:-1] * recalls[:-1] / denom
     best_idx   = int(np.argmax(f1_scores))
     optimal_threshold = float(thresholds[best_idx])
-    # Clip to a sensible range — avoid degenerate thresholds
     optimal_threshold = max(0.30, min(0.70, optimal_threshold))
-    log.info(f"  Optimal threshold: {optimal_threshold:.4f} "
+    log.info(f"  Optimal threshold (val set): {optimal_threshold:.4f} "
              f"(F1={f1_scores[best_idx]:.4f})")
+
+    # FIX (Change 6): Per-class precision/recall report on held-out val set.
+    # This gives a clearer picture than AUC alone — especially for the minority
+    # class (valid slots) where high overall AUC can hide poor recall.
+    from sklearn.metrics import classification_report
+    y_val_pred = (y_val_scores >= optimal_threshold).astype(int)
+    report_str = classification_report(
+        y_val, y_val_pred,
+        target_names=["invalid_slot", "valid_slot"],
+        digits=4,
+    )
+    log.info(f"  Per-class classification report (threshold={optimal_threshold:.4f}):\n{report_str}")
+
+    # Attach val_auc to cvr-like dict for the report.
+    cvr = dict(cvr)
+    cvr["val_auc"] = np.array([val_auc])
 
     return final_model, scaler, cvr, oob_score, optimal_threshold
 
@@ -769,7 +916,7 @@ def main():
     X_pos, y_pos = build_positive_samples(df, embeddings, max_hours_map, stats)
 
     # Negatives
-    log.info("Building negative samples (7 types)...")
+    log.info("Building negative samples (10 types)...")
     n_neg = len(y_pos) * 3   # 3× negatives
     X_neg, y_neg = build_negative_samples(
         df, embeddings, max_hours_map, stats,
@@ -830,14 +977,17 @@ def main():
             "optimal_threshold"  : optimal_threshold,  # for candidate filtering
         }, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+    val_auc = float(cvr.get("val_auc", [0.0])[0]) if "val_auc" in cvr else None
     report = {
         "cv_accuracy"       : round(float(cvr["test_accuracy"].mean()), 4),
         "cv_f1"             : round(float(cvr["test_f1"].mean()), 4),
         "cv_roc_auc"        : round(float(cvr["test_roc_auc"].mean()), 4),
+        "val_auc"           : round(val_auc, 4) if val_auc is not None else None,
         "oob_score"         : round(float(oob_score), 4),
         "optimal_threshold" : round(optimal_threshold, 4),
         "n_positives"       : int(y.sum()),
         "n_negatives"       : int((y == 0).sum()),
+        "negative_types"    : 10,
         "feature_dim"       : FEATURE_DIM,
         "sanity_check"      : sanity,
         "top_features"      : [
