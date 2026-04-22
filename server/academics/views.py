@@ -272,6 +272,36 @@ class CourseOfferingViewSet(viewsets.ModelViewSet):
         "student_group__term__semester",
     ]
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        # Auto-propagate PE/OE faculty assignments across all sections
+        # of the same program + semester
+        course = instance.course
+        if course.course_type in ("PE", "OE") and instance.assigned_faculty is not None:
+            term = instance.student_group.term
+            # Find all other offerings of the same course in sibling sections
+            sibling_offerings = CourseOffering.objects.filter(
+                course=course,
+                student_group__term=term,
+            ).exclude(id=instance.id)
+
+            updated = sibling_offerings.update(assigned_faculty=instance.assigned_faculty)
+            if updated:
+                log.info(
+                    f"PE auto-propagate: assigned {instance.assigned_faculty.name} "
+                    f"to {updated} sibling offering(s) of {course.code}"
+                )
+
+        # Also handle un-assignment propagation for PE/OE
+        elif course.course_type in ("PE", "OE") and instance.assigned_faculty is None:
+            term = instance.student_group.term
+            sibling_offerings = CourseOffering.objects.filter(
+                course=course,
+                student_group__term=term,
+            ).exclude(id=instance.id)
+            sibling_offerings.update(assigned_faculty=None)
+
 
 # ----------------------------
 # COURSE BULK UPLOAD
@@ -399,6 +429,18 @@ class CourseBulkUploadView(APIView):
                         
                     if "parent_pe_code" in col and row[col["parent_pe_code"]]:
                         parent_code = str(row[col["parent_pe_code"]]).strip()
+                    elif "pe_slot" in col and row[col["pe_slot"]]:
+                        # Auto-resolve: find the parent PE placeholder course
+                        # by matching the pe_slot name against existing PE courses
+                        pe_slot_name = str(row[col["pe_slot"]]).strip()
+                        parent_pe = Course.objects.filter(
+                            name__iexact=pe_slot_name,
+                            program=program,
+                            semester=semester,
+                            course_type="PE",
+                        ).first()
+                        if parent_pe:
+                            parent_code = parent_pe.code
 
                     obj, was_created = Course.objects.get_or_create(
                         code=code,

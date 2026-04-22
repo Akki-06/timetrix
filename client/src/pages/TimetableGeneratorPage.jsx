@@ -3,36 +3,58 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import { asList, extractError } from "../utils/helpers";
-import { FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle, FaArrowRight } from "react-icons/fa";
+import {
+  FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle,
+  FaArrowRight, FaRocket, FaHistory, FaClock, FaChartBar,
+  FaBrain, FaLayerGroup, FaTimes, FaCalendarCheck,
+} from "react-icons/fa";
 
-// Derive academic year from semester: sem 1-2 → Year 1, sem 3-4 → Year 2 …
 function yearFromSemester(sem) {
   return Math.ceil(sem / 2);
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "—";
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function ScorePill({ score }) {
+  if (score == null) return <span className="gen-score-pill gen-score-na">—</span>;
+  const n = Number(score);
+  const cls = n >= 0.95 ? "gen-score-great" : n >= 0.8 ? "gen-score-ok" : "gen-score-low";
+  return <span className={`gen-score-pill ${cls}`}>{n.toFixed(3)}</span>;
 }
 
 function TimetableGeneratorPage() {
   const navigate = useNavigate();
 
-  const [programs, setPrograms]       = useState([]);
-  const [timetables, setTimetables]   = useState([]);
-  const [sections, setSections]       = useState([]);   // preview for selected prog+sem
+  const [programs,  setPrograms]  = useState([]);
+  const [timetables, setTimetables] = useState([]);
+  const [sections,  setSections]  = useState([]);
 
   const [selectedProgramId, setSelectedProgramId] = useState("");
   const [selectedSemester,  setSelectedSemester]  = useState("");
 
-  const [pageLoading,    setPageLoading]    = useState(true);
+  const [pageLoading,     setPageLoading]     = useState(true);
   const [sectionsLoading, setSectionsLoading] = useState(false);
-  const [generating,     setGenerating]     = useState(false);
-  const [result,         setResult]         = useState(null);
-  const [error,          setError]          = useState("");
+  const [generating,      setGenerating]      = useState(false);
+  const [result,          setResult]          = useState(null);
+  const [error,           setError]           = useState("");
 
-  // PE elective slot group state: { [offeringId]: groupToken }
-  const [peOfferings,        setPeOfferings]        = useState([]);  // raw offering objects
-  const [peSlotGroups,       setPeSlotGroups]        = useState({});  // { id: string }
-  const [peEnabled,          setPeEnabled]           = useState({});  // { id: boolean } — false = skip PE parallel logic
-  const [peGroupSaving,      setPeGroupSaving]       = useState(false);
+  // PE state
+  const [peOfferings,   setPeOfferings]   = useState([]);
+  const [peSlotGroups,  setPeSlotGroups]  = useState({});
+  const [peEnabled,     setPeEnabled]     = useState({});
+  const [peGroupSaving, setPeGroupSaving] = useState(false);
 
-  // ── initial load ────────────────────────────────────────────────────────
+  // animation tick for the generate button
+  const [genTick, setGenTick] = useState(0);
+
+  /* ── load ── */
   const loadBase = useCallback(async () => {
     try {
       setPageLoading(true);
@@ -51,25 +73,18 @@ function TimetableGeneratorPage() {
 
   useEffect(() => { loadBase(); }, [loadBase]);
 
-  // ── load sections + PE offerings whenever program+semester changes ───────
+  /* ── sections + PE when program/semester changes ── */
   useEffect(() => {
     if (!selectedProgramId || !selectedSemester) {
-      setSections([]);
-      setPeOfferings([]);
-      setPeSlotGroups({});
-      setPeEnabled({});
+      setSections([]); setPeOfferings([]); setPeSlotGroups({}); setPeEnabled({});
       return;
     }
     const load = async () => {
       setSectionsLoading(true);
       try {
-        // Load sections and PE course-offerings in parallel
         const [sgResp, peResp] = await Promise.all([
           api.get("academics/student-groups/", {
-            params: {
-              "term__program":  selectedProgramId,
-              "term__semester": selectedSemester,
-            },
+            params: { "term__program": selectedProgramId, "term__semester": selectedSemester },
           }),
           api.get("academics/course-offerings/", {
             params: {
@@ -81,28 +96,22 @@ function TimetableGeneratorPage() {
         ]);
         setSections(asList(sgResp.data).sort((a, b) => a.name.localeCompare(b.name)));
 
-        // Deduplicate PE offerings by course (show one row per unique PE course)
-        // Also exclude placeholder PE courses like "Programme Elective-I" — show only real options
         const allPe = asList(peResp.data);
         const seen  = new Set();
         const uniquePe = allPe.filter((o) => {
-          const name = (o.course_name || "").toLowerCase();
-          if (/(programme|program)\s*elective/i.test(name)) return false; // hide placeholders
+          if (/(programme|program)\s*elective/i.test(o.course_name || "")) return false;
           if (seen.has(o.course)) return false;
           seen.add(o.course);
           return true;
         });
         setPeOfferings(uniquePe);
-        // Pre-fill existing elective_slot_group values and enable state
-        const initGroups = {};
-        const initEnabled = {};
-        allPe.forEach((o) => { initGroups[o.id] = o.elective_slot_group || ""; });
-        uniquePe.forEach((o) => { initEnabled[o.id] = true; }); // all ON by default
+        const initGroups = {}; const initEnabled = {};
+        allPe.forEach((o)    => { initGroups[o.id]  = o.elective_slot_group || ""; });
+        uniquePe.forEach((o) => { initEnabled[o.id] = true; });
         setPeSlotGroups(initGroups);
         setPeEnabled(initEnabled);
       } catch {
-        setSections([]);
-        setPeOfferings([]);
+        setSections([]); setPeOfferings([]);
       } finally {
         setSectionsLoading(false);
       }
@@ -110,79 +119,50 @@ function TimetableGeneratorPage() {
     load();
   }, [selectedProgramId, selectedSemester]);
 
-  // ── selected program object ──────────────────────────────────────────────
-  const selectedProgram = useMemo(
-    () => programs.find((p) => String(p.id) === String(selectedProgramId)) || null,
-    [programs, selectedProgramId]
-  );
+  const selectedProgram   = useMemo(() => programs.find((p) => String(p.id) === String(selectedProgramId)) || null, [programs, selectedProgramId]);
+  const semesterOptions   = useMemo(() => selectedProgram ? Array.from({ length: selectedProgram.total_semesters || 8 }, (_, i) => i + 1) : [], [selectedProgram]);
+  const programMap        = useMemo(() => Object.fromEntries(programs.map((p) => [p.id, p])), [programs]);
+  const canGenerate       = selectedProgramId && selectedSemester && sections.length > 0 && !generating;
+  const derivedYear       = selectedSemester ? yearFromSemester(Number(selectedSemester)) : null;
 
-  // Semester options: 1 … total_semesters of selected program
-  const semesterOptions = useMemo(() => {
-    if (!selectedProgram) return [];
-    return Array.from({ length: selectedProgram.total_semesters || 8 }, (_, i) => i + 1);
-  }, [selectedProgram]);
-
-  // ── generate ─────────────────────────────────────────────────────────────
+  /* ── generate ── */
   const handleGenerate = async () => {
     if (!selectedProgramId || !selectedSemester || sections.length === 0) return;
-    setGenerating(true);
-    setError("");
-    setResult(null);
-
+    setGenerating(true); setError(""); setResult(null);
+    const tick = setInterval(() => setGenTick(t => t + 1), 400);
     try {
       const resp = await api.post("scheduler/generate/", {
         program_id: Number(selectedProgramId),
         semester:   Number(selectedSemester),
       }, { timeout: 120000 });
-
-      const data = resp.data;
-      setResult(data);
-
-      // Refresh history
+      setResult(resp.data);
       const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
       setTimetables(asList(ttResp.data));
-
-      // If allocations were saved, navigate to timetables page after 2s
-      if (data.allocations > 0) {
-        setTimeout(() => navigate("/generated"), 2000);
-      }
+      if (resp.data.allocations > 0) setTimeout(() => navigate("/generated"), 2500);
     } catch (err) {
-      // Try to extract the response body even on error status codes
       const errData = err?.response?.data;
-      if (errData && errData.status) {
-        setResult(errData);
-      } else {
-        setError(extractError(err, "Generation failed. Check server logs."));
-      }
-      // Refresh history even on error (timetable record may exist)
+      if (errData?.status) setResult(errData);
+      else setError(extractError(err, "Generation failed. Check server logs."));
       try {
         const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
         setTimetables(asList(ttResp.data));
       } catch { /* ignore */ }
     } finally {
+      clearInterval(tick);
       setGenerating(false);
     }
   };
 
   const handleProgramChange = (val) => {
-    setSelectedProgramId(val);
-    setSelectedSemester("");
-    setResult(null);
-    setError("");
-    setSections([]);
-    setPeOfferings([]);
-    setPeSlotGroups({});
-    setPeEnabled({});
+    setSelectedProgramId(val); setSelectedSemester("");
+    setResult(null); setError(""); setSections([]);
+    setPeOfferings([]); setPeSlotGroups({}); setPeEnabled({});
   };
 
-  // Save elective_slot_group values to all matching offerings via PATCH
   const savePeSlotGroups = async () => {
     if (!peOfferings.length) return;
     setPeGroupSaving(true);
     try {
-      // For each unique PE course, patch all offerings that share the same course
-      // Use the course-offerings list endpoint filtered by course to find all sections
-      const courseIds = [...new Set(peOfferings.map((o) => o.course))];
       const allOffsResp = await api.get("academics/course-offerings/", {
         params: {
           "student_group__term__program":  selectedProgramId,
@@ -191,7 +171,6 @@ function TimetableGeneratorPage() {
         },
       });
       const allOffs = asList(allOffsResp.data);
-      // Build a map of course_id → { token, enabled } from the local state
       const courseMap = {};
       peOfferings.forEach((rep) => {
         courseMap[rep.course] = {
@@ -199,282 +178,258 @@ function TimetableGeneratorPage() {
           enabled: peEnabled[rep.id] !== false,
         };
       });
-      // PATCH each non-placeholder offering
       const isPlaceholder = (o) => /(programme|program)\s*elective/i.test(o.course_name || "");
       await Promise.all(
-        allOffs
-          .filter((o) => !isPlaceholder(o))
-          .map((o) => {
-            const { token, enabled } = courseMap[o.course] ?? { token: "", enabled: true };
-            return api.patch(`academics/course-offerings/${o.id}/`, {
-              elective_slot_group: (enabled && token) ? token : null,
-            });
-          })
+        allOffs.filter((o) => !isPlaceholder(o)).map((o) => {
+          const { token, enabled } = courseMap[o.course] ?? { token: "", enabled: true };
+          return api.patch(`academics/course-offerings/${o.id}/`, {
+            elective_slot_group: (enabled && token) ? token : null,
+          });
+        })
       );
-    } catch {
-      // Non-critical — generation will proceed anyway
-    } finally {
-      setPeGroupSaving(false);
-    }
+    } catch { /* non-critical */ } finally { setPeGroupSaving(false); }
   };
 
-  // Override generate to save PE groups first
   const handleGenerateWithPE = async () => {
     await savePeSlotGroups();
     handleGenerate();
   };
 
-  // ── timetable history enriched with program name ─────────────────────────
-  const programMap = useMemo(
-    () => Object.fromEntries(programs.map((p) => [p.id, p])),
-    [programs]
-  );
-
+  /* ── loading state ── */
   if (pageLoading) {
     return (
       <DashboardLayout>
-        <div className="page-head">
-          <h1>Timetable Generator</h1>
-          <p className="upload-help">Loading...</p>
+        <div className="sec-loading" style={{ minHeight: 300 }}>
+          <div className="sec-loading-spinner" />
+          Loading generator…
         </div>
       </DashboardLayout>
     );
   }
 
-  const canGenerate = selectedProgramId && selectedSemester && sections.length > 0 && !generating;
-  const derivedYear = selectedSemester ? yearFromSemester(Number(selectedSemester)) : null;
+  const dots = ".".repeat((genTick % 3) + 1);
 
   return (
     <DashboardLayout>
-      <div className="page-head">
-        <h1>Timetable Generator</h1>
-        <p>
-          Select a program and semester — the scheduler will assign rooms, time slots,
-          and faculty for every registered section automatically.
-        </p>
+
+      {/* ── Header ── */}
+      <div className="sec-page-header">
+        <div>
+          <h1 className="sec-page-title">Timetable Generator</h1>
+          <p className="sec-page-sub">
+            Select a program and semester — AI assigns rooms, slots, and faculty for every section automatically.
+          </p>
+        </div>
+        {result && result.allocations > 0 && (
+          <button className="sec-add-btn" onClick={() => navigate("/generated")}>
+            <FaCalendarCheck /> View Timetable
+          </button>
+        )}
       </div>
 
-      <div className="generator-grid">
+      {/* ── Global alert ── */}
+      {error && <div className="sec-alert sec-alert-error">{error}</div>}
 
-        {/* ── LEFT: Parameters ─────────────────────────────────────────────── */}
-        <section className="data-card generator-params-card">
-          <h3>Generation Parameters</h3>
+      <div className="gen-layout">
 
-          {/* Program */}
-          <div className="generator-fields">
-            <label className="generator-label">Program *</label>
-            <select
-              className="input"
-              value={selectedProgramId}
-              onChange={(e) => handleProgramChange(e.target.value)}
-            >
-              <option value="">Select program</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.display_name || p.name} ({p.code})
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* ════ LEFT COLUMN ════ */}
+        <div className="gen-left">
 
-          {/* Semester — shown as "Semester 1", "Semester 2" … based on program duration */}
-          <div className="generator-fields">
-            <label className="generator-label">Semester *</label>
-            <select
-              className="input"
-              value={selectedSemester}
-              onChange={(e) => { setSelectedSemester(e.target.value); setResult(null); setError(""); }}
-              disabled={!selectedProgramId}
-            >
-              <option value="">
-                {selectedProgramId ? "Select semester" : "Select program first"}
-              </option>
-              {semesterOptions.map((s) => (
-                <option key={s} value={s}>
-                  Semester {s}  (Year {yearFromSemester(s)})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* ── Config card ── */}
+          <div className="gen-config-card">
+            <div className="gen-card-header">
+              <div className="gen-card-icon" style={{ background: "rgba(99,102,241,0.12)", color: "var(--brand)" }}>
+                <FaBrain />
+              </div>
+              <div>
+                <h3 className="gen-card-title">Generation Parameters</h3>
+                <p className="gen-card-sub">Choose the program and semester to schedule</p>
+              </div>
+            </div>
 
-          {/* Year derived info */}
-          {selectedSemester && (
-            <p className="input-hint" style={{ marginBottom: 12 }}>
-              Academic year <strong>Year {derivedYear}</strong> of{" "}
-              {selectedProgram?.display_name || selectedProgram?.name}
-            </p>
-          )}
+            {/* Program */}
+            <div className="gen-fields-grid">
+              <div className="sec-field">
+                <label>Program <span className="sec-req">*</span></label>
+                <select value={selectedProgramId} onChange={(e) => handleProgramChange(e.target.value)}>
+                  <option value="">Select program</option>
+                  {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
+                    <option key={p.id} value={p.id}>{p.display_name || p.name} ({p.code})</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Sections preview */}
-          {selectedProgramId && selectedSemester && (
-            <div style={{
-              background: "var(--sidebar-bg, rgba(0,0,0,0.04))",
-              borderRadius: 8, padding: 12, marginBottom: 16,
-              border: "1px solid var(--border)",
-            }}>
-              <p style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6, color: "var(--muted)" }}>
-                SECTIONS TO BE SCHEDULED
-              </p>
-              {sectionsLoading ? (
-                <p className="upload-help" style={{ margin: 0 }}>Loading sections...</p>
-              ) : sections.length === 0 ? (
-                <p style={{ color: "#ef4444", fontSize: "0.85rem", margin: 0 }}>
-                  No sections registered for{" "}
-                  {selectedProgram?.display_name} Sem {selectedSemester}.{" "}
-                  <a href="/sections" style={{ color: "var(--brand)" }}>Register sections first →</a>
+              <div className="sec-field">
+                <label>Semester <span className="sec-req">*</span></label>
+                <select value={selectedSemester}
+                  onChange={(e) => { setSelectedSemester(e.target.value); setResult(null); setError(""); }}
+                  disabled={!selectedProgramId}>
+                  <option value="">{selectedProgramId ? "Select semester" : "Select program first"}</option>
+                  {semesterOptions.map((s) => (
+                    <option key={s} value={s}>Semester {s} — Year {yearFromSemester(s)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Year info badge */}
+            {selectedSemester && (
+              <div className="gen-info-badge">
+                <FaCalendarCheck style={{ color: "var(--brand)" }} />
+                <span>
+                  <strong>Year {derivedYear}</strong> of {selectedProgram?.display_name || selectedProgram?.name}
+                </span>
+              </div>
+            )}
+
+            {/* Sections preview */}
+            {selectedProgramId && selectedSemester && (
+              <div className="gen-sections-box">
+                <p className="gen-sections-label">
+                  <FaUsers /> Sections to be Scheduled
                 </p>
-              ) : (
-                <>
-                  <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: 8 }}>
-                    {sections.length} section{sections.length > 1 ? "s" : ""} found — all will be scheduled in this run
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {sections.map((s) => (
-                      <div key={s.id} style={{
-                        background: "var(--card-bg)", border: "1px solid var(--border)",
-                        borderRadius: 6, padding: "4px 10px", fontSize: "0.82rem",
-                        display: "flex", alignItems: "center", gap: 6,
-                      }}>
-                        <FaUsers style={{ color: "var(--brand)", fontSize: 11 }} />
-                        <strong>Section {s.name}</strong>
-                        <span style={{ color: "var(--muted)" }}>{s.strength} students</span>
-                      </div>
-                    ))}
+                {sectionsLoading ? (
+                  <div className="sec-loading" style={{ padding: "16px 0", justifyContent: "flex-start" }}>
+                    <div className="sec-loading-spinner" style={{ width: 18, height: 18 }} />
+                    <span>Loading sections…</span>
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── PE Elective Slot Groups ─────────────────────────────────── */}
-          {peOfferings.length > 0 && (
-            <div style={{
-              background: "rgba(168,85,247,0.07)",
-              border: "1px solid #a855f7",
-              borderRadius: 8, padding: 12, marginBottom: 16,
-            }}>
-              <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#a855f7", marginBottom: 6, letterSpacing: 0.5 }}>
-                PE ELECTIVE SLOT GROUPS
-              </p>
-              <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginBottom: 10, lineHeight: 1.4 }}>
-                Assign a shared group token to PE courses that must run in parallel (same slot, different rooms).
-                Leave blank to schedule each as independent theory.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {peOfferings.map((o) => {
-                  const on = peEnabled[o.id] !== false;
-                  return (
-                    <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {/* ON/OFF toggle */}
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={(e) =>
-                            setPeEnabled((prev) => ({ ...prev, [o.id]: e.target.checked }))
-                          }
-                          style={{ cursor: "pointer", width: 14, height: 14, accentColor: "#a855f7" }}
-                        />
-                        <span style={{ fontSize: "0.68rem", fontWeight: 600, color: on ? "#a855f7" : "var(--muted)", minWidth: 22 }}>
-                          {on ? "ON" : "OFF"}
-                        </span>
-                      </label>
-                      {/* Course name */}
-                      <span style={{
-                        flex: 1, fontSize: "0.8rem", fontWeight: 500,
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        opacity: on ? 1 : 0.4,
-                      }}>
-                        {o.course_name || o.course_code || `Course #${o.course}`}
-                      </span>
-                      {/* Slot group token */}
-                      <input
-                        className="input"
-                        style={{ width: 130, fontSize: "0.8rem", padding: "4px 8px", opacity: on ? 1 : 0.35 }}
-                        placeholder="e.g. BCA4-PE1"
-                        disabled={!on}
-                        value={peSlotGroups[o.id] ?? ""}
-                        onChange={(e) =>
-                          setPeSlotGroups((prev) => ({ ...prev, [o.id]: e.target.value }))
-                        }
-                      />
+                ) : sections.length === 0 ? (
+                  <p className="gen-sections-empty">
+                    No sections found for {selectedProgram?.display_name} Sem {selectedSemester}.{" "}
+                    <a href="/sections">Register sections first →</a>
+                  </p>
+                ) : (
+                  <>
+                    <p className="gen-sections-count">
+                      {sections.length} section{sections.length > 1 ? "s" : ""} — all will be scheduled
+                    </p>
+                    <div className="gen-section-chips">
+                      {sections.map((s) => (
+                        <div key={s.id} className="gen-section-chip">
+                          <FaUsers style={{ fontSize: 10, color: "var(--brand)" }} />
+                          <strong>{s.name}</strong>
+                          <span className="gen-chip-strength">{s.strength} students</span>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  </>
+                )}
               </div>
-              <p style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: 8 }}>
-                Toggle OFF to schedule that option independently (not in parallel). All sections inherit the same token.
-              </p>
-            </div>
-          )}
+            )}
 
-          <button
-            type="button"
-            className="btn-primary generator-btn"
-            onClick={handleGenerateWithPE}
-            disabled={!canGenerate || peGroupSaving}
-          >
-            <FaMagic style={{ marginRight: 6 }} />
-            {peGroupSaving
-              ? "Saving PE groups..."
-              : generating
-              ? `Scheduling ${sections.length} section${sections.length > 1 ? "s" : ""}...`
-              : "Generate Timetable"}
-          </button>
+            {/* PE Elective Slot Groups */}
+            {peOfferings.length > 0 && (
+              <div className="gen-pe-box">
+                <div className="gen-pe-header">
+                  <FaLayerGroup />
+                  <span>PE Elective Slot Groups</span>
+                </div>
+                <p className="gen-pe-hint">
+                  Assign a shared group token to PE courses that must run in parallel (same slot, different rooms). Leave blank to schedule independently.
+                </p>
+                <div className="gen-pe-list">
+                  {peOfferings.map((o) => {
+                    const on = peEnabled[o.id] !== false;
+                    return (
+                      <div key={o.id} className="gen-pe-row">
+                        <label className="gen-pe-toggle">
+                          <input type="checkbox" checked={on}
+                            onChange={(e) => setPeEnabled((p) => ({ ...p, [o.id]: e.target.checked }))}
+                            style={{ accentColor: "#a855f7" }}
+                          />
+                          <span style={{ color: on ? "#a855f7" : "var(--muted)", fontWeight: 700, fontSize: 11 }}>
+                            {on ? "ON" : "OFF"}
+                          </span>
+                        </label>
+                        <span className="gen-pe-name" style={{ opacity: on ? 1 : 0.4 }}>
+                          {o.course_name || o.course_code || `Course #${o.course}`}
+                        </span>
+                        <input
+                          className="gen-pe-input"
+                          placeholder="e.g. BCA4-PE1"
+                          disabled={!on}
+                          value={peSlotGroups[o.id] ?? ""}
+                          onChange={(e) => setPeSlotGroups((p) => ({ ...p, [o.id]: e.target.value }))}
+                          style={{ opacity: on ? 1 : 0.35 }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="gen-pe-note">Toggle OFF to schedule that option independently. All sections inherit the same token.</p>
+              </div>
+            )}
 
-          {error && <p className="upload-error generator-error">{error}</p>}
+            {/* Generate button */}
+            <button
+              className="gen-generate-btn"
+              onClick={handleGenerateWithPE}
+              disabled={!canGenerate || peGroupSaving}
+            >
+              {generating ? (
+                <>
+                  <span className="gen-btn-spinner" />
+                  Scheduling {sections.length} section{sections.length > 1 ? "s" : ""}{dots}
+                </>
+              ) : peGroupSaving ? (
+                <><FaLayerGroup /> Saving PE groups…</>
+              ) : (
+                <><FaRocket /> Generate Timetable</>
+              )}
+            </button>
+          </div>
 
-          {/* Result card */}
+          {/* ── Result card ── */}
           {result && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-                color: result.status === "success" ? "var(--brand)"
-                     : result.status === "partial"  ? "#f59e0b"
-                     : "#ef4444",
-                fontWeight: 600, fontSize: "0.9rem",
-              }}>
-                {result.status === "success"
-                  ? <FaCheckCircle />
-                  : <FaExclamationTriangle />}
-                {result.status === "success" ? "Fully Scheduled"
-               : result.status === "partial"  ? "Partially Scheduled"
-               : `Generation Failed: ${result.reason || "unknown error"}`}
+            <div className={`gen-result-card gen-result-${result.status || "error"}`}>
+              <div className="gen-result-header">
+                <div className="gen-result-icon">
+                  {result.status === "success" ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                </div>
+                <div>
+                  <h3 className="gen-result-title">
+                    {result.status === "success" ? "Fully Scheduled" :
+                     result.status === "partial"  ? "Partially Scheduled" :
+                     `Generation Failed`}
+                  </h3>
+                  {result.reason && <p className="gen-result-reason">{result.reason}</p>}
+                </div>
               </div>
 
-              <div className="generator-result">
-                <div><span>Allocations</span><strong>{result.allocations ?? 0}</strong></div>
-                <div><span>Avg Score</span><strong>
-                  {result.avg_score != null ? Number(result.avg_score).toFixed(3) : "N/A"}
-                </strong></div>
-                <div><span>ML Used</span><strong>{result.ml_used ? "Yes" : "No"}</strong></div>
+              <div className="gen-result-stats">
+                <div className="gen-result-stat">
+                  <span className="gen-result-stat-val">{result.allocations ?? 0}</span>
+                  <span className="gen-result-stat-lbl">Allocations</span>
+                </div>
+                <div className="gen-result-stat">
+                  <ScorePill score={result.avg_score} />
+                  <span className="gen-result-stat-lbl">Avg Score</span>
+                </div>
+                <div className="gen-result-stat">
+                  <span className="gen-result-stat-val" style={{ color: result.ml_used ? "var(--success)" : "var(--muted)" }}>
+                    {result.ml_used ? "Yes" : "No"}
+                  </span>
+                  <span className="gen-result-stat-lbl">ML Used</span>
+                </div>
               </div>
 
               {(result.allocations ?? 0) > 0 && (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-                  onClick={() => navigate("/generated")}
-                >
-                  <FaArrowRight style={{ fontSize: 12 }} />
-                  View Timetable
+                <button className="gen-view-btn" onClick={() => navigate("/generated")}>
+                  <FaArrowRight /> View Generated Timetable
                 </button>
               )}
 
               {/* Per-section breakdown */}
               {Array.isArray(result.sections) && result.sections.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>
-                    PER-SECTION RESULT
-                  </p>
-                  <div className="table-wrap" style={{ fontSize: "0.85rem" }}>
+                <div className="gen-section-table">
+                  <p className="gen-section-table-title">Per-Section Result</p>
+                  <div className="table-wrap">
                     <table>
                       <thead>
                         <tr>
                           <th>Section</th>
                           <th>Strength</th>
-                          <th>Sessions</th>
+                          <th>Scheduled</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -483,8 +438,8 @@ function TimetableGeneratorPage() {
                             <td><strong>Section {s.section}</strong></td>
                             <td>{s.strength}</td>
                             <td>
-                              <span style={{ color: s.allocated > 0 ? "var(--brand)" : "#ef4444" }}>
-                                {s.allocated} scheduled
+                              <span style={{ color: s.allocated > 0 ? "var(--success)" : "var(--danger)", fontWeight: 600 }}>
+                                {s.allocated} sessions
                               </span>
                             </td>
                           </tr>
@@ -496,82 +451,128 @@ function TimetableGeneratorPage() {
               )}
             </div>
           )}
-        </section>
 
-        {/* ── RIGHT: Generation History ────────────────────────────────────── */}
-        <section className="data-card generator-history-card">
-          <h3>Generation History</h3>
-          <p className="upload-help">Previously generated timetables.</p>
-
-          {timetables.length === 0 ? (
-            <p className="upload-help">No generation history yet.</p>
-          ) : (
-            <div className="history-list">
-              {timetables.map((tt) => {
-                // Enrich from known programs (best-effort — term info not always in list)
-                const createdAt = tt.created_at ? new Date(tt.created_at) : null;
-                return (
-                  <article key={tt.id} className="history-item">
-                    <div className="history-main">
-                      <h4>
-                        {tt.program_code
-                          ? `${tt.program_code} Sem ${tt.semester}`
-                          : tt.program_name
-                            ? `${tt.program_name} Sem ${tt.semester}`
-                            : `Term #${tt.term}`
-                        }{" "}— v{tt.version}
-                        {tt.is_finalized && (
-                          <span style={{
-                            marginLeft: 8, fontSize: "0.7rem", background: "var(--brand)",
-                            color: "#fff", borderRadius: 4, padding: "1px 6px",
-                          }}>
-                            FINAL
-                          </span>
-                        )}
-                      </h4>
-                      <p style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
-                        Score: {tt.total_constraint_score?.toFixed(3) ?? "—"}
-                      </p>
-                    </div>
-                    <div className="history-meta">
-                      <small>
-                        {createdAt
-                          ? createdAt.toLocaleDateString("en-IN", {
-                              day: "2-digit", month: "short", year: "numeric",
-                            })
-                          : "—"}
-                      </small>
-                      <small style={{ color: "var(--muted)" }}>
-                        {createdAt
-                          ? createdAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-                          : ""}
-                      </small>
-                    </div>
-                  </article>
-                );
-              })}
+          {/* ── Unscheduled items ── */}
+          {result && Array.isArray(result.unscheduled) && result.unscheduled.length > 0 && (
+            <div className="gen-unscheduled-card">
+              <div className="gen-card-header">
+                <div className="gen-card-icon" style={{ background: "rgba(239,68,68,0.1)", color: "var(--danger)" }}>
+                  <FaTimes />
+                </div>
+                <div>
+                  <h3 className="gen-card-title">Unscheduled Items ({result.unscheduled.length})</h3>
+                  <p className="gen-card-sub">Could not be placed due to conflicts</p>
+                </div>
+              </div>
+              <ul className="gen-unscheduled-list">
+                {result.unscheduled.map((item, i) => (
+                  <li key={i} className="gen-unscheduled-item">{item}</li>
+                ))}
+              </ul>
             </div>
           )}
-        </section>
-      </div>
+        </div>
 
-      {/* Unscheduled items */}
-      {result && Array.isArray(result.unscheduled) && result.unscheduled.length > 0 && (
-        <section className="data-card" style={{ marginTop: 0 }}>
-          <h3>Unscheduled Items ({result.unscheduled.length})</h3>
-          <p className="upload-help">
-            These could not be placed due to room/faculty/slot conflicts.
-            Check that rooms, faculty, and course offerings are properly configured.
-          </p>
-          <div className="upload-partial">
-            <ul>
-              {result.unscheduled.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
-            </ul>
+        {/* ════ RIGHT COLUMN: History ════ */}
+        <div className="gen-right">
+          <div className="gen-history-card">
+            <div className="gen-card-header">
+              <div className="gen-card-icon" style={{ background: "rgba(20,184,166,0.1)", color: "var(--accent)" }}>
+                <FaHistory />
+              </div>
+              <div>
+                <h3 className="gen-card-title">Generation History</h3>
+                <p className="gen-card-sub">{timetables.length} version{timetables.length !== 1 ? "s" : ""} generated</p>
+              </div>
+            </div>
+
+            {timetables.length === 0 ? (
+              <div className="sec-empty" style={{ padding: "40px 16px" }}>
+                <FaHistory className="sec-empty-icon" />
+                <h3>No history yet</h3>
+                <p>Generate your first timetable to see it here.</p>
+              </div>
+            ) : (
+              <div className="gen-history-list">
+                {timetables.map((tt, i) => {
+                  const createdAt = tt.created_at ? new Date(tt.created_at) : null;
+                  const isLatest  = i === 0;
+                  const score     = tt.total_constraint_score;
+                  return (
+                    <div key={tt.id} className={`gen-history-item${isLatest ? " gen-history-latest" : ""}`}>
+                      <div className="gen-history-left">
+                        <div className="gen-history-icon">
+                          <FaCalendarCheck />
+                        </div>
+                        <div className="gen-history-info">
+                          <div className="gen-history-name">
+                            {tt.program_code
+                              ? `${tt.program_code} Sem ${tt.semester}`
+                              : tt.program_name
+                              ? `${tt.program_name} Sem ${tt.semester}`
+                              : `Term #${tt.term}`}
+                            <span className="gen-history-version">v{tt.version}</span>
+                            {tt.is_finalized && (
+                              <span className="gen-history-final">FINAL</span>
+                            )}
+                            {isLatest && (
+                              <span className="gen-history-latest-badge">Latest</span>
+                            )}
+                          </div>
+                          <div className="gen-history-meta">
+                            <FaClock style={{ fontSize: 10 }} />
+                            <span>{createdAt ? createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
+                            <span style={{ color: "var(--muted)" }}>·</span>
+                            <span>{timeAgo(tt.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="gen-history-right">
+                        <ScorePill score={score} />
+                        <button className="gen-history-view-btn" onClick={() => navigate("/generated")}>
+                          <FaArrowRight />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </section>
-      )}
+
+          {/* ── Quick Stats strip ── */}
+          {timetables.length > 0 && (
+            <div className="gen-quick-stats">
+              <div className="gen-quick-stat">
+                <FaChartBar style={{ color: "var(--brand)" }} />
+                <div>
+                  <span className="gen-qs-val">{timetables.length}</span>
+                  <span className="gen-qs-lbl">Total Runs</span>
+                </div>
+              </div>
+              <div className="gen-quick-stat">
+                <FaCheckCircle style={{ color: "var(--success)" }} />
+                <div>
+                  <span className="gen-qs-val">{timetables.filter(t => t.is_finalized).length}</span>
+                  <span className="gen-qs-lbl">Finalized</span>
+                </div>
+              </div>
+              <div className="gen-quick-stat">
+                <FaBrain style={{ color: "var(--accent)" }} />
+                <div>
+                  <span className="gen-qs-val">
+                    {timetables.length > 0
+                      ? Number(timetables[0].total_constraint_score ?? 0).toFixed(2)
+                      : "—"}
+                  </span>
+                  <span className="gen-qs-lbl">Latest Score</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
     </DashboardLayout>
   );
 }

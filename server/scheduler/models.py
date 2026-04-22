@@ -209,21 +209,9 @@ class LectureAllocation(models.Model):
 
     class Meta:
         constraints = [
-            # Room cannot be double-booked
-            models.UniqueConstraint(
-                fields=["timetable", "room", "timeslot"],
-                name="unique_room_per_slot_per_timetable"
-            ),
-
-            # Faculty cannot teach two classes at same time
-            models.UniqueConstraint(
-                fields=["timetable", "faculty", "timeslot"],
-                name="unique_faculty_per_slot_per_timetable"
-            ),
-
-            # NOTE: unique_group_per_slot_per_timetable was REMOVED.
-            # PE electives require multiple allocations for the same
-            # student_group at the same timeslot (one per PE option).
+            # NOTE: unique_room_per_slot_per_timetable and unique_faculty_per_slot_per_timetable
+            # were REMOVED. PE electives require multiple allocations for the same room/faculty
+            # at the same timeslot (one per section taking the PE option).
             # The in-memory ConstraintTracker enforces non-PE uniqueness.
         ]
 

@@ -3,10 +3,14 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toNumber } from "../utils/spreadsheet";
-import { asList, extractError } from "../utils/helpers";
-import { FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight, FaEdit, FaTimes } from "react-icons/fa";
+import { asList, extractError, courseDisplayCode } from "../utils/helpers";
+import {
+  FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight,
+  FaEdit, FaTimes, FaPlus, FaGraduationCap, FaLayerGroup, FaUserGraduate,
+} from "react-icons/fa";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAY_SHORT = { MON: "M", TUE: "T", WED: "W", THU: "Th", FRI: "F", SAT: "S" };
 
 const INITIAL_FORM = {
   program: "",
@@ -18,20 +22,25 @@ const INITIAL_FORM = {
 };
 
 function SectionsPage() {
-  const [groups, setGroups]       = useState([]);
-  const [programs, setPrograms]   = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [groups, setGroups] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState("");
-  const [success, setSuccess]     = useState("");
-  const [form, setForm]           = useState(INITIAL_FORM);
-  const [editId, setEditId]       = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [editId, setEditId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
-  /* ── Course Offerings panel state ── */
+  /* Course Offerings panel state */
   const [expandedGroup, setExpandedGroup] = useState(null);
-  const [offerings, setOfferings]         = useState([]);
+  const [offerings, setOfferings] = useState([]);
   const [offeringsLoading, setOfferingsLoading] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
+
+  /* Expanded programs/years */
+  const [expandedProgs, setExpandedProgs] = useState({});
+  const [expandedYears, setExpandedYears] = useState({});
 
   const loadAll = useCallback(async () => {
     try {
@@ -49,9 +58,10 @@ function SectionsPage() {
     }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
-  // Semester options dynamically based on selected program's total_semesters
   const semesterOptions = useMemo(() => {
     const prog = programs.find((p) => String(p.id) === String(form.program));
     const max = prog?.total_semesters || 8;
@@ -63,28 +73,20 @@ function SectionsPage() {
     setError("");
     setSuccess("");
     setSubmitting(true);
-
     try {
       const payload = {
-        program:     Number(form.program),
-        semester:    Number(form.semester),
-        section:     form.section.trim().toUpperCase(),
-        strength:    Number(form.strength),
+        program: Number(form.program),
+        semester: Number(form.semester),
+        section: form.section.trim().toUpperCase(),
+        strength: Number(form.strength),
         description: form.description.trim(),
         working_days: form.working_days,
       };
-
-      if (editId) {
-        // quick-create handles updating if it exists
-        await api.post("academics/student-groups/quick-create/", payload);
-        setSuccess("Section updated successfully.");
-        setEditId(null);
-      } else {
-        await api.post("academics/student-groups/quick-create/", payload);
-        setSuccess("Section registered successfully.");
-      }
-
+      await api.post("academics/student-groups/quick-create/", payload);
+      setSuccess(editId ? "Section updated successfully." : "Section registered successfully.");
+      setEditId(null);
       setForm(INITIAL_FORM);
+      setShowForm(false);
       loadAll();
     } catch (err) {
       setError(extractError(err, editId ? "Failed to update section." : "Failed to register section."));
@@ -103,6 +105,7 @@ function SectionsPage() {
       description: group.description || "",
       working_days: group.working_days && group.working_days.length > 0 ? group.working_days : ["MON", "TUE", "WED", "THU", "FRI"],
     });
+    setShowForm(true);
     setError("");
     setSuccess("");
   };
@@ -110,12 +113,13 @@ function SectionsPage() {
   const cancelEdit = () => {
     setEditId(null);
     setForm(INITIAL_FORM);
+    setShowForm(false);
     setError("");
     setSuccess("");
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this section? Associated course offerings and allocations will also be removed.")) return;
+    if (!window.confirm("Delete this section? Associated course offerings will also be removed.")) return;
     try {
       await api.delete(`academics/student-groups/${id}/`);
       if (expandedGroup === id) {
@@ -128,7 +132,7 @@ function SectionsPage() {
     }
   };
 
-  /* ── Course Offerings helpers ── */
+  /* Course Offerings helpers */
   const loadOfferings = useCallback(async (groupId) => {
     try {
       setOfferingsLoading(true);
@@ -174,34 +178,189 @@ function SectionsPage() {
     }
   };
 
-  // Group table rows by program for cleaner display
-  const grouped = useMemo(() => {
+  /* ── Build hierarchy: Program → Year → Sections ── */
+  const hierarchy = useMemo(() => {
     const map = {};
     for (const g of groups) {
-      const key = `${g.program_code}`;
-      if (!map[key]) map[key] = { program_name: g.program_name, program_code: g.program_code, rows: [] };
-      map[key].rows.push(g);
+      const progKey = g.program_code || "Unknown";
+      if (!map[progKey]) {
+        map[progKey] = {
+          program_name: g.program_name,
+          program_code: g.program_code,
+          totalStudents: 0,
+          totalSections: 0,
+          years: {},
+        };
+      }
+      const year = g.year || Math.ceil(g.semester / 2);
+      if (!map[progKey].years[year]) {
+        map[progKey].years[year] = { sections: [], semesters: new Set() };
+      }
+      map[progKey].years[year].sections.push(g);
+      map[progKey].years[year].semesters.add(g.semester);
+      map[progKey].totalStudents += g.strength || 0;
+      map[progKey].totalSections++;
     }
-    // Sort rows within each group by semester then section name
-    for (const key of Object.keys(map)) {
-      map[key].rows.sort((a, b) =>
-        a.semester !== b.semester ? a.semester - b.semester : a.name.localeCompare(b.name)
-      );
+    // Sort sections within each year
+    for (const prog of Object.values(map)) {
+      for (const year of Object.values(prog.years)) {
+        year.sections.sort((a, b) =>
+          a.semester !== b.semester ? a.semester - b.semester : a.name.localeCompare(b.name)
+        );
+      }
     }
     return Object.values(map).sort((a, b) => a.program_code.localeCompare(b.program_code));
   }, [groups]);
 
+  const toggleProg = (code) => setExpandedProgs((p) => ({ ...p, [code]: !p[code] }));
+  const toggleYear = (key) => setExpandedYears((p) => ({ ...p, [key]: !p[key] }));
+
+  // auto-expand all on load
+  useEffect(() => {
+    if (hierarchy.length > 0 && Object.keys(expandedProgs).length === 0) {
+      const ep = {};
+      const ey = {};
+      hierarchy.forEach((p) => {
+        ep[p.program_code] = true;
+        Object.keys(p.years).forEach((y) => {
+          ey[`${p.program_code}-${y}`] = true;
+        });
+      });
+      setExpandedProgs(ep);
+      setExpandedYears(ey);
+    }
+  }, [hierarchy]);
+
   return (
     <DashboardLayout>
-      <div className="page-head">
-        <h1>Section Management</h1>
-        <p>
-          Register student sections per program and semester. The scheduler
-          uses this to know how many parallel sections to timetable and
-          which room sizes to target.
-        </p>
+      {/* ── Header ── */}
+      <div className="sec-page-header">
+        <div>
+          <h1 className="sec-page-title">Sections</h1>
+          <p className="sec-page-sub">
+            Manage student sections per program and semester. Groups are used by the scheduler
+            to assign rooms by capacity.
+          </p>
+        </div>
+        <button className="sec-add-btn" onClick={() => { setShowForm(!showForm); setEditId(null); setForm(INITIAL_FORM); }}>
+          {showForm ? <><FaTimes /> Close</> : <><FaPlus /> Add Section</>}
+        </button>
       </div>
 
+      {/* Alerts */}
+      {error && <div className="sec-alert sec-alert-error">{error}</div>}
+      {success && <div className="sec-alert sec-alert-success">{success}</div>}
+
+      {/* ── Inline Add/Edit Form ── */}
+      {showForm && (
+        <div className="sec-form-panel">
+          <div className="sec-form-header">
+            <h3>{editId ? "Update Section" : "Register New Section"}</h3>
+          </div>
+          <form className="sec-form-grid" onSubmit={handleSubmit}>
+            <div className="sec-field">
+              <label>Program <span className="sec-req">*</span></label>
+              <select
+                value={form.program}
+                onChange={(e) => setForm((p) => ({ ...p, program: e.target.value, semester: "" }))}
+                required
+              >
+                <option value="">Choose program</option>
+                {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.display_name || p.name} ({p.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Semester <span className="sec-req">*</span></label>
+              <select
+                value={form.semester}
+                onChange={(e) => setForm((p) => ({ ...p, semester: e.target.value }))}
+                disabled={!form.program}
+                required
+              >
+                <option value="">{form.program ? "Choose semester" : "Select program first"}</option>
+                {semesterOptions.map((s) => (
+                  <option key={s} value={s}>Semester {s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Section <span className="sec-req">*</span></label>
+              <input
+                placeholder="e.g. A, B, C"
+                value={form.section}
+                onChange={(e) => setForm((p) => ({ ...p, section: e.target.value }))}
+                maxLength={10}
+                required
+              />
+            </div>
+
+            <div className="sec-field">
+              <label>Student Strength <span className="sec-req">*</span></label>
+              <input
+                type="number"
+                min="1"
+                max="300"
+                value={form.strength}
+                onChange={(e) => setForm((p) => ({ ...p, strength: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="sec-field sec-field-wide">
+              <label>Note <span className="sec-opt">(optional)</span></label>
+              <input
+                placeholder="e.g. Honours batch, Evening shift"
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+
+            <div className="sec-field sec-field-wide">
+              <label>Working Days <span className="sec-req">*</span></label>
+              <div className="sec-days-row">
+                {DAYS.map((day) => (
+                  <label
+                    key={day}
+                    className={`sec-day-chip ${form.working_days.includes(day) ? "active" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.working_days.includes(day)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setForm((p) => ({ ...p, working_days: [...p.working_days, day] }));
+                        } else {
+                          setForm((p) => ({ ...p, working_days: p.working_days.filter((d) => d !== day) }));
+                        }
+                      }}
+                    />
+                    {DAY_SHORT[day]}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="sec-form-actions">
+              <button type="submit" className="sec-submit-btn" disabled={submitting}>
+                {submitting ? "Saving..." : editId ? "Update Section" : "Register Section"}
+              </button>
+              {editId && (
+                <button type="button" className="sec-cancel-btn" onClick={cancelEdit}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ── Bulk Upload ── */}
       <BulkUploadCard
         title="Upload Sections"
         endpoint="academics/student-groups/quick-create/"
@@ -220,311 +379,197 @@ function SectionsPage() {
             (p) => p.code.toLowerCase() === progCode.toLowerCase()
           );
           return {
-            program:     prog?.id || null,
-            semester:    toNumber(row.semester, 1),
-            section:     String(row.section || "").trim().toUpperCase(),
-            strength:    toNumber(row.strength, 45),
+            program: prog?.id || null,
+            semester: toNumber(row.semester, 1),
+            section: String(row.section || "").trim().toUpperCase(),
+            strength: toNumber(row.strength, 45),
             description: String(row.description || "").trim(),
           };
         }}
         onUploadComplete={loadAll}
       />
 
-      <div className="faculty-two-col">
-        {/* ── LEFT: Register Section Form ── */}
-        <section className="data-card faculty-form-card">
-          <h3>
-            <FaUsers style={{ marginRight: 8, color: "var(--brand)" }} />
-            {editId ? "Update Section" : "Register Section"}
-          </h3>
-
-          {error   && <p className="upload-error">{error}</p>}
-          {success && <p className="upload-success">{success}</p>}
-
-          <form className="faculty-register-form" onSubmit={handleSubmit}>
-            {/* Program */}
-            <div className="form-group">
-              <label className="form-label">Program *</label>
-              <select
-                className="input"
-                value={form.program}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, program: e.target.value, semester: "" }))
-                }
-                required
-              >
-                <option value="">Choose program</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name || p.name} ({p.code})
-                  </option>
-                ))}
-              </select>
+      {/* ── Section Hierarchy ── */}
+      {loading ? (
+        <div className="sec-loading">
+          <div className="sec-loading-spinner" />
+          Loading sections...
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="sec-empty">
+          <FaUsers className="sec-empty-icon" />
+          <h3>No sections registered yet</h3>
+          <p>Click "Add Section" to register your first student section.</p>
+        </div>
+      ) : (
+        <div className="sec-hierarchy">
+          {/* Summary strip */}
+          <div className="sec-summary-strip">
+            <div className="sec-summary-item">
+              <FaGraduationCap />
+              <span><strong>{hierarchy.length}</strong> Programs</span>
             </div>
-
-            {/* Semester — dynamic based on program */}
-            <div className="form-group">
-              <label className="form-label">Semester *</label>
-              <select
-                className="input"
-                value={form.semester}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, semester: e.target.value }))
-                }
-                disabled={!form.program}
-                required
-              >
-                <option value="">
-                  {form.program ? "Choose semester" : "Select program first"}
-                </option>
-                {semesterOptions.map((s) => (
-                  <option key={s} value={s}>Semester {s}</option>
-                ))}
-              </select>
+            <div className="sec-summary-item">
+              <FaLayerGroup />
+              <span><strong>{groups.length}</strong> Sections</span>
             </div>
-
-            {/* Section letter */}
-            <div className="form-group">
-              <label className="form-label">Section *</label>
-              <input
-                className="input"
-                placeholder="e.g. A, B, C or 1, 2"
-                value={form.section}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, section: e.target.value }))
-                }
-                maxLength={10}
-                required
-              />
-              <span className="input-hint">
-                Section identifier — A, B, C for parallel batches
-              </span>
+            <div className="sec-summary-item">
+              <FaUserGraduate />
+              <span><strong>{groups.reduce((s, g) => s + (g.strength || 0), 0)}</strong> Students</span>
             </div>
+          </div>
 
-            {/* Strength */}
-            <div className="form-group">
-              <label className="form-label">Student Strength *</label>
-              <input
-                className="input"
-                type="number"
-                min="1"
-                max="300"
-                value={form.strength}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, strength: e.target.value }))
-                }
-                required
-              />
-              <span className="input-hint">
-                Scheduler uses this to match rooms with sufficient capacity
-              </span>
-            </div>
-
-            {/* Description (optional) */}
-            <div className="form-group">
-              <label className="form-label">Note (optional)</label>
-              <input
-                className="input"
-                placeholder="e.g. Honours batch, Evening shift"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, description: e.target.value }))
-                }
-              />
-            </div>
-
-            {/* Working Days */}
-            <div className="form-group" style={{ marginBottom: "1rem" }}>
-              <label className="form-label">Working Days *</label>
-              <div className="custom-checkbox-group">
-                {DAYS.map(day => (
-                  <label key={day} className="custom-checkbox-label">
-                    <input
-                      type="checkbox"
-                      className="custom-checkbox"
-                      checked={form.working_days.includes(day)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setForm(p => ({ ...p, working_days: [...p.working_days, day] }));
-                        } else {
-                          setForm(p => ({ ...p, working_days: p.working_days.filter(d => d !== day) }));
-                        }
-                      }}
-                    />
-                    <span className="checkbox-text">{day}</span>
-                  </label>
-                ))}
-              </div>
-              <span className="input-hint">Uncheck days to declare them as holidays for this section.</span>
-            </div>
-
-            <div className="form-group form-group-btn" style={{ display: "flex", gap: "10px" }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={submitting}
-                style={{ flex: 1, justifyContent: "center" }}
-              >
-                <FaUsers style={{ marginRight: 8 }} />
-                {submitting ? "Saving..." : editId ? "Update Section" : "Register Section"}
+          {/* Program accordion */}
+          {hierarchy.map((prog) => (
+            <div key={prog.program_code} className="sec-program-block">
+              {/* Program header */}
+              <button className="sec-program-header" onClick={() => toggleProg(prog.program_code)}>
+                <div className="sec-program-left">
+                  {expandedProgs[prog.program_code] ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+                  <div className="sec-program-icon">
+                    <FaGraduationCap />
+                  </div>
+                  <div>
+                    <span className="sec-program-name">{prog.program_name}</span>
+                    <span className="sec-program-code">{prog.program_code}</span>
+                  </div>
+                </div>
+                <div className="sec-program-meta">
+                  <span className="sec-meta-badge">{prog.totalSections} sections</span>
+                  <span className="sec-meta-badge">{prog.totalStudents} students</span>
+                </div>
               </button>
-              {editId && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={cancelEdit}
-                >
-                  <FaTimes />
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
 
-        {/* ── RIGHT: Existing Sections ── */}
-        <section className="data-card faculty-list-card">
-          <h3>Registered Sections ({groups.length})</h3>
-          {loading ? (
-            <p className="upload-help">Loading sections...</p>
-          ) : groups.length === 0 ? (
-            <p className="upload-help" style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
-              No sections registered yet. Add one using the form.
-            </p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Program</th>
-                    <th>Semester</th>
-                    <th>Year</th>
-                    <th>Section</th>
-                    <th>Strength</th>
-                    <th>Note</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {grouped.map((grp) =>
-                    grp.rows.map((g, idx) => (
-                      <tr key={g.id} style={{ cursor: "pointer" }} onClick={() => toggleExpand(g.id)}>
-                        {idx === 0 && (
-                          <td rowSpan={grp.rows.length} style={{ fontWeight: 600 }}>
-                            <div className="fac-name-cell">
-                              <FaUsers style={{ color: "var(--brand)", flexShrink: 0 }} />
-                              <span>{grp.program_name}</span>
+              {/* Expanded years */}
+              {expandedProgs[prog.program_code] && (
+                <div className="sec-years-container">
+                  {Object.entries(prog.years)
+                    .sort(([a], [b]) => Number(a) - Number(b))
+                    .map(([year, data]) => {
+                      const yearKey = `${prog.program_code}-${year}`;
+                      return (
+                        <div key={yearKey} className="sec-year-block">
+                          <button className="sec-year-header" onClick={() => toggleYear(yearKey)}>
+                            {expandedYears[yearKey] ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                            <span className="sec-year-label">Year {year}</span>
+                            <span className="sec-year-sems">
+                              Sem {[...data.semesters].sort((a, b) => a - b).join(", ")}
+                            </span>
+                            <span className="sec-year-count">{data.sections.length} sections</span>
+                          </button>
+
+                          {expandedYears[yearKey] && (
+                            <div className="sec-cards-grid">
+                              {data.sections.map((g) => (
+                                <div
+                                  key={g.id}
+                                  className={`sec-card ${expandedGroup === g.id ? "sec-card-active" : ""}`}
+                                >
+                                  <div className="sec-card-top">
+                                    <div className="sec-card-name-row">
+                                      <span className="sec-card-name">{g.name}</span>
+                                      <span className="sec-card-sem-badge">Sem {g.semester}</span>
+                                    </div>
+                                    <div className="sec-card-actions">
+                                      <button className="sec-icon-btn" title="Edit" onClick={() => handleEdit(g)}>
+                                        <FaEdit />
+                                      </button>
+                                      <button className="sec-icon-btn sec-icon-danger" title="Delete" onClick={() => handleDelete(g.id)}>
+                                        <FaTrash />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="sec-card-details">
+                                    <div className="sec-detail-row">
+                                      <span className="sec-detail-label">Strength</span>
+                                      <span className="sec-detail-value">{g.strength} students</span>
+                                    </div>
+                                    {g.description && (
+                                      <div className="sec-detail-row">
+                                        <span className="sec-detail-label">Note</span>
+                                        <span className="sec-detail-value">{g.description}</span>
+                                      </div>
+                                    )}
+                                    <div className="sec-detail-row">
+                                      <span className="sec-detail-label">Working Days</span>
+                                      <div className="sec-detail-days">
+                                        {DAYS.map((d) => (
+                                          <span
+                                            key={d}
+                                            className={`sec-day-mini ${(g.working_days || ["MON", "TUE", "WED", "THU", "FRI"]).includes(d) ? "on" : "off"}`}
+                                          >
+                                            {DAY_SHORT[d]}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    className="sec-card-expand-btn"
+                                    onClick={() => toggleExpand(g.id)}
+                                  >
+                                    <FaBook />
+                                    {expandedGroup === g.id ? "Hide Courses" : "View Courses"}
+                                    {expandedGroup === g.id ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                                  </button>
+
+                                  {/* Course offerings inline */}
+                                  {expandedGroup === g.id && (
+                                    <div className="sec-offerings-panel">
+                                      <div className="sec-offerings-header">
+                                        <span>Course Offerings</span>
+                                        <button
+                                          className="sec-auto-btn"
+                                          disabled={autoAssigning}
+                                          onClick={() => handleAutoAssign(g.id)}
+                                        >
+                                          <FaMagic />
+                                          {autoAssigning ? "Assigning..." : "Auto-Assign"}
+                                        </button>
+                                      </div>
+
+                                      {offeringsLoading ? (
+                                        <p className="sec-offerings-empty">Loading...</p>
+                                      ) : offerings.length === 0 ? (
+                                        <p className="sec-offerings-empty">
+                                          No offerings yet. Click Auto-Assign to populate.
+                                        </p>
+                                      ) : (
+                                        <div className="sec-offerings-list">
+                                          {offerings.map((o) => (
+                                            <div key={o.id} className="sec-offering-row">
+                                              <div className="sec-offering-info">
+                                                <strong>{courseDisplayCode(o.course_code || o.course)}</strong>
+                                                <span>{o.course_name || "—"}</span>
+                                              </div>
+                                              <span className="sec-offering-type">{o.course_type || "—"}</span>
+                                              <span className={`sec-offering-fac ${o.faculty_name ? "" : "unassigned"}`}>
+                                                {o.faculty_name || "Unassigned"}
+                                              </span>
+                                              <button className="sec-icon-btn sec-icon-danger" onClick={() => handleDeleteOffering(o.id)}>
+                                                <FaTrash size={11} />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          </td>
-                        )}
-                        <td>
-                          <span className="course-sem-badge">Sem {g.semester}</span>
-                        </td>
-                        <td style={{ color: "var(--muted)" }}>Year {g.year}</td>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            {expandedGroup === g.id ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
-                            <strong>{g.name}</strong>
-                          </div>
-                        </td>
-                        <td>{g.strength}</td>
-                        <td style={{ color: "var(--muted)", fontSize: "0.85em" }}>
-                          {g.description || "\u2014"}
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button
-                              className="action-btn"
-                              title="Edit Section"
-                              onClick={(e) => { e.stopPropagation(); handleEdit(g); }}
-                            >
-                              <FaEdit style={{ color: "#3b82f6" }} />
-                            </button>
-                            <button
-                              className="action-btn danger"
-                              title="Delete"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(g.id); }}
-                            >
-                              <FaTrash />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* ── Expanded Course Offerings Panel ── */}
-          {expandedGroup && (
-            <div className="data-card" style={{ marginTop: 12, background: "var(--bg-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                <h4 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <FaBook style={{ color: "var(--brand)" }} />
-                  Course Offerings for Section {groups.find((g) => g.id === expandedGroup)?.name || ""}
-                </h4>
-                <button
-                  className="btn-primary btn-with-icon"
-                  style={{ fontSize: "0.85em" }}
-                  disabled={autoAssigning}
-                  onClick={() => handleAutoAssign(expandedGroup)}
-                >
-                  <FaMagic />
-                  {autoAssigning ? "Assigning..." : "Auto-Assign Courses"}
-                </button>
-              </div>
-
-              {offeringsLoading ? (
-                <p className="upload-help">Loading offerings...</p>
-              ) : offerings.length === 0 ? (
-                <p style={{ color: "var(--muted)", textAlign: "center", padding: 16 }}>
-                  No course offerings yet. Click "Auto-Assign Courses" to populate from the program syllabus.
-                </p>
-              ) : (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Course Code</th>
-                        <th>Course Name</th>
-                        <th>Type</th>
-                        <th>Weekly Load</th>
-                        <th>Faculty</th>
-                        <th style={{ width: 40 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {offerings.map((o) => (
-                        <tr key={o.id}>
-                          <td><strong>{o.course_code || o.course}</strong></td>
-                          <td>{o.course_name || "\u2014"}</td>
-                          <td>
-                            <span className="course-sem-badge">{o.course_type || "\u2014"}</span>
-                          </td>
-                          <td>{o.weekly_load}</td>
-                          <td style={{ color: o.faculty_name ? "inherit" : "var(--muted)" }}>
-                            {o.faculty_name || "Unassigned"}
-                          </td>
-                          <td>
-                            <button
-                              className="icon-btn danger"
-                              title="Remove offering"
-                              onClick={() => handleDeleteOffering(o.id)}
-                            >
-                              <FaTrash size={12} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
-          )}
-        </section>
-      </div>
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -35,30 +35,13 @@ export function extractError(err, fallback = "Something went wrong.") {
  * Examples:
  *   "24COA191_BCA"    -> "24COA191"
  *   "24CSE201_BTAIML" -> "24CSE201"
+ *   "24LSK101_BCAFSD" -> "24LSK101"
  *   "24CSE671"        -> "24CSE671"   (no suffix — returned as-is)
  *
- * The API already returns `display_code` / `course_code` without the suffix,
- * but this helper is a safety-net for any place that renders a raw `.code` field.
+ * Strips any trailing _ALLCAPS suffix (2+ uppercase letters) automatically.
  */
-const _INTERNAL_SUFFIXES = [
-  "_BTCSCS", "_BTAIML",
-  "_BCAFSD", "_BCACS",
-  "_BSCIT",  "_BTCSE", "_BTCVL",
-  "_BTAERO", "_BTECE", "_BTEE",
-  "_BTME",   "_BTDS",
-  "_MTGEO",  "_MTSTR", "_MTTRN",
-  "_MTCSE",  "_MTME",  "_MTDC",
-  "_MTSG",
-  "_BCA",    "_MCA",
-];
-
 export function courseDisplayCode(code) {
   if (!code) return code;
-  const upper = code.toUpperCase();
-  for (const sfx of _INTERNAL_SUFFIXES) {
-    if (upper.endsWith(sfx)) {
-      return code.slice(0, code.length - sfx.length);
-    }
-  }
-  return code;
+  // Strip ALL trailing _PROGRAMCODE suffixes (handles double like _BCA_BCA)
+  return code.replace(/(_[A-Z]{2,})+$/, "");
 }

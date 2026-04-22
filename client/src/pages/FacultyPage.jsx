@@ -7,10 +7,12 @@ import { asList, extractError } from "../utils/helpers";
 import {
   FaChevronDown,
   FaChevronUp,
+  FaChevronRight,
   FaTrash,
   FaUserTie,
   FaEdit,
   FaTimes,
+  FaPlus,
   FaSearch,
   FaGraduationCap,
   FaBookOpen,
@@ -18,6 +20,8 @@ import {
   FaSortAmountDown,
   FaBan,
   FaCheck,
+  FaUsers,
+  FaLayerGroup,
 } from "react-icons/fa";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -74,55 +78,7 @@ function buildInitialAvailability() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Faculty Card — displayed in the right panel
-   ═══════════════════════════════════════════════════════════════ */
-function FacultyCard({ fac, onEdit, onDelete, onClick }) {
-  return (
-    <div className="fac-card" onClick={onClick} style={{ cursor: "pointer" }}>
-      {/* Avatar + Name */}
-      <div className="fac-card-top">
-        <div className="fac-card-avatar">
-          {fac.name.charAt(0).toUpperCase()}
-        </div>
-        <div className="fac-card-info">
-          <div className="fac-card-name">{fac.name}</div>
-          <div className="fac-card-empid">{fac.employee_id}</div>
-        </div>
-      </div>
-
-      {/* Badges row */}
-      <div className="fac-card-badges">
-        {fac.designation && (
-          <span className="fac-badge fac-badge-desg">{fac.designation}</span>
-        )}
-        <span className={`fac-badge fac-badge-role role-${fac.role.toLowerCase()}`}>
-          {fac.role}
-        </span>
-      </div>
-
-      {/* Workload row */}
-      <div className="fac-card-meta">
-        <span title="Max lectures per day">{fac.max_lectures_per_day}/day</span>
-        <span className="fac-card-dot">·</span>
-        <span title="Max weekly load">{fac.max_weekly_load}/wk</span>
-      </div>
-
-      {/* Actions */}
-      <div className="fac-card-actions">
-        <button className="action-btn" onClick={(e) => { e.stopPropagation(); onEdit(fac); }} title="Edit">
-          <FaEdit style={{ color: "#3b82f6" }} />
-        </button>
-        <button className="action-btn danger" onClick={(e) => { e.stopPropagation(); onDelete(fac.id); }} title="Delete">
-          <FaTrash />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   Exclusion Configurator — Program → Semester → Courses
-   All courses are teachable by default. Click to EXCLUDE.
+   Eligibility Configurator — Program → Semester → Courses
    ═══════════════════════════════════════════════════════════════ */
 function EligibilityConfigurator({
   programs, courses,
@@ -133,7 +89,6 @@ function EligibilityConfigurator({
   const [expandedProg, setExpandedProg] = useState(null);
   const [expandedSem, setExpandedSem] = useState(null);
 
-  // Group courses by program → semester
   const tree = useMemo(() => {
     const map = {};
     courses.forEach((c) => {
@@ -156,7 +111,6 @@ function EligibilityConfigurator({
     setExpandedSem(expandedSem === sem ? null : sem);
   };
 
-  // Count total exclusions (all three levels)
   const exclCourseCount = Object.keys(excludedSubjects).filter((k) => excludedSubjects[k]).length;
   const exclProgCount = Object.keys(excludedPrograms).filter((k) => excludedPrograms[k]).length;
   const exclSemCount = Object.keys(excludedSemesters).filter((k) => excludedSemesters[k]).length;
@@ -191,7 +145,6 @@ function EligibilityConfigurator({
                   className={`elig-prog-header ${isExpanded ? "active" : ""} ${isProgExcluded ? "prog-excluded" : ""}`}
                   onClick={() => toggleProgView(prog.id)}
                 >
-                  {/* Program-level checkbox */}
                   <label
                     className={`elig-level-check ${isProgExcluded ? "excluded" : ""}`}
                     onClick={(e) => e.stopPropagation()}
@@ -292,12 +245,11 @@ function EligibilityConfigurator({
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Faculty Detail View — full page detail with courses
+   Faculty Detail View
    ═══════════════════════════════════════════════════════════════ */
 function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions, semExclusions, availabilities, onBack }) {
   const [expandedProg, setExpandedProg] = useState(null);
 
-  // Build exclusion sets from DB records
   const excludedCourseIds = useMemo(() => {
     const set = new Set();
     exclusions.filter(e => e.faculty === fac.id).forEach(e => {
@@ -318,7 +270,6 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
     return set;
   }, [semExclusions, fac.id]);
 
-  // Group courses by program → semester
   const courseTree = useMemo(() => {
     const map = {};
     courses.forEach((c) => {
@@ -332,7 +283,6 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
     return map;
   }, [courses]);
 
-  // Build availability summary
   const availSummary = useMemo(() => {
     const facAvails = availabilities.filter(a => a.faculty === fac.id);
     if (facAvails.length === 0) return "Available all day, every day (default)";
@@ -350,12 +300,10 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
 
   return (
     <div className="fac-detail-view">
-      {/* Header */}
       <button className="fac-detail-back" onClick={onBack}>
         <FaArrowLeft /> Back to Faculty List
       </button>
 
-      {/* Profile card */}
       <div className="fac-detail-profile">
         <div className="fac-detail-avatar">
           {fac.name.charAt(0).toUpperCase()}
@@ -372,7 +320,6 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="fac-detail-stats">
         <div className="fac-detail-stat">
           <div className="fac-detail-stat-val">{fac.max_lectures_per_day}</div>
@@ -396,13 +343,11 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
         </div>
       </div>
 
-      {/* Availability summary */}
       <div className="fac-detail-section">
         <h4><FaBookOpen style={{ marginRight: 6, color: "var(--brand)" }} />Availability</h4>
         <p className="fac-detail-avail-text">{availSummary}</p>
       </div>
 
-      {/* Courses — grouped by program → semester */}
       <div className="fac-detail-section">
         <h4><FaGraduationCap style={{ marginRight: 6, color: "var(--brand)" }} />Course Eligibility</h4>
         {excludedCourseIds.size === 0 && excludedProgIds.size === 0 && excludedSemKeys.size === 0 && (
@@ -508,6 +453,7 @@ function FacultyPage() {
   const [search, setSearch] = useState("");
 
   const [form, setForm] = useState(INITIAL_FORM);
+  const [showForm, setShowForm] = useState(false);
   const [showAvailability, setShowAvailability] = useState(false);
   const [showEligibility, setShowEligibility] = useState(false);
   const [availability, setAvailability] = useState(buildInitialAvailability());
@@ -517,6 +463,7 @@ function FacultyPage() {
   const [editId, setEditId] = useState(null);
   const [viewingFaculty, setViewingFaculty] = useState(null);
   const [sortBy, setSortBy] = useState("az");
+  const [expandedDepts, setExpandedDepts] = useState({});
 
   const loadAll = useCallback(async () => {
     try {
@@ -548,19 +495,16 @@ function FacultyPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  /* ── Role change → auto-fill workload ── */
   const handleRoleChange = (role) => {
     const defaults = ROLE_DEFAULTS[role] || ROLE_DEFAULTS.REGULAR;
     setForm((p) => ({
-      ...p,
-      role,
+      ...p, role,
       max_lectures_per_day: defaults.max_lectures_per_day,
       max_consecutive_lectures: defaults.max_consecutive_lectures,
       max_weekly_load: defaults.max_weekly_load,
     }));
   };
 
-  /* ── Availability toggles ── */
   const toggleAllDay = (dayKey) => {
     setAvailability((prev) => {
       const newAllDay = !prev[dayKey].allDay;
@@ -578,7 +522,6 @@ function FacultyPage() {
     });
   };
 
-  /* ── Subject exclusion toggle ── */
   const toggleExclusion = (courseId) => {
     setExcludedSubjects((prev) => {
       const copy = { ...prev };
@@ -588,7 +531,6 @@ function FacultyPage() {
     });
   };
 
-  /* ── Program exclusion toggle ── */
   const toggleProgExcl = (progId) => {
     setExcludedPrograms((prev) => {
       const copy = { ...prev };
@@ -598,7 +540,6 @@ function FacultyPage() {
     });
   };
 
-  /* ── Semester exclusion toggle ── */
   const toggleSemExcl = (progId, sem) => {
     const key = `${progId}-${sem}`;
     setExcludedSemesters((prev) => {
@@ -609,7 +550,6 @@ function FacultyPage() {
     });
   };
 
-  /* ── Submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setSuccess(""); setSubmitting(true);
@@ -620,9 +560,9 @@ function FacultyPage() {
         employee_id: form.employee_id,
         designation: form.designation,
         role: form.role,
-        max_lectures_per_day:     Number(form.max_lectures_per_day),
+        max_lectures_per_day: Number(form.max_lectures_per_day),
         max_consecutive_lectures: Number(form.max_consecutive_lectures),
-        max_weekly_load:          Number(form.max_weekly_load),
+        max_weekly_load: Number(form.max_weekly_load),
         is_active: true,
       };
       if (form.department) facPayload.department = Number(form.department);
@@ -664,7 +604,7 @@ function FacultyPage() {
       });
       await Promise.all(availPromises);
 
-      // Save exclusions (courses this faculty CANNOT teach)
+      // Save course exclusions
       const excludedIds = Object.keys(excludedSubjects).filter((id) => excludedSubjects[id]);
       if (excludedIds.length > 0) {
         await Promise.all(
@@ -708,6 +648,7 @@ function FacultyPage() {
       setExcludedSemesters({});
       setShowAvailability(false);
       setShowEligibility(false);
+      setShowForm(false);
       setEditId(null);
       setSuccess(editId ? "Faculty updated successfully." : "Faculty registered successfully.");
       loadAll();
@@ -731,7 +672,6 @@ function FacultyPage() {
       max_weekly_load: fac.max_weekly_load,
     });
 
-    // Reconstruct availability
     const newAvail = buildInitialAvailability();
     const facAvails = availabilityData.filter(a => a.faculty === fac.id);
     if (facAvails.length > 0) {
@@ -746,31 +686,28 @@ function FacultyPage() {
     }
     setAvailability(newAvail);
 
-    // Reconstruct course exclusions
     const newExcluded = {};
     eligibilityData.filter(e => e.faculty === fac.id).forEach(e => {
       newExcluded[e.course?.id || e.course] = true;
     });
     setExcludedSubjects(newExcluded);
 
-    // Reconstruct program exclusions
     const newProgExcl = {};
     progExclData.filter(e => e.faculty === fac.id).forEach(e => {
       newProgExcl[e.program] = true;
     });
     setExcludedPrograms(newProgExcl);
 
-    // Reconstruct semester exclusions
     const newSemExcl = {};
     semExclData.filter(e => e.faculty === fac.id).forEach(e => {
       newSemExcl[`${e.program}-${e.semester}`] = true;
     });
     setExcludedSemesters(newSemExcl);
 
+    setShowForm(true);
     setShowAvailability(false);
     setShowEligibility(false);
     setError(""); setSuccess("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
@@ -782,6 +719,7 @@ function FacultyPage() {
     setExcludedSemesters({});
     setShowAvailability(false);
     setShowEligibility(false);
+    setShowForm(false);
     setError(""); setSuccess("");
   };
 
@@ -789,16 +727,17 @@ function FacultyPage() {
     if (!window.confirm("Delete this faculty member?")) return;
     try {
       await api.delete(`faculty/faculty/${id}/`);
+      if (viewingFaculty?.id === id) setViewingFaculty(null);
       loadAll();
     } catch (err) {
       setError(extractError(err, "Failed to delete faculty."));
     }
   };
 
-  /* ── Sort + Group faculty for display ── */
-  const sortedFaculty = useMemo(() => {
+  /* Group faculty by department */
+  const grouped = useMemo(() => {
     const q = search.toLowerCase();
-    const filtered = q
+    let filtered = q
       ? faculty.filter(
           (f) =>
             (f.name || "").toLowerCase().includes(q) ||
@@ -808,7 +747,6 @@ function FacultyPage() {
         )
       : [...faculty];
 
-    // Apply sort
     const cmp = {
       az: (a, b) => a.name.localeCompare(b.name),
       za: (a, b) => b.name.localeCompare(a.name),
@@ -816,12 +754,9 @@ function FacultyPage() {
       workload: (a, b) => b.max_weekly_load - a.max_weekly_load,
     };
     filtered.sort(cmp[sortBy] || cmp.az);
-    return filtered;
-  }, [faculty, search, sortBy]);
 
-  const groupedFaculty = useMemo(() => {
     const map = {};
-    sortedFaculty.forEach((f) => {
+    filtered.forEach((f) => {
       const key = f.department_name || "Unassigned";
       if (!map[key]) map[key] = [];
       map[key].push(f);
@@ -830,17 +765,204 @@ function FacultyPage() {
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dept, facs]) => ({ dept, facs }));
-  }, [sortedFaculty]);
+  }, [faculty, search, sortBy]);
 
-  const totalFiltered = groupedFaculty.reduce((s, g) => s + g.facs.length, 0);
+  const toggleDept = (name) => setExpandedDepts((p) => ({ ...p, [name]: !p[name] }));
+
+
+  const deptCount = Object.keys(
+    faculty.reduce((m, f) => { m[f.department_name || "Other"] = 1; return m; }, {})
+  ).length;
+
+  /* ── If viewing detail ── */
+  if (viewingFaculty) {
+    return (
+      <DashboardLayout>
+        <FacultyDetailView
+          fac={viewingFaculty}
+          programs={programs}
+          courses={courses}
+          exclusions={eligibilityData}
+          progExclusions={progExclData}
+          semExclusions={semExclData}
+          availabilities={availabilityData}
+          onBack={() => setViewingFaculty(null)}
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="page-head">
-        <h1>Faculty Management</h1>
-        <p>Register faculty with availability and subject eligibility.</p>
+      {/* Header */}
+      <div className="sec-page-header">
+        <div>
+          <h1 className="sec-page-title">Faculty</h1>
+          <p className="sec-page-sub">
+            Register faculty with availability constraints and subject eligibility.
+          </p>
+        </div>
+        <button className="sec-add-btn" onClick={() => { setShowForm(!showForm); if (showForm) cancelEdit(); else { setEditId(null); setForm(INITIAL_FORM); } }}>
+          {showForm ? <><FaTimes /> Close</> : <><FaPlus /> Add Faculty</>}
+        </button>
       </div>
 
+      {error && <div className="sec-alert sec-alert-error">{error}</div>}
+      {success && <div className="sec-alert sec-alert-success">{success}</div>}
+
+      {/* Form Panel */}
+      {showForm && (
+        <div className="sec-form-panel">
+          <div className="sec-form-header">
+            <h3>{editId ? "Update Faculty Member" : "Register New Faculty"}</h3>
+          </div>
+          <form className="sec-form-grid" onSubmit={handleSubmit}>
+            <div className="sec-field">
+              <label>Full Name <span className="sec-req">*</span></label>
+              <input placeholder="e.g. Dr. John Doe" value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+            </div>
+
+            <div className="sec-field">
+              <label>Employee ID <span className="sec-req">*</span></label>
+              <input placeholder="e.g. FAC1001" value={form.employee_id}
+                onChange={(e) => setForm((p) => ({ ...p, employee_id: e.target.value }))} required />
+            </div>
+
+            <div className="sec-field">
+              <label>Designation <span className="sec-opt">(optional)</span></label>
+              <input placeholder="e.g. Professor" value={form.designation}
+                onChange={(e) => setForm((p) => ({ ...p, designation: e.target.value }))} />
+            </div>
+
+            <div className="sec-field">
+              <label>Department</label>
+              <select value={form.department}
+                onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}>
+                <option value="">— Select —</option>
+                {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field sec-field-wide">
+              <label>Role</label>
+              <select value={form.role} onChange={(e) => handleRoleChange(e.target.value)}>
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                Changing role auto-fills workload defaults below
+              </span>
+            </div>
+
+            <div className="sec-field">
+              <label>Max / Day</label>
+              <select value={form.max_lectures_per_day}
+                onChange={(e) => setForm((p) => ({ ...p, max_lectures_per_day: e.target.value }))}>
+                {[1,2,3,4,5,6].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Max Consecutive</label>
+              <select value={form.max_consecutive_lectures}
+                onChange={(e) => setForm((p) => ({ ...p, max_consecutive_lectures: e.target.value }))}>
+                {[1,2,3,4].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Max / Week</label>
+              <input type="number" min="1" max="30" value={form.max_weekly_load}
+                onChange={(e) => setForm((p) => ({ ...p, max_weekly_load: e.target.value }))} />
+            </div>
+
+            {/* Availability toggle */}
+            <div className="sec-field sec-field-wide" style={{ gridColumn: "1 / -1" }}>
+              <button type="button" className="avail-toggle-btn"
+                onClick={() => setShowAvailability((v) => !v)}>
+                <span>Configure Availability</span>
+                {showAvailability ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+            </div>
+
+            {showAvailability && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div className="avail-config">
+                  {DAYS.map((d) => (
+                    <div key={d.key} className="avail-day-row">
+                      <div className="avail-day-header">
+                        <span className="avail-day-label">{d.label}</span>
+                        <label className="avail-allday-check">
+                          <input type="checkbox" checked={availability[d.key].allDay}
+                            onChange={() => toggleAllDay(d.key)} />
+                          <span>All day</span>
+                        </label>
+                      </div>
+                      <div className="avail-slots-row">
+                        {SLOTS.map((s) => (
+                          <label key={s}
+                            className={`avail-slot-chip ${availability[d.key].slots[s] ? "active" : ""}`}
+                            title={SLOT_TIMES[s]}>
+                            <input type="checkbox" checked={availability[d.key].slots[s]}
+                              onChange={() => toggleSlot(d.key, s)} />
+                            Slot {s}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Eligibility toggle */}
+            <div className="sec-field sec-field-wide" style={{ gridColumn: "1 / -1" }}>
+              <button type="button" className="avail-toggle-btn"
+                onClick={() => setShowEligibility((v) => !v)}>
+                <span>Configure Eligibility</span>
+                {showEligibility ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                Click courses to EXCLUDE them — unconfigured = can teach everything
+              </span>
+            </div>
+
+            {showEligibility && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <EligibilityConfigurator
+                  programs={programs}
+                  courses={courses}
+                  excludedSubjects={excludedSubjects}
+                  toggleExclusion={toggleExclusion}
+                  excludedPrograms={excludedPrograms}
+                  toggleProgExcl={toggleProgExcl}
+                  excludedSemesters={excludedSemesters}
+                  toggleSemExcl={toggleSemExcl}
+                />
+              </div>
+            )}
+
+            <div className="sec-form-actions">
+              <button type="submit" className="sec-submit-btn" disabled={submitting}>
+                {submitting ? "Saving..." : editId ? "Update Faculty" : "Register Faculty"}
+              </button>
+              {editId && (
+                <button type="button" className="sec-cancel-btn" onClick={cancelEdit}>Cancel</button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Bulk Upload */}
       <BulkUploadCard
         title="Upload Faculty"
         endpoint="faculty/faculty/"
@@ -868,253 +990,112 @@ function FacultyPage() {
         onUploadComplete={loadAll}
       />
 
-      <div className="faculty-two-col">
-        {/* ═══ LEFT: Form ═══ */}
-        <section className="data-card faculty-form-card">
-          <h3>
-            <FaUserTie style={{ marginRight: 8, color: "var(--brand)" }} />
-            {editId ? "Update Faculty Member" : "Register New Faculty"}
-          </h3>
-
-          {error   && <p className="upload-error">{error}</p>}
-          {success && <p className="upload-success">{success}</p>}
-
-          <form className="faculty-register-form" onSubmit={handleSubmit}>
-            {/* Row 1: Name + Employee ID */}
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">Full Name *</label>
-                <input className="input" placeholder="e.g. Dr. John Doe" value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Employee ID *</label>
-                <input className="input" placeholder="e.g. FAC1001" value={form.employee_id}
-                  onChange={(e) => setForm((p) => ({ ...p, employee_id: e.target.value }))} required />
-              </div>
+      {/* Content */}
+      {loading ? (
+        <div className="sec-loading">
+          <div className="sec-loading-spinner" />
+          Loading faculty...
+        </div>
+      ) : faculty.length === 0 ? (
+        <div className="sec-empty">
+          <FaUserTie className="sec-empty-icon" />
+          <h3>No faculty registered yet</h3>
+          <p>Click "Add Faculty" to register your first faculty member.</p>
+        </div>
+      ) : (
+        <div className="sec-hierarchy">
+          {/* Summary + controls */}
+          <div className="sec-summary-strip">
+            <div className="sec-summary-item">
+              <FaLayerGroup />
+              <span><strong>{deptCount}</strong> Departments</span>
             </div>
-
-            {/* Row 2: Designation + Department */}
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">Designation</label>
-                <input className="input" placeholder="e.g. Professor, Assistant Professor"
-                  value={form.designation}
-                  onChange={(e) => setForm((p) => ({ ...p, designation: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <select className="input" value={form.department}
-                  onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}>
-                  <option value="">— Select —</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
+            <div className="sec-summary-item">
+              <FaUsers />
+              <span><strong>{faculty.length}</strong> Faculty</span>
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="fac-sort-wrap">
+                <FaSortAmountDown className="fac-sort-icon" />
+                <select className="fac-sort-select" value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}>
+                  <option value="az">Name A → Z</option>
+                  <option value="za">Name Z → A</option>
+                  <option value="designation">Designation</option>
+                  <option value="workload">Workload (high → low)</option>
                 </select>
               </div>
-            </div>
-
-            {/* Row 3: Role */}
-            <div className="form-group">
-              <label className="form-label">Role</label>
-              <select className="input" value={form.role}
-                onChange={(e) => handleRoleChange(e.target.value)}>
-                {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-              <span className="input-hint">
-                Changing role auto-fills workload defaults below
-              </span>
-            </div>
-
-            {/* Row 4: Workload — 3 fields in a row */}
-            <div className="form-row-3">
-              <div className="form-group">
-                <label className="form-label">Max / Day</label>
-                <select className="input" value={form.max_lectures_per_day}
-                  onChange={(e) => setForm((p) => ({ ...p, max_lectures_per_day: e.target.value }))}>
-                  {[1,2,3,4,5,6].map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Max Consec.</label>
-                <select className="input" value={form.max_consecutive_lectures}
-                  onChange={(e) => setForm((p) => ({ ...p, max_consecutive_lectures: e.target.value }))}>
-                  {[1,2,3,4].map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Max / Week</label>
-                <input className="input" type="number" min="1" max="30"
-                  value={form.max_weekly_load}
-                  onChange={(e) => setForm((p) => ({ ...p, max_weekly_load: e.target.value }))} />
+              <div className="pdc-search-wrap">
+                <FaSearch className="pdc-search-icon" />
+                <input className="input pdc-search-input" placeholder="Search..."
+                  value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
             </div>
+          </div>
 
-            {/* ── Configure Availability ── */}
-            <div className="form-group">
-              <button type="button" className="avail-toggle-btn"
-                onClick={() => setShowAvailability((v) => !v)}>
-                <span>Configure Availability</span>
-                {showAvailability ? <FaChevronUp /> : <FaChevronDown />}
-              </button>
-            </div>
-
-            {showAvailability && (
-              <div className="avail-config">
-                {DAYS.map((d) => (
-                  <div key={d.key} className="avail-day-row">
-                    <div className="avail-day-header">
-                      <span className="avail-day-label">{d.label}</span>
-                      <label className="avail-allday-check">
-                        <input type="checkbox" checked={availability[d.key].allDay}
-                          onChange={() => toggleAllDay(d.key)} />
-                        <span>All day</span>
-                      </label>
-                    </div>
-                    <div className="avail-slots-row">
-                      {SLOTS.map((s) => (
-                        <label key={s}
-                          className={`avail-slot-chip ${availability[d.key].slots[s] ? "active" : ""}`}
-                          title={SLOT_TIMES[s]}>
-                          <input type="checkbox" checked={availability[d.key].slots[s]}
-                            onChange={() => toggleSlot(d.key, s)} />
-                          Slot {s}
-                        </label>
-                      ))}
-                    </div>
+          {/* Department accordion */}
+          {grouped.map(({ dept, facs }) => (
+            <div key={dept} className="sec-program-block">
+              <button className="sec-program-header" onClick={() => toggleDept(dept)}>
+                <div className="sec-program-left">
+                  {expandedDepts[dept] ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+                  <div className="sec-program-icon"><FaUserTie /></div>
+                  <div>
+                    <span className="sec-program-name">{dept}</span>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── Configure Eligibility ── */}
-            <div className="form-group">
-              <button type="button" className="avail-toggle-btn"
-                onClick={() => setShowEligibility((v) => !v)}>
-                <span>Configure Eligibility</span>
-                {showEligibility ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+                <div className="sec-program-meta">
+                  <span className="sec-meta-badge">{facs.length} members</span>
+                </div>
               </button>
-              <span className="input-hint">
-                Click courses to EXCLUDE them — unconfigured = can teach everything
-              </span>
-            </div>
 
-            {showEligibility && (
-              <EligibilityConfigurator
-                programs={programs}
-                courses={courses}
-                excludedSubjects={excludedSubjects}
-                toggleExclusion={toggleExclusion}
-                excludedPrograms={excludedPrograms}
-                toggleProgExcl={toggleProgExcl}
-                excludedSemesters={excludedSemesters}
-                toggleSemExcl={toggleSemExcl}
-              />
-            )}
+              {expandedDepts[dept] && (
+                <div className="sec-years-container">
+                  <div className="fac-card-grid">
+                    {facs.map((f) => (
+                      <div key={f.id} className="fac-card" onClick={() => setViewingFaculty(f)}>
+                        <div className="fac-card-top">
+                          <div className="fac-card-avatar">
+                            {f.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="fac-card-info">
+                            <div className="fac-card-name">{f.name}</div>
+                            <div className="fac-card-empid">{f.employee_id}</div>
+                          </div>
+                        </div>
 
-            {/* ── Submit ── */}
-            <div className="form-group form-group-btn" style={{ display: "flex", gap: 10 }}>
-              <button type="submit" className="btn btn-primary" disabled={submitting}
-                style={{ flex: 1, justifyContent: "center" }}>
-                <FaUserTie style={{ marginRight: 8 }} />
-                {submitting ? "Saving…" : editId ? "Update Faculty" : "Register Faculty"}
-              </button>
-              {editId && (
-                <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
-                  <FaTimes />
-                </button>
+                        <div className="fac-card-badges">
+                          {f.designation && (
+                            <span className="fac-badge fac-badge-desg">{f.designation}</span>
+                          )}
+                          <span className={`fac-badge fac-badge-role role-${f.role.toLowerCase()}`}>
+                            {f.role}
+                          </span>
+                        </div>
+
+                        <div className="fac-card-meta">
+                          <span title="Max lectures per day">{f.max_lectures_per_day}/day</span>
+                          <span className="fac-card-dot">·</span>
+                          <span title="Max weekly load">{f.max_weekly_load}/wk</span>
+                        </div>
+
+                        <div className="fac-card-actions">
+                          <button className="action-btn" onClick={(e) => { e.stopPropagation(); handleEdit(f); }} title="Edit">
+                            <FaEdit style={{ color: "var(--brand)" }} />
+                          </button>
+                          <button className="action-btn danger" onClick={(e) => { e.stopPropagation(); handleDelete(f.id); }} title="Delete">
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          </form>
-        </section>
-
-        {/* ═══ RIGHT: Faculty List or Detail View ═══ */}
-        <section className="data-card faculty-list-card" style={{ padding: 0, overflow: "hidden" }}>
-          {viewingFaculty ? (
-            <FacultyDetailView
-              fac={viewingFaculty}
-              programs={programs}
-              courses={courses}
-              exclusions={eligibilityData}
-              progExclusions={progExclData}
-              semExclusions={semExclData}
-              availabilities={availabilityData}
-              onBack={() => setViewingFaculty(null)}
-            />
-          ) : (
-            <>
-              {/* Header */}
-              <div className="prog-list-header">
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-                    Faculty
-                  </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
-                    {faculty.length} members across {
-                      Object.keys(faculty.reduce((m, f) => { m[f.department_name || "Other"] = 1; return m; }, {})).length
-                    } departments
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {/* Sort dropdown */}
-                  <div className="fac-sort-wrap">
-                    <FaSortAmountDown className="fac-sort-icon" />
-                    <select className="fac-sort-select" value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}>
-                      <option value="az">Name A → Z</option>
-                      <option value="za">Name Z → A</option>
-                      <option value="designation">Designation</option>
-                      <option value="workload">Workload (high → low)</option>
-                    </select>
-                  </div>
-                  {/* Search */}
-                  <div className="pdc-search-wrap">
-                    <FaSearch className="pdc-search-icon" />
-                    <input className="input pdc-search-input" placeholder="Search…"
-                      value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="dept-list-body">
-                {loading ? (
-                  <p className="upload-help" style={{ padding: "20px" }}>Loading…</p>
-                ) : totalFiltered === 0 ? (
-                  <p className="upload-help" style={{ padding: "20px" }}>
-                    {search ? "No faculty match your search." : "No faculty yet."}
-                  </p>
-                ) : (
-                  groupedFaculty.map(({ dept, facs }) => (
-                    <div key={dept} className="dept-section">
-                      <div className="dept-section-header">
-                        <FaUserTie className="dept-section-icon" />
-                        <span className="dept-section-name">{dept}</span>
-                        <span className="dept-section-count">{facs.length} members</span>
-                      </div>
-                      <div className="fac-card-grid">
-                        {facs.map((f) => (
-                          <FacultyCard key={f.id} fac={f}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onClick={() => setViewingFaculty(f)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </section>
-      </div>
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

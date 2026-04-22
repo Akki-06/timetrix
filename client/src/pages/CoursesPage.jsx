@@ -4,12 +4,11 @@ import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { asList, extractError, courseDisplayCode } from "../utils/helpers";
 import {
-  FaBook, FaTrash, FaEdit, FaTimes,
-  FaChevronRight, FaChevronLeft, FaFlask,
+  FaBook, FaTrash, FaEdit, FaTimes, FaPlus, FaFlask, FaSearch,
   FaGraduationCap, FaLayerGroup,
+  FaChevronDown, FaChevronRight,
 } from "react-icons/fa";
 
-/* ─────────────────────────── Course type definitions ─────────────────────────── */
 const COURSE_TYPES = [
   { value: "PC",  label: "Program Core",               group: "theory"  },
   { value: "PE",  label: "Program Elective",            group: "theory"  },
@@ -39,217 +38,21 @@ const INITIAL_FORM = {
   program: "", semester: "", code: "", name: "", credits: 3, course_type: "PC",
 };
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Semester badge component — re-uses .course-sem-badge CSS
-   ══════════════════════════════════════════════════════════════════════════ */
-function SemBadge({ sem }) {
-  return (
-    <span className="course-sem-badge" style={{ fontSize: 11, padding: "2px 7px" }}>
-      S{sem}
-    </span>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Program Card — shown in the Program List panel
-   ══════════════════════════════════════════════════════════════════════════ */
-function ProgramCard({ prog, courses, onClick }) {
-  const progCourses = courses.filter((c) => String(c.program) === String(prog.id));
-  const sems = [...new Set(progCourses.map((c) => c.semester).filter(Boolean))].sort(
-    (a, b) => a - b
-  );
-  const labCount = progCourses.filter((c) => c.course_type === "PR").length;
-
-  return (
-    <button
-      className="prog-card"
-      onClick={() => onClick(prog)}
-      title={`View courses for ${prog.display_name || prog.name}`}
-    >
-      {/* Left icon */}
-      <div className="prog-card-icon">
-        <FaGraduationCap />
-      </div>
-
-      {/* Middle: name + meta */}
-      <div className="prog-card-body">
-        <div className="prog-card-name">
-          {prog.display_name || prog.name}
-        </div>
-        <div className="prog-card-meta">
-          <span className="prog-card-count">
-            <FaLayerGroup style={{ fontSize: 10, marginRight: 3 }} />
-            {progCourses.length} courses
-          </span>
-          {labCount > 0 && (
-            <span className="prog-card-labs">
-              <FaFlask style={{ fontSize: 10, marginRight: 3 }} />
-              {labCount} labs
-            </span>
-          )}
-          <span className="prog-card-sems">
-            {sems.map((s) => (
-              <SemBadge key={s} sem={s} />
-            ))}
-          </span>
-        </div>
-      </div>
-
-      {/* Right: chevron */}
-      <div className="prog-card-arrow">
-        <FaChevronRight />
-      </div>
-    </button>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Program Detail Panel — courses grouped by semester
-   ══════════════════════════════════════════════════════════════════════════ */
-function ProgramDetail({ prog, courses, onBack, onEdit, onDelete }) {
-  const [filterType, setFilterType] = useState("");
-
-  const progCourses = useMemo(
-    () => courses.filter((c) => String(c.program) === String(prog.id)),
-    [courses, prog.id]
-  );
-
-  const filtered = useMemo(
-    () => (filterType ? progCourses.filter((c) => c.course_type === filterType) : progCourses),
-    [progCourses, filterType]
-  );
-
-  // Group by semester
-  const bySem = useMemo(() => {
-    const map = {};
-    filtered.forEach((c) => {
-      const k = c.semester ?? 0;
-      if (!map[k]) map[k] = [];
-      map[k].push(c);
-    });
-    return Object.entries(map)
-      .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([sem, list]) => ({ sem: Number(sem), list }));
-  }, [filtered]);
-
-  const typesPresent = [...new Set(progCourses.map((c) => c.course_type))].sort();
-
-  return (
-    <div className="prog-detail">
-      {/* Header */}
-      <div className="prog-detail-header">
-        <button className="prog-back-btn" onClick={onBack}>
-          <FaChevronLeft /> Back
-        </button>
-        <div className="prog-detail-title">
-          <FaGraduationCap style={{ color: "var(--brand)", marginRight: 8 }} />
-          {prog.display_name || prog.name}
-        </div>
-        <div className="prog-detail-count">{progCourses.length} courses</div>
-      </div>
-
-      {/* Type filter chips */}
-      <div className="prog-detail-filters">
-        <button
-          className={`type-chip ${filterType === "" ? "active" : ""}`}
-          onClick={() => setFilterType("")}
-        >
-          All
-        </button>
-        {typesPresent.map((t) => {
-          const info = TYPE_MAP[t];
-          return (
-            <button
-              key={t}
-              className={`type-chip type-chip-${info?.group || "theory"} ${filterType === t ? "active" : ""}`}
-              onClick={() => setFilterType(t === filterType ? "" : t)}
-            >
-              {t}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Semester sections */}
-      <div className="prog-detail-body">
-        {bySem.length === 0 ? (
-          <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: 24 }}>
-            No courses match the filter.
-          </p>
-        ) : (
-          bySem.map(({ sem, list }) => (
-            <div key={sem} className="sem-section">
-              <div className="sem-section-header">
-                <SemBadge sem={sem || "?"} />
-                <span className="sem-section-label">
-                  {sem ? `Semester ${sem}` : "Unassigned"}
-                </span>
-                <span className="sem-section-count">{list.length} courses</span>
-              </div>
-              <div className="sem-course-grid">
-                {list.map((c) => {
-                  const info = TYPE_MAP[c.course_type];
-                  const dispCode = c.display_code || courseDisplayCode(c.code);
-                  return (
-                    <div key={c.id} className="sem-course-card">
-                      <div className="sem-course-top">
-                        <code className="sem-course-code">{dispCode}</code>
-                        <span className={`course-type-badge ${info?.group || "theory"}`}>
-                          {c.course_type}
-                        </span>
-                      </div>
-                      <div className="sem-course-name">{c.name}</div>
-                      <div className="sem-course-meta">
-                        <span>{c.credits} cr</span>
-                        {c.max_weekly_lectures > 0 && (
-                          <span>{c.max_weekly_lectures} hrs/wk</span>
-                        )}
-                      </div>
-                      <div className="sem-course-actions">
-                        <button
-                          className="action-btn"
-                          onClick={() => onEdit(c)}
-                          title="Edit"
-                        >
-                          <FaEdit style={{ color: "#3b82f6" }} />
-                        </button>
-                        <button
-                          className="action-btn danger"
-                          onClick={() => onDelete(c.id)}
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Main Component
-   ══════════════════════════════════════════════════════════════════════════ */
 function CoursesPage() {
-  const [courses, setCourses]     = useState([]);
-  const [programs, setPrograms]   = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [courses, setCourses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState("");
-  const [success, setSuccess]     = useState("");
-  const [form, setForm]           = useState(INITIAL_FORM);
-  const [editId, setEditId]       = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [editId, setEditId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
-  // Currently selected program for drill-down
-  const [selectedProg, setSelectedProg] = useState(null);
-  // Search / filter for program list
-  const [progSearch, setProgSearch] = useState("");
+  /* Expandable state */
+  const [expandedProgs, setExpandedProgs] = useState({});
+  const [expandedSems, setExpandedSems] = useState({});
 
   const loadAll = useCallback(async () => {
     try {
@@ -269,30 +72,34 @@ function CoursesPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Computed values from form
   const weeklyLectures = lecturesFromCredits(form.credits, form.course_type);
-  const lab            = form.course_type === "PR";
-  const nonSched       = ["DIS", "INT", "RND"].includes(form.course_type);
+  const lab = form.course_type === "PR";
+  const nonSched = ["DIS", "INT", "RND"].includes(form.course_type);
 
-  /* ── Submit (create / update) ─────────────────────────── */
+  const semesterOptions = useMemo(() => {
+    const prog = programs.find((p) => String(p.id) === String(form.program));
+    const max = prog?.total_semesters || 8;
+    return Array.from({ length: max }, (_, i) => i + 1);
+  }, [form.program, programs]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setSuccess(""); setSubmitting(true);
     const courseType = form.course_type;
-    const lectures   = lecturesFromCredits(form.credits, courseType);
+    const lectures = lecturesFromCredits(form.credits, courseType);
     try {
       const payload = {
-        code:                       form.code,
-        name:                       form.name,
-        credits:                    Number(form.credits),
-        course_type:                courseType,
-        min_weekly_lectures:        lectures,
-        max_weekly_lectures:        lectures,
-        priority:                   1,
-        requires_lab_room:          lab,
+        code: form.code,
+        name: form.name,
+        credits: Number(form.credits),
+        course_type: courseType,
+        min_weekly_lectures: lectures,
+        max_weekly_lectures: lectures,
+        priority: 1,
+        requires_lab_room: lab,
         requires_consecutive_slots: lab || courseType === "PRJ",
       };
-      if (form.program) payload.program  = Number(form.program);
+      if (form.program) payload.program = Number(form.program);
       if (form.semester) payload.semester = Number(form.semester);
 
       if (editId) {
@@ -304,6 +111,7 @@ function CoursesPage() {
         setSuccess("Course created successfully.");
       }
       setForm(INITIAL_FORM);
+      setShowForm(false);
       loadAll();
     } catch (err) {
       setError(extractError(err, editId ? "Failed to update course." : "Failed to create course."));
@@ -315,21 +123,21 @@ function CoursesPage() {
   const handleEdit = (course) => {
     setEditId(course.id);
     setForm({
-      program:     course.program  || "",
-      semester:    course.semester || "",
-      code:        course.code,
-      name:        course.name,
-      credits:     course.credits,
+      program: course.program || "",
+      semester: course.semester || "",
+      code: course.code,
+      name: course.name,
+      credits: course.credits,
       course_type: course.course_type,
     });
+    setShowForm(true);
     setError(""); setSuccess("");
-    // scroll form into view
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
     setEditId(null);
     setForm(INITIAL_FORM);
+    setShowForm(false);
     setError(""); setSuccess("");
   };
 
@@ -337,40 +145,177 @@ function CoursesPage() {
     if (!window.confirm("Delete this course?")) return;
     try {
       await api.delete(`academics/courses/${id}/`);
-      // If the deleted course's program had this as last course, deselect
       loadAll();
     } catch (err) {
       setError(extractError(err, "Failed to delete course."));
     }
   };
 
-  // Filtered program list for the right panel
-  const filteredPrograms = useMemo(() => {
-    const q = progSearch.toLowerCase();
-    return programs
-      .filter(
-        (p) =>
-          !q ||
-          (p.display_name || p.name || "").toLowerCase().includes(q) ||
-          (p.code || "").toLowerCase().includes(q)
-      )
-      .sort((a, b) =>
-        (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")
-      );
-  }, [programs, progSearch]);
+  /* Build hierarchy: Program → Semester → Courses */
+  const hierarchy = useMemo(() => {
+    const q = search.toLowerCase();
+    const filtered = q
+      ? courses.filter(
+          (c) =>
+            (c.code || "").toLowerCase().includes(q) ||
+            (c.name || "").toLowerCase().includes(q) ||
+            (c.course_type || "").toLowerCase().includes(q)
+        )
+      : courses;
+
+    const map = {};
+    filtered.forEach((c) => {
+      const progId = c.program || "none";
+      if (!map[progId]) {
+        const prog = programs.find((p) => p.id === c.program);
+        map[progId] = {
+          progId,
+          progName: prog?.display_name || prog?.name || "Unassigned",
+          progCode: prog?.code || "",
+          totalCourses: 0,
+          labCount: 0,
+          semesters: {},
+        };
+      }
+      map[progId].totalCourses++;
+      if (c.course_type === "PR") map[progId].labCount++;
+      const sem = c.semester || 0;
+      if (!map[progId].semesters[sem]) map[progId].semesters[sem] = [];
+      map[progId].semesters[sem].push(c);
+    });
+
+    return Object.values(map).sort((a, b) => a.progName.localeCompare(b.progName));
+  }, [courses, programs, search]);
+
+  const toggleProg = (id) => setExpandedProgs((p) => ({ ...p, [id]: !p[id] }));
+  const toggleSem = (key) => setExpandedSems((p) => ({ ...p, [key]: !p[key] }));
+
+
 
   return (
     <DashboardLayout>
-      {/* ── Page Head ── */}
-      <div className="page-head">
-        <h1>Course Management</h1>
-        <p>Create, import, and browse courses organised by program.</p>
+      {/* Header */}
+      <div className="sec-page-header">
+        <div>
+          <h1 className="sec-page-title">Courses</h1>
+          <p className="sec-page-sub">
+            Create, import, and browse courses organised by program and semester.
+          </p>
+        </div>
+        <button className="sec-add-btn" onClick={() => { setShowForm(!showForm); setEditId(null); setForm(INITIAL_FORM); }}>
+          {showForm ? <><FaTimes /> Close</> : <><FaPlus /> Add Course</>}
+        </button>
       </div>
 
-      {/* ══ Upload Section — side-by-side with hr separator ══ */}
+      {error && <div className="sec-alert sec-alert-error">{error}</div>}
+      {success && <div className="sec-alert sec-alert-success">{success}</div>}
+
+      {/* Form Panel */}
+      {showForm && (
+        <div className="sec-form-panel">
+          <div className="sec-form-header">
+            <h3>{editId ? "Update Course" : "Add New Course"}</h3>
+          </div>
+          <form className="sec-form-grid" onSubmit={handleSubmit}>
+            <div className="sec-field">
+              <label>Program</label>
+              <select
+                value={form.program}
+                onChange={(e) => setForm((p) => ({ ...p, program: e.target.value, semester: "" }))}
+              >
+                <option value="">Choose program</option>
+                {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name || p.name} ({p.code})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Semester</label>
+              <select
+                value={form.semester}
+                onChange={(e) => setForm((p) => ({ ...p, semester: e.target.value }))}
+                disabled={!form.program}
+              >
+                <option value="">{form.program ? "Choose semester" : "Select program first"}</option>
+                {semesterOptions.map((s) => (
+                  <option key={s} value={s}>Semester {s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Course Code <span className="sec-req">*</span></label>
+              <input
+                placeholder="e.g. 24COA103"
+                value={form.code}
+                onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="sec-field">
+              <label>Course Name <span className="sec-req">*</span></label>
+              <input
+                placeholder="e.g. Data Structures"
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="sec-field">
+              <label>Course Type <span className="sec-req">*</span></label>
+              <select
+                value={form.course_type}
+                onChange={(e) => setForm((p) => ({ ...p, course_type: e.target.value }))}
+              >
+                {COURSE_TYPES.map((ct) => (
+                  <option key={ct.value} value={ct.value}>{ct.value} – {ct.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sec-field">
+              <label>Credits <span className="sec-req">*</span></label>
+              <input
+                type="number" min="0" max="20"
+                value={form.credits}
+                onChange={(e) => setForm((p) => ({ ...p, credits: e.target.value }))}
+                required
+              />
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                {nonSched
+                  ? "Not scheduled"
+                  : form.course_type === "PRJ"
+                  ? "1 guided session / week"
+                  : `${weeklyLectures} hrs/wk`}
+              </span>
+            </div>
+
+            {lab && (
+              <div className="sec-field sec-field-wide">
+                <span style={{ fontSize: 12, color: "var(--brand)", fontWeight: 600 }}>
+                  Lab — requires lab room & consecutive slots (auto-set)
+                </span>
+              </div>
+            )}
+
+            <div className="sec-form-actions">
+              <button type="submit" className="sec-submit-btn" disabled={submitting}>
+                {submitting ? "Saving..." : editId ? "Update Course" : "Create Course"}
+              </button>
+              {editId && (
+                <button type="button" className="sec-cancel-btn" onClick={cancelEdit}>Cancel</button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Bulk Upload */}
       <div className="data-card" style={{ marginBottom: 16 }}>
         <div className="courses-upload-row">
-          {/* Left: Master data upload */}
           <div className="courses-upload-col">
             <BulkUploadCard
               title="Upload Courses Master Data"
@@ -385,13 +330,7 @@ function CoursesPage() {
               onUploadComplete={loadAll}
             />
           </div>
-
-          {/* Middle separator */}
-          <div className="courses-upload-sep">
-            <hr className="courses-hr" />
-          </div>
-
-          {/* Right: PE choices upload */}
+          <div className="courses-upload-sep"><hr className="courses-hr" /></div>
           <div className="courses-upload-col">
             <BulkUploadCard
               title="Upload Program Elective Choices"
@@ -411,201 +350,136 @@ function CoursesPage() {
         </div>
       </div>
 
-      {/* ══ Two-column: Form left | Programs right ══ */}
-      <div className="faculty-two-col">
-
-        {/* ── LEFT: Add / Edit Course Form ── */}
-        <section className="data-card faculty-form-card">
-          <h3>
-            <FaBook style={{ marginRight: 8, color: "var(--brand)" }} />
-            {editId ? "Update Course" : "Add New Course"}
-          </h3>
-
-          {error   && <p className="upload-error">{error}</p>}
-          {success && <p className="upload-success">{success}</p>}
-
-          <form className="faculty-register-form" onSubmit={handleSubmit}>
-            {/* Program */}
-            <div className="form-group">
-              <label className="form-label">Select Program</label>
-              <select
-                className="input"
-                value={form.program}
-                onChange={(e) => setForm((p) => ({ ...p, program: e.target.value }))}
-              >
-                <option value="">— Choose program —</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name || p.name} ({p.code})
-                  </option>
-                ))}
-              </select>
+      {/* Content */}
+      {loading ? (
+        <div className="sec-loading">
+          <div className="sec-loading-spinner" />
+          Loading courses...
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="sec-empty">
+          <FaBook className="sec-empty-icon" />
+          <h3>No courses registered yet</h3>
+          <p>Click "Add Course" to register your first course.</p>
+        </div>
+      ) : (
+        <div className="sec-hierarchy">
+          {/* Summary */}
+          <div className="sec-summary-strip">
+            <div className="sec-summary-item">
+              <FaGraduationCap />
+              <span><strong>{hierarchy.length}</strong> Programs</span>
             </div>
-
-            {/* Semester */}
-            <div className="form-group">
-              <label className="form-label">Semester</label>
-              <select
-                className="input"
-                value={form.semester}
-                onChange={(e) => setForm((p) => ({ ...p, semester: e.target.value }))}
-              >
-                <option value="">— Choose semester —</option>
-                {Array.from(
-                  { length: (() => {
-                    const sel = programs.find((p) => String(p.id) === String(form.program));
-                    return sel?.total_semesters || 8;
-                  })() },
-                  (_, i) => i + 1
-                ).map((s) => (
-                  <option key={s} value={s}>Semester {s}</option>
-                ))}
-              </select>
+            <div className="sec-summary-item">
+              <FaBook />
+              <span><strong>{courses.length}</strong> Courses</span>
             </div>
-
-            {/* Course Code */}
-            <div className="form-group">
-              <label className="form-label">Course Code *</label>
-              <input
-                className="input"
-                placeholder="e.g. 24COA103"
-                value={form.code}
-                onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
-                required
-              />
+            <div className="sec-summary-item">
+              <FaFlask />
+              <span><strong>{courses.filter((c) => c.course_type === "PR").length}</strong> Labs</span>
             </div>
-
-            {/* Course Name */}
-            <div className="form-group">
-              <label className="form-label">Course Name *</label>
-              <input
-                className="input"
-                placeholder="e.g. Data Structures"
-                value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                required
-              />
-            </div>
-
-            {/* Course Type */}
-            <div className="form-group">
-              <label className="form-label">Course Type *</label>
-              <select
-                className="input"
-                value={form.course_type}
-                onChange={(e) => setForm((p) => ({ ...p, course_type: e.target.value }))}
-              >
-                {COURSE_TYPES.map((ct) => (
-                  <option key={ct.value} value={ct.value}>
-                    {ct.value} – {ct.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Credits */}
-            <div className="form-group">
-              <label className="form-label">Credits *</label>
-              <input
-                className="input"
-                type="number"
-                min="0" max="20"
-                value={form.credits}
-                onChange={(e) => setForm((p) => ({ ...p, credits: e.target.value }))}
-                required
-              />
-              <span className="input-hint">
-                {nonSched
-                  ? "Not scheduled — self-directed / off-campus"
-                  : form.course_type === "PRJ"
-                  ? "1 guided session / week"
-                  : <>Weekly lectures: <strong>{weeklyLectures} hrs</strong></>}
-              </span>
-            </div>
-
-            {lab && (
-              <div className="form-group">
-                <span className="input-hint" style={{ color: "var(--brand)" }}>
-                  Lab — requires lab room &amp; consecutive slots (auto-set)
-                </span>
-              </div>
-            )}
-
-            <div className="form-group form-group-btn" style={{ display: "flex", gap: 10 }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={submitting}
-                style={{ flex: 1, justifyContent: "center" }}
-              >
-                <FaBook style={{ marginRight: 8 }} />
-                {submitting ? "Saving…" : editId ? "Update Course" : "Create Course"}
-              </button>
-              {editId && (
-                <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
-                  <FaTimes />
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
-
-        {/* ── RIGHT: Program list OR program detail ── */}
-        <section className="data-card faculty-list-card" style={{ padding: 0, overflow: "hidden" }}>
-          {selectedProg ? (
-            /* ─── Program Detail ─── */
-            <ProgramDetail
-              prog={selectedProg}
-              courses={courses}
-              onBack={() => setSelectedProg(null)}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ) : (
-            /* ─── Program List ─── */
-            <div className="prog-list-panel">
-              <div className="prog-list-header">
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-                    Programs
-                  </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
-                    {programs.length} programs · {courses.length} total courses
-                  </p>
-                </div>
+            <div style={{ marginLeft: "auto" }}>
+              <div className="pdc-search-wrap">
+                <FaSearch className="pdc-search-icon" />
                 <input
-                  className="input"
-                  placeholder="Search programs…"
-                  value={progSearch}
-                  onChange={(e) => setProgSearch(e.target.value)}
-                  style={{ width: 180, padding: "7px 12px", fontSize: 13 }}
+                  className="input pdc-search-input"
+                  placeholder="Search courses..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+            </div>
+          </div>
 
-              {loading ? (
-                <p className="upload-help" style={{ padding: "20px 20px" }}>
-                  Loading programs…
-                </p>
-              ) : filteredPrograms.length === 0 ? (
-                <p className="upload-help" style={{ padding: "20px 20px" }}>
-                  No programs match your search.
-                </p>
-              ) : (
-                <div className="prog-card-list">
-                  {filteredPrograms.map((p) => (
-                    <ProgramCard
-                      key={p.id}
-                      prog={p}
-                      courses={courses}
-                      onClick={setSelectedProg}
-                    />
-                  ))}
+          {/* Program → Semester → Course cards */}
+          {hierarchy.map((prog) => (
+            <div key={prog.progId} className="sec-program-block">
+              <button className="sec-program-header" onClick={() => toggleProg(prog.progId)}>
+                <div className="sec-program-left">
+                  {expandedProgs[prog.progId] ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+                  <div className="sec-program-icon"><FaGraduationCap /></div>
+                  <div>
+                    <span className="sec-program-name">{prog.progName}</span>
+                  </div>
+                </div>
+                <div className="sec-program-meta">
+                  <span className="sec-meta-badge">{prog.totalCourses} courses</span>
+                  {prog.labCount > 0 && <span className="sec-meta-badge">{prog.labCount} labs</span>}
+                </div>
+              </button>
+
+              {expandedProgs[prog.progId] && (
+                <div className="sec-years-container">
+                  {Object.entries(prog.semesters)
+                    .sort(([a], [b]) => Number(a) - Number(b))
+                    .map(([sem, semCourses]) => {
+                      const semKey = `${prog.progId}-${sem}`;
+                      return (
+                        <div key={semKey} className="sec-year-block">
+                          <button className="sec-year-header" onClick={() => toggleSem(semKey)}>
+                            {expandedSems[semKey] ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+                            <span className="sec-year-label">
+                              {Number(sem) ? `Semester ${sem}` : "Unassigned"}
+                            </span>
+                            <span className="sec-year-count">{semCourses.length} courses</span>
+                          </button>
+
+                          {expandedSems[semKey] && (
+                            <div className="sec-cards-grid">
+                              {semCourses.map((c) => {
+                                const info = TYPE_MAP[c.course_type];
+                                const dispCode = courseDisplayCode(c.display_code || c.code);
+                                return (
+                                  <div key={c.id} className="sec-card">
+                                    <div className="sec-card-top">
+                                      <div className="sec-card-name-row">
+                                        <span className="sec-card-name" style={{ fontSize: 15 }}>{dispCode}</span>
+                                        <span className="sec-card-sem-badge">{c.course_type}</span>
+                                      </div>
+                                      <div className="sec-card-actions">
+                                        <button className="sec-icon-btn" title="Edit" onClick={() => handleEdit(c)}>
+                                          <FaEdit />
+                                        </button>
+                                        <button className="sec-icon-btn sec-icon-danger" title="Delete" onClick={() => handleDelete(c.id)}>
+                                          <FaTrash />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="sec-card-details">
+                                      <div className="sec-detail-row">
+                                        <span className="sec-detail-label">Name</span>
+                                        <span className="sec-detail-value">{c.name}</span>
+                                      </div>
+                                      <div className="sec-detail-row">
+                                        <span className="sec-detail-label">Credits</span>
+                                        <span className="sec-detail-value">{c.credits}</span>
+                                      </div>
+                                      {c.max_weekly_lectures > 0 && (
+                                        <div className="sec-detail-row">
+                                          <span className="sec-detail-label">Weekly</span>
+                                          <span className="sec-detail-value">{c.max_weekly_lectures} hrs/wk</span>
+                                        </div>
+                                      )}
+                                      <div className="sec-detail-row">
+                                        <span className="sec-detail-label">Type</span>
+                                        <span className="sec-detail-value">{info?.label || c.course_type}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
-          )}
-        </section>
-      </div>
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }
