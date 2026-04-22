@@ -1676,45 +1676,24 @@ class SchedulerEngine:
         log.info(f"Writing {len(self.pending_saves)} allocations to DB...")
 
         # ── deduplicate ───────────────────────────────────────────────────────
-        seen_fac_slot  = set()
-        seen_room_slot = set()
-        seen_grp_slot  = set()
-        deduped        = []
-        skipped        = 0
+        seen_exact = set()
+        deduped    = []
+        skipped    = 0
 
         for alloc in self.pending_saves:
-            kf = (alloc["faculty_id"],       alloc["timeslot_id"])
-            kr = (alloc["room_id"],           alloc["timeslot_id"])
-            kg = (alloc["student_group_id"],  alloc["timeslot_id"])
-            is_pe = alloc.get("is_pe", False)
-
-            # PE electives: multiple options can share the same (group, slot).
-            # Only enforce room+slot and faculty+slot uniqueness.
-            if is_pe:
-                if kr in seen_room_slot:
-                    log.warning(
-                        f"  PE Dedup-skip: room={alloc['room_id']} "
-                        f"ts={alloc['timeslot_id']}"
-                    )
-                    skipped += 1
-                    continue
-                seen_room_slot.add(kr)
-                if kf and alloc["faculty_id"]:
-                    seen_fac_slot.add(kf)
-                deduped.append(alloc)
-            else:
-                if kf in seen_fac_slot or kr in seen_room_slot or kg in seen_grp_slot:
-                    log.warning(
-                        f"  Dedup-skip: fac={alloc['faculty_id']} "
-                        f"room={alloc['room_id']} grp={alloc['student_group_id']} "
-                        f"ts={alloc['timeslot_id']}"
-                    )
-                    skipped += 1
-                    continue
-                seen_fac_slot.add(kf)
-                seen_room_slot.add(kr)
-                seen_grp_slot.add(kg)
-                deduped.append(alloc)
+            # An offering should only be scheduled once per timeslot.
+            # We allow multiple offerings to share the same room/faculty (e.g. PE, Combined)
+            # and multiple offerings to share the same group/timeslot (e.g. PE options).
+            key = (alloc["offering_id"], alloc["timeslot_id"])
+            if key in seen_exact:
+                log.warning(
+                    f"  Exact Dedup-skip: offering={alloc['offering_id']} "
+                    f"ts={alloc['timeslot_id']}"
+                )
+                skipped += 1
+                continue
+            seen_exact.add(key)
+            deduped.append(alloc)
 
         if skipped:
             log.warning(f"  Dedup removed {skipped} duplicate allocation(s).")

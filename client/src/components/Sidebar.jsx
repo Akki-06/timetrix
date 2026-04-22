@@ -14,7 +14,7 @@ import {
 } from "react-icons/fa";
 
 const MENU_ITEMS = [
-  { label: "Dashboard", to: "/", icon: FaChartPie, roles: ["admin", "teacher", "student"] },
+  { label: "Dashboard", to: "/dashboard", icon: FaChartPie, roles: ["admin", "teacher", "student"] },
   { label: "Faculty", to: "/faculty", icon: FaChalkboardTeacher, roles: ["admin"] },
   { label: "Programs", to: "/programs", icon: FaUniversity, roles: ["admin"] },
   { label: "Sections", to: "/sections", icon: FaUsers, roles: ["admin"] },
@@ -60,7 +60,7 @@ function Sidebar({ collapsed, mobileOpen, onMobileClose }) {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/"}
+            end={item.to === "/dashboard"}
             className={({ isActive }) =>
               `sidebar-item ${isActive ? "active" : ""}`
             }

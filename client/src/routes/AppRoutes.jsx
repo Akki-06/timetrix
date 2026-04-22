@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "../components/ProtectedRoute";
+import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/LoginPage";
 import Dashboard from "../pages/Dashboard";
 import FacultyPage from "../pages/FacultyPage";
@@ -20,12 +21,20 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing page — public root. If already logged in, go to dashboard */}
         <Route
-          path="/login"
-          element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+          path="/"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />}
         />
 
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        {/* Login */}
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        />
+
+        {/* Dashboard — protected home for authenticated users */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
         <Route path="/faculty" element={
           <ProtectedRoute allowedRoles={["admin"]}>
@@ -87,7 +96,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
 
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/"} replace />} />
       </Routes>
     </BrowserRouter>
   );
