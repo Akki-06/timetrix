@@ -61,6 +61,7 @@ class SchedulerEngine:
         self.pending_saves:         list  = []
         self.unscheduled:           list  = []
         self.unscheduled_offerings: list  = []
+        self.fill_stats:            list  = []   # populated by _pack_group_slots
         self.rejection_reasons             = defaultdict(Counter)
 
         # Cache: ML-ranked faculty fallback keyed by course_id
@@ -1906,68 +1907,99 @@ class SchedulerEngine:
     # constraints (busy/caps) are always enforced.  Morning slots (1-3) first.
     # ═════════════════════════════════════════════════════════════════════════
 
-    def _pack_group_slots(self, target_fill: float = 0.80):
-        total_slots = len(self.slot_map)          # 30 (5 days × 6 slots)
-        target_n    = int(total_slots * target_fill)  # 24 at 0.80
+    def _sync_tracker_from_saves(self):
+        """
+        Re-populate ConstraintTracker from the current pending_saves list.
 
-        # Build a group-id → {(day,slot)} map of already-used slots
-        used: dict[int, set] = {}
-        for key, gids in self.tracker._group_busy.items():
+        CP-SAT writes results straight into pending_saves and never touches the
+        tracker. The slot-packing pass relies on the tracker to know which
+        (faculty, room, group, day, slot) tuples are busy and which course is
+        on which day, so we mirror the CP-SAT placements back into the tracker
+        before any further passes run.
+        """
+        off_course = {o.id: o.course_id for o in self.offerings}
+        for s in self.pending_saves:
+            key = self.slot_id_to_key.get(s["timeslot_id"])
+            if not key:
+                continue
+            day, slot = key
+            self.tracker.assign(
+                s.get("faculty_id"), s.get("room_id"), s.get("student_group_id"),
+                day, slot,
+            )
+            cid = off_course.get(s.get("offering_id"))
+            if cid is not None:
+                self.tracker.mark_course_day(s["student_group_id"], cid, day)
+
+    def _pack_group_slots(self, target_fill: float = 0.80, min_fill: float = 0.70):
+        """
+        Pack additional single-slot theory sessions so each section reaches
+        `target_fill` (default 80%) of its own available slots. A section's
+        availability is (working_days × distinct_slot_numbers_per_day), so a
+        section that runs MON–FRI on a 7-slot day has 35 available slots.
+
+        Algorithm:
+          Pass 1 — extras cap = 2 × min_weekly_lectures per offering.
+          Pass 2 — for sections still below `min_fill` (default 70%), retry
+                   with a relaxed cap of 3 × min_weekly_lectures.
+          Warn any section that finishes below `min_fill`.
+
+        Per-section fill statistics are stored on `self.fill_stats` so the
+        runner can surface them in the API response.
+        """
+        slot_nums     = {s for (_, s) in self.slot_map.keys()}
+        slots_per_day = len(slot_nums) or 1
+        all_days      = {d for (d, _) in self.slot_map.keys()}
+
+        # group_id → set of (day, slot) currently occupied for that group
+        used: dict[int, set] = defaultdict(set)
+        for (day, slot), gids in self.tracker._group_busy.items():
             for gid in gids:
-                used.setdefault(gid, set()).add(key)
+                used[gid].add((day, slot))
 
-        # Build group-id → list[offering] from all non-lab single-slot offerings
-        group_offerings: dict[int, list] = {}
+        # Eligible non-lab, single-slot offerings per group
+        group_offerings: dict[int, list] = defaultdict(list)
         for o in self.offerings:
             if o.course.requires_consecutive_slots or o.course.requires_lab_room:
                 continue
             if o.course.course_type in {"PE", "PRJ"}:
                 continue
-            gid = o.student_group_id
-            group_offerings.setdefault(gid, []).append(o)
+            group_offerings[o.student_group_id].append(o)
 
-        # Per-offering extra-session counter so no offering is repeated > 2×min
-        extra_count: dict[int, int] = {}
+        extra_count: dict[int, int] = defaultdict(int)
 
-        _MB = {1: 0.06, 2: 0.05, 3: 0.04, 4: 0.00, 5: -0.02, 6: -0.03}
-        total_packed = 0
+        def per_section_total(group) -> int:
+            wd = len(group.working_days) if group.working_days else len(all_days)
+            return wd * slots_per_day
 
-        for gid, offerings in group_offerings.items():
-            already_used = used.get(gid, set())
-            current_n    = len(already_used)
-            if current_n >= target_n:
-                continue
+        def pack_for_section(gid, offerings, cap_mult: int) -> int:
+            group       = offerings[0].student_group
+            section_tot = per_section_total(group)
+            target_n    = int(section_tot * target_fill)
+            already     = used[gid]
+            if len(already) >= target_n:
+                return 0
+            need_extra = target_n - len(already)
 
-            need_extra = target_n - current_n
-            group = offerings[0].student_group
-
-            # Free slots for this group.
-            # FIX: binary pre-lunch/post-lunch split — slots 1-3 (pre-lunch) are
-            # always tried before slots 4-6 (post-lunch). Within each half, lower
-            # slot numbers come first. Days are alphabetically stable.
             free = sorted(
                 [
-                    (day, slot)
-                    for (day, slot) in self.slot_map.keys()
-                    if (day, slot) not in already_used
-                    and (not group.working_days or day in group.working_days)
-                    and self.tracker.is_group_free(gid, day, slot)
+                    (d, s)
+                    for (d, s) in self.slot_map.keys()
+                    if (d, s) not in already
+                    and (not group.working_days or d in group.working_days)
+                    and self.tracker.is_group_free(gid, d, s)
                 ],
-                key=lambda ds: (0 if ds[1] <= 3 else 1, ds[1], ds[0]),  # pre-lunch FIRST
+                key=lambda ds: (0 if ds[1] <= 3 else 1, ds[1], ds[0]),
             )
 
             placed = 0
             for day, slot in free:
                 if placed >= need_extra:
                     break
-
                 for offering in offerings:
-                    # FIX: raised cap to 2× min so 3-credit courses can fill
-                    # enough slots but not dominate the timetable.
-                    cap = offering.course.min_weekly_lectures * 2
-                    if extra_count.get(offering.id, 0) >= cap:
+                    cap = offering.course.min_weekly_lectures * cap_mult
+                    if extra_count[offering.id] >= cap:
                         continue
-
                     # HARD: max 1 session of any course per day per section
                     if self.tracker.has_course_today(gid, offering.course_id, day):
                         continue
@@ -1997,22 +2029,71 @@ class SchedulerEngine:
                             "faculty_id"      : fac.id,
                             "room_id"         : room.id,
                             "timeslot_id"     : self.slot_map[(day, slot)].id,
-                            "score"           : 0.42,   # packing session marker
+                            "score"           : 0.42,
                         })
-                        already_used.add((day, slot))
-                        extra_count[offering.id] = extra_count.get(offering.id, 0) + 1
+                        already.add((day, slot))
+                        extra_count[offering.id] += 1
                         placed += 1
-                        total_packed += 1
                         log.info(
                             f"  PACK ✓ {offering.course.code} | {fac.name} | "
-                            f"{day} S{slot} (extra #{extra_count[offering.id]})"
+                            f"{day} S{slot} (extra #{extra_count[offering.id]}, "
+                            f"cap×{cap_mult})"
                         )
                         break
                     else:
                         continue
-                    break   # move to next free slot after placing one session
+                    break
+            return placed
 
-        log.info(f"PACK PASS done: {total_packed} extra sessions added.")
+        # ── Pass 1 — try to hit target_fill at the strict cap ────────────────
+        pass1 = 0
+        for gid, offs in group_offerings.items():
+            pass1 += pack_for_section(gid, offs, cap_mult=2)
+
+        # ── Pass 2 — relaxed cap for sections still below min_fill ───────────
+        pass2 = 0
+        for gid, offs in group_offerings.items():
+            section_tot = per_section_total(offs[0].student_group)
+            if section_tot and len(used[gid]) / section_tot < min_fill:
+                pass2 += pack_for_section(gid, offs, cap_mult=3)
+
+        # ── Report per-section fill and stash for API response ───────────────
+        self.fill_stats: list = []
+        for gid, offs in group_offerings.items():
+            group       = offs[0].student_group
+            section_tot = per_section_total(group)
+            current     = len(used[gid])
+            pct         = current / section_tot if section_tot else 0.0
+            entry = {
+                "section"   : group.name,
+                "filled"    : current,
+                "available" : section_tot,
+                "fill_pct"  : round(pct, 4),
+                "below_min" : pct < min_fill,
+                "below_tgt" : pct < target_fill,
+            }
+            self.fill_stats.append(entry)
+            if pct < min_fill:
+                log.warning(
+                    f"  PACK: section '{group.name}' filled only "
+                    f"{current}/{section_tot} ({pct:.0%}) — below "
+                    f"{min_fill:.0%} minimum"
+                )
+            elif pct < target_fill:
+                log.info(
+                    f"  PACK: section '{group.name}' filled "
+                    f"{current}/{section_tot} ({pct:.0%}) — below "
+                    f"{target_fill:.0%} target but ≥ {min_fill:.0%} minimum"
+                )
+            else:
+                log.info(
+                    f"  PACK: section '{group.name}' filled "
+                    f"{current}/{section_tot} ({pct:.0%})"
+                )
+
+        log.info(
+            f"PACK done: pass1={pass1}, pass2={pass2}, total={pass1 + pass2}"
+        )
 
     # ═════════════════════════════════════════════════════════════════════════
     # PHASE 4: ATOMIC DB SAVE
@@ -2213,6 +2294,9 @@ class SchedulerEngine:
                     ]
                     cpsat_used   = True
                     cpsat_status = "ok"
+                    # CP-SAT bypasses ConstraintTracker — re-populate it so the
+                    # slot-pack pass below sees existing placements as occupied.
+                    self._sync_tracker_from_saves()
                     log.info(
                         f"CP-SAT succeeded: {len(cpsat_saves)} allocations, "
                         f"{len(self.unscheduled_offerings)} unscheduled."
@@ -2262,8 +2346,10 @@ class SchedulerEngine:
             with self.timer.phase("idle_pack"):
                 self._idle_room_pass()
 
-            with self.timer.phase("slot_pack"):
-                self._pack_group_slots(target_fill=0.80)
+        # Slot-packing runs for both solvers so every section reaches the
+        # 80% fill target (with a 70% relaxed floor) regardless of solver.
+        with self.timer.phase("slot_pack"):
+            self._pack_group_slots(target_fill=0.80, min_fill=0.70)
 
         with self.timer.phase("save"):
             try:
@@ -2300,6 +2386,18 @@ class SchedulerEngine:
             "ml_used"        : self.ml.available,
             "solver"         : "cp-sat" if cpsat_used else "greedy",
             "cpsat_status"   : cpsat_status,
+            "fill_stats"     : self.fill_stats,
+            "fill_summary"   : {
+                "target_pct"          : 80,
+                "min_pct"             : 70,
+                "sections_meeting_tgt": sum(
+                    1 for s in self.fill_stats if not s["below_tgt"]
+                ),
+                "sections_below_min"  : sum(
+                    1 for s in self.fill_stats if s["below_min"]
+                ),
+                "total_sections"      : len(self.fill_stats),
+            },
             "warnings"       : self.unscheduled,
             "timings"        : self.timer.as_dict(),
             "rejection_top"  : self.rejection_log.summary(5),
