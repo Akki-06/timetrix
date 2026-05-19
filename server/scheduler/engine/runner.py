@@ -2175,7 +2175,8 @@ class SchedulerEngine:
         )
 
         # ── Try CP-SAT solver first; fall back to greedy on failure ──────────
-        cpsat_used = False
+        cpsat_used   = False
+        cpsat_status = "not_attempted"   # surfaced in API result for diagnostics
         with self.timer.phase("cpsat"):
             try:
                 from scheduler.engine.cp_sat_solver import CPSATScheduler
@@ -2210,15 +2211,18 @@ class SchedulerEngine:
                         f"— CP-SAT: no feasible slot"
                         for o in self.unscheduled_offerings
                     ]
-                    cpsat_used = True
+                    cpsat_used   = True
+                    cpsat_status = "ok"
                     log.info(
                         f"CP-SAT succeeded: {len(cpsat_saves)} allocations, "
                         f"{len(self.unscheduled_offerings)} unscheduled."
                     )
                 else:
+                    cpsat_status = "infeasible_or_missing_models"
                     log.info("CP-SAT returned no solution — running greedy fallback.")
 
             except Exception as _cpsat_err:
+                cpsat_status = f"error:{type(_cpsat_err).__name__}: {_cpsat_err}"
                 log.warning(f"CP-SAT error ({_cpsat_err}) — running greedy fallback.")
 
         if not cpsat_used:
@@ -2275,6 +2279,8 @@ class SchedulerEngine:
                     "unscheduled" : self.unscheduled,
                     "unscheduled_reasons": {},
                     "ml_used"     : self.ml.available,
+                    "solver"      : "cp-sat" if cpsat_used else "greedy",
+                    "cpsat_status": cpsat_status,
                     "timings"     : self.timer.as_dict(),
                 }
 
@@ -2293,6 +2299,7 @@ class SchedulerEngine:
             },
             "ml_used"        : self.ml.available,
             "solver"         : "cp-sat" if cpsat_used else "greedy",
+            "cpsat_status"   : cpsat_status,
             "warnings"       : self.unscheduled,
             "timings"        : self.timer.as_dict(),
             "rejection_top"  : self.rejection_log.summary(5),

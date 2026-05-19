@@ -24,6 +24,7 @@ Hard constraints
   C7  PE same slot     all options in an elective group share one (day, slot)
   C8  Combined same    all offerings with same combined_token share (day,slot,room)
   C9  One course/day   a section has ≤ 1 session of the same course per day
+  C10 No back-to-back  same (faculty, group) cannot occupy adjacent theory slots
 
 Objective
   Maximise sum of ML suitability scores for every scheduled (offering, slot, room).
@@ -370,13 +371,39 @@ class CPSATScheduler:
                 if len(vs_day) > 1:
                     model.Add(sum(vs_day) <= 1)
 
+        # C10: No same-faculty teaching same group in back-to-back theory slots.
+        # Lab pairs are deliberately consecutive (handled by l_var spanning s1+s2)
+        # so we apply this only to theory variables.  Mirrors the constraint in
+        # constraint_tracker.check() that the greedy engine enforces.
+        fg_by_ds: dict = defaultdict(list)   # (fac_id, grp_id, day, slot) → [var]
+        for o in theory_offs:
+            if not o.assigned_faculty:
+                continue
+            fac_id = o.assigned_faculty_id
+            sg_id  = o.student_group_id
+            for d, s, _rid, v in t_by_off[o.id]:
+                fg_by_ds[(fac_id, sg_id, d, s)].append(v)
+        for (fac_id, sg_id, d, s), vs in list(fg_by_ds.items()):
+            nxt = fg_by_ds.get((fac_id, sg_id, d, s + 1))
+            if nxt:
+                combined = vs + nxt
+                if len(combined) > 1:
+                    model.Add(sum(combined) <= 1)
+
         # ── OBJECTIVE: maximise ML suitability scores ─────────────────────────
         score_keys  = []   # list of BoolVar
         score_vals  = []   # list of int (scaled)
 
+        # Per-allocation raw scores (float 0..1) keyed by variable identity tuple.
+        # Used at solution-extraction time so each saved record gets the score the
+        # solver actually attached to it, not a global average.
+        t_score_by_key: dict = {}   # (o_id, day, slot, room_id) → float
+        l_score_by_key: dict = {}   # (o_id, day, s1, room_id)   → float
+
         # Batch-score all theory (offering, day, slot) → room combinations
         batch_params = []
         batch_vars   = []
+        batch_keys   = []   # parallel to batch_vars — used to populate t_score_by_key
 
         for o in theory_offs:
             if not o.assigned_faculty:
@@ -410,22 +437,26 @@ class CPSATScheduler:
                     working_days               = sg.working_days,
                 ))
                 batch_vars.append(v)
+                batch_keys.append((o.id, d, s, rid))
 
         if batch_params:
             try:
                 raw_scores = ml_scorer.score_batch(batch_params)
-                for v, sc in zip(batch_vars, raw_scores):
+                for v, k, sc in zip(batch_vars, batch_keys, raw_scores):
                     score_keys.append(v)
                     score_vals.append(max(0, int(sc * SCORE_SCALE)))
+                    t_score_by_key[k] = float(sc)
             except Exception as e:
                 log.warning(f"CP-SAT: ML scoring failed ({e}), using uniform scores.")
-                for v in batch_vars:
+                for v, k in zip(batch_vars, batch_keys):
                     score_keys.append(v)
                     score_vals.append(500)   # 0.5 × SCORE_SCALE
+                    t_score_by_key[k] = 0.5
 
         # Lab offerings: ML-score at the pair's first slot
         lab_batch_params = []
         lab_batch_vars   = []
+        lab_batch_keys   = []
         for o in lab_offs:
             if not o.assigned_faculty:
                 continue
@@ -458,18 +489,21 @@ class CPSATScheduler:
                     working_days               = sg.working_days,
                 ))
                 lab_batch_vars.append(v)
+                lab_batch_keys.append((o.id, day, s1, rid))
 
         if lab_batch_params:
             try:
                 lab_scores = ml_scorer.score_batch(lab_batch_params)
-                for v, sc in zip(lab_batch_vars, lab_scores):
+                for v, k, sc in zip(lab_batch_vars, lab_batch_keys, lab_scores):
                     score_keys.append(v)
                     score_vals.append(max(0, int(sc * SCORE_SCALE)))
+                    l_score_by_key[k] = float(sc)
             except Exception as e:
                 log.warning(f"CP-SAT: lab ML scoring failed ({e}), using fixed 0.7.")
-                for v in lab_batch_vars:
+                for v, k in zip(lab_batch_vars, lab_batch_keys):
                     score_keys.append(v)
                     score_vals.append(700)
+                    l_score_by_key[k] = 0.7
 
         if score_keys:
             model.Maximize(
@@ -512,7 +546,7 @@ class CPSATScheduler:
                     "room_id"          : room_id,
                     "timeslot_id"      : ts.id,
                     "score"            : round(
-                        solver.ObjectiveValue() / SCORE_SCALE / max(len(batch_vars), 1), 4
+                        t_score_by_key.get((o_id, day, slot, room_id), 0.5), 4
                     ),
                     "is_pe"            : o.course.course_type == "PE",
                 })
@@ -522,9 +556,14 @@ class CPSATScheduler:
             if solver.Value(var) == 1:
                 o  = off_by_id[o_id]
                 s2 = next((b for a, b in valid_pairs if a == s1), None)
-                if not s2:
+                if s2 is None:
+                    log.warning(
+                        f"CP-SAT: lab {o.course.code} assigned at S{s1} "
+                        f"but no matching pair partner found — skipping."
+                    )
                     continue
-                for slot in [s1, s2]:
+                lab_score = round(l_score_by_key.get((o_id, day, s1, room_id), 0.7), 4)
+                for slot in (s1, s2):
                     if (day, slot) not in slot_map:
                         continue
                     ts = slot_map[(day, slot)]
@@ -534,7 +573,7 @@ class CPSATScheduler:
                         "faculty_id"       : o.assigned_faculty_id if o.assigned_faculty else None,
                         "room_id"          : room_id,
                         "timeslot_id"      : ts.id,
-                        "score"            : 0.75,
+                        "score"            : lab_score,
                         "is_pe"            : False,
                     })
                 scheduled_ids.add(o_id)
