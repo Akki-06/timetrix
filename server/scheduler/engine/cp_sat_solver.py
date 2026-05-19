@@ -96,6 +96,15 @@ class CPSATScheduler:
         all_ds = list(slot_map.keys())      # [(day, slot_number), ...]
         theory_room_ids = {r.id for r in theory_rooms}
 
+        # ── ROOM METADATA LOOKUP ─────────────────────────────────────────────
+        # Maps room_id → (room_number, room_type, capacity) so the objective
+        # scoring uses the real room number (e.g. "1010") that GNN embeddings
+        # are keyed on, not the integer primary key.
+        room_meta_map: dict[int, tuple] = {
+            r.id: (r.room_number, r.room_type, r.capacity)
+            for r in theory_rooms + lab_rooms
+        }
+
         # ── BUILD THEORY VARIABLES ────────────────────────────────────────────
         t_var: dict = {}
         # index structures (populated while building variables)
@@ -377,9 +386,10 @@ class CPSATScheduler:
             sg   = o.student_group
 
             for d, s, rid, v in t_by_off[o.id]:
+                r_num, r_type, r_cap = room_meta_map.get(rid, (str(rid), "THEORY", 60))
                 batch_params.append(dict(
                     faculty_name               = fac.name,
-                    room_number                = str(rid),
+                    room_number                = r_num,
                     day                        = d,
                     slot                       = s,
                     is_lab                     = False,
@@ -387,8 +397,8 @@ class CPSATScheduler:
                     semester                   = getattr(sg, "term", None) and sg.term.semester or 4,
                     current_load               = 0,
                     course_name                = o.course.name,
-                    room_type                  = "THEORY",
-                    room_capacity              = 60,
+                    room_type                  = r_type,
+                    room_capacity              = r_cap,
                     requires_consecutive_slots = False,
                     is_elective                = o.course.course_type in {"OE", "PE"},
                     section_name               = sg.name,
@@ -413,11 +423,53 @@ class CPSATScheduler:
                     score_keys.append(v)
                     score_vals.append(500)   # 0.5 × SCORE_SCALE
 
-        # Lab offerings: use a fixed good score
+        # Lab offerings: ML-score at the pair's first slot
+        lab_batch_params = []
+        lab_batch_vars   = []
         for o in lab_offs:
-            for _, _, _, _, v in l_by_off[o.id]:
-                score_keys.append(v)
-                score_vals.append(700)   # 0.7 (labs are high-priority)
+            if not o.assigned_faculty:
+                continue
+            fac  = o.assigned_faculty
+            meta = faculty_meta.get(fac.id, {})
+            sg   = o.student_group
+
+            for day, s1, s2, rid, v in l_by_off[o.id]:
+                r_num, r_type, r_cap = room_meta_map.get(rid, (str(rid), "LAB", 40))
+                lab_batch_params.append(dict(
+                    faculty_name               = fac.name,
+                    room_number                = r_num,
+                    day                        = day,
+                    slot                       = s1,
+                    is_lab                     = True,
+                    contact_hours              = o.weekly_load or o.course.min_weekly_lectures,
+                    semester                   = getattr(sg, "term", None) and sg.term.semester or 4,
+                    current_load               = 0,
+                    course_name                = o.course.name,
+                    room_type                  = r_type,
+                    room_capacity              = r_cap,
+                    requires_consecutive_slots = True,
+                    is_elective                = o.course.course_type in {"OE", "PE"},
+                    section_name               = sg.name,
+                    program_code               = (getattr(getattr(sg, "term", None), "program", None)
+                                                  and sg.term.program.code),
+                    current_load_today         = 0,
+                    max_daily                  = meta.get("max_daily", 4),
+                    is_combined                = bool(o.combined_token),
+                    working_days               = sg.working_days,
+                ))
+                lab_batch_vars.append(v)
+
+        if lab_batch_params:
+            try:
+                lab_scores = ml_scorer.score_batch(lab_batch_params)
+                for v, sc in zip(lab_batch_vars, lab_scores):
+                    score_keys.append(v)
+                    score_vals.append(max(0, int(sc * SCORE_SCALE)))
+            except Exception as e:
+                log.warning(f"CP-SAT: lab ML scoring failed ({e}), using fixed 0.7.")
+                for v in lab_batch_vars:
+                    score_keys.append(v)
+                    score_vals.append(700)
 
         if score_keys:
             model.Maximize(
