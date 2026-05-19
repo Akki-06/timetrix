@@ -39,10 +39,8 @@ from collections import defaultdict
 from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier,
                                VotingClassifier)
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 from sklearn.metrics import (roc_auc_score, classification_report,
                              precision_recall_curve,
                              precision_recall_fscore_support)
@@ -814,7 +812,6 @@ def train(X, y):
     # FIX (Change 6): Per-class precision/recall report on held-out val set.
     # This gives a clearer picture than AUC alone — especially for the minority
     # class (valid slots) where high overall AUC can hide poor recall.
-    from sklearn.metrics import classification_report
     y_val_pred = (y_val_scores >= optimal_threshold).astype(int)
     report_str = classification_report(
         y_val, y_val_pred,

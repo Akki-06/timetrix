@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { asList, extractError, courseDisplayCode } from "../utils/helpers";
+import { asList, extractError, courseDisplayCode, formatProgramLabel } from "../utils/helpers";
 import {
   FaUserTie, FaSearch, FaCheck, FaFlask, FaBook, FaStar, FaLightbulb,
   FaExclamationTriangle, FaLink, FaChevronDown, FaChevronRight,
@@ -340,8 +340,8 @@ function CourseAssignmentPage() {
               onChange={(e) => { setSelProgram(e.target.value); setSelSemester(""); }}
             >
               <option value="">Choose program</option>
-              {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
-                <option key={p.id} value={p.id}>{p.display_name || p.name}</option>
+              {[...programs].sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b))).map((p) => (
+                <option key={p.id} value={p.id}>{formatProgramLabel(p)}</option>
               ))}
             </select>
           </div>

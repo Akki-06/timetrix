@@ -45,3 +45,27 @@ export function courseDisplayCode(code) {
   // Strip ALL trailing _PROGRAMCODE suffixes (handles double like _BCA_BCA)
   return code.replace(/(_[A-Z]{2,})+$/, "");
 }
+
+/**
+ * Format a program object for dropdown / display labels.
+ *
+ * Returns a clean, human-readable name like:
+ *   "BCA"                         — no specialization
+ *   "BCA — Cyber Security"        — with specialization
+ *   "BTech — AIML"                — with specialization
+ *
+ * The `display_name` from the API already includes specialization in
+ * parentheses (e.g. "BCA (CyberSec)"), and `code` often duplicates it
+ * (e.g. "BCA (CyberSec)"), so using `{display_name} ({code})` creates
+ * ugly redundant labels. This function avoids that entirely.
+ *
+ * @param {Object} p — program object with name, specialization, code, display_name
+ * @returns {string}
+ */
+export function formatProgramLabel(p) {
+  if (!p) return "";
+  const name = p.name || "";
+  const spec = p.specialization || "";
+  if (spec) return `${name} — ${spec}`;
+  return name;
+}

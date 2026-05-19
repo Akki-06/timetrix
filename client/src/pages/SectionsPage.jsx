@@ -3,7 +3,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toNumber } from "../utils/spreadsheet";
-import { asList, extractError, courseDisplayCode } from "../utils/helpers";
+import { asList, extractError, courseDisplayCode, formatProgramLabel } from "../utils/helpers";
 import {
   FaUsers, FaTrash, FaBook, FaMagic, FaChevronDown, FaChevronRight,
   FaEdit, FaTimes, FaPlus, FaGraduationCap, FaLayerGroup, FaUserGraduate,
@@ -266,9 +266,9 @@ function SectionsPage() {
                 required
               >
                 <option value="">Choose program</option>
-                {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
+                {[...programs].sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b))).map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.display_name || p.name} ({p.code})
+                    {formatProgramLabel(p)}
                   </option>
                 ))}
               </select>

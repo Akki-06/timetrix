@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
-import { asList, extractError } from "../utils/helpers";
+import { asList, extractError, formatProgramLabel } from "../utils/helpers";
 import {
   FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle,
   FaArrowRight, FaRocket, FaHistory, FaClock, FaChartBar,
@@ -126,7 +126,7 @@ function TimetableGeneratorPage() {
   const derivedYear       = selectedSemester ? yearFromSemester(Number(selectedSemester)) : null;
 
   /* ── generate ── */
-  const handleGenerate = async () => {
+  const handleGenerate = async (disabledCourses = []) => {
     if (!selectedProgramId || !selectedSemester || sections.length === 0) return;
     setGenerating(true); setError(""); setResult(null);
     const tick = setInterval(() => setGenTick(t => t + 1), 400);
@@ -134,6 +134,7 @@ function TimetableGeneratorPage() {
       const resp = await api.post("scheduler/generate/", {
         program_id: Number(selectedProgramId),
         semester:   Number(selectedSemester),
+        disabled_courses: disabledCourses,
       }, { timeout: 120000 });
       setResult(resp.data);
       const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
@@ -192,7 +193,10 @@ function TimetableGeneratorPage() {
 
   const handleGenerateWithPE = async () => {
     await savePeSlotGroups();
-    handleGenerate();
+    const disabledCourses = peOfferings
+      .filter((rep) => peEnabled[rep.id] === false)
+      .map((rep) => rep.course);
+    handleGenerate(disabledCourses);
   };
 
   /* ── loading state ── */
@@ -253,8 +257,8 @@ function TimetableGeneratorPage() {
                 <label>Program <span className="sec-req">*</span></label>
                 <select value={selectedProgramId} onChange={(e) => handleProgramChange(e.target.value)}>
                   <option value="">Select program</option>
-                  {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
-                    <option key={p.id} value={p.id}>{p.display_name || p.name} ({p.code})</option>
+                  {[...programs].sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b))).map((p) => (
+                    <option key={p.id} value={p.id}>{formatProgramLabel(p)}</option>
                   ))}
                 </select>
               </div>
@@ -277,7 +281,7 @@ function TimetableGeneratorPage() {
               <div className="gen-info-badge">
                 <FaCalendarCheck style={{ color: "var(--brand)" }} />
                 <span>
-                  <strong>Year {derivedYear}</strong> of {selectedProgram?.display_name || selectedProgram?.name}
+                  <strong>Year {derivedYear}</strong> of {formatProgramLabel(selectedProgram)}
                 </span>
               </div>
             )}
@@ -295,7 +299,7 @@ function TimetableGeneratorPage() {
                   </div>
                 ) : sections.length === 0 ? (
                   <p className="gen-sections-empty">
-                    No sections found for {selectedProgram?.display_name} Sem {selectedSemester}.{" "}
+                    No sections found for {formatProgramLabel(selectedProgram)} Sem {selectedSemester}.{" "}
                     <a href="/sections">Register sections first →</a>
                   </p>
                 ) : (

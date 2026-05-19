@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { asList, extractError } from "../utils/helpers";
+import { asList, extractError, formatProgramLabel } from "../utils/helpers";
 import {
   FaLink,
   FaTrash,
@@ -369,7 +369,7 @@ function FacultyEligibilityPage() {
                       <option value="">All Programs</option>
                       {programs.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.code} — {p.display_name || p.name}
+                          {formatProgramLabel(p)}
                         </option>
                       ))}
                     </select>

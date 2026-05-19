@@ -29,7 +29,6 @@ Output:
     ml_pipeline/trained/gnn_training_log.json — loss curve + metrics
 """
 
-import os
 import json
 import pickle
 import logging
@@ -46,8 +45,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 # PyTorch Geometric
 from torch_geometric.nn import SAGEConv
 from torch_geometric.utils import negative_sampling, dropout_edge
-from torch_geometric.data import HeteroData
-import torch_geometric.transforms as T
 
 logging.basicConfig(
     level=logging.INFO,

@@ -9,7 +9,6 @@ observability, difficulty, feasibility.
 """
 
 import logging
-import math
 import random
 from collections import Counter, defaultdict
 from typing import Optional
@@ -39,8 +38,9 @@ log = logging.getLogger(__name__)
 class SchedulerEngine:
     """One instance per scheduling run."""
 
-    def __init__(self, timetable_id: int):
+    def __init__(self, timetable_id: int, disabled_courses: list = None):
         self.timetable_id = timetable_id
+        self.disabled_courses = disabled_courses or []
         self.timetable    = (
             Timetable.objects
             .select_related("term", "term__program")
@@ -68,6 +68,12 @@ class SchedulerEngine:
 
         # Room sort key (built in _load, used wherever room pool is sliced)
         self._room_sort_key = None
+
+        # Tracks how many distinct courses each faculty has been auto-assigned
+        # in this run, so the auto-assign phase can spread load across faculty.
+        self._fac_assigned_course_count: dict[int, int] = defaultdict(int)
+        # Tracks which offerings were auto-assigned (offering.id → Faculty obj)
+        self._auto_assigned: dict[int, Faculty] = {}
 
         # Observability (#10), difficulty (#1), feasibility (#3)
         self.rejection_log   = RejectionLog()
@@ -268,8 +274,9 @@ class SchedulerEngine:
             CourseOffering.objects
             .filter(student_group__term=self.term)
             .select_related("course", "student_group", "assigned_faculty")
-            if "+" not in o.student_group.name
-            or o.course.course_type in COMBINED_ALLOWED_TYPES
+            if ("+" not in o.student_group.name
+            or o.course.course_type in COMBINED_ALLOWED_TYPES)
+            and o.course.id not in self.disabled_courses
         ]
         # Attach the corrected working_days to each offering's student_group in memory
         for o in self.offerings:
@@ -312,28 +319,325 @@ class SchedulerEngine:
 
         log.info(f"  Offerings loaded: {len(self.offerings)}")
 
+        # ── Pre-block rooms used by OTHER terms' latest timetables ────────────
+        # Each scheduling run is isolated; without this, two terms can assign the
+        # same room to the same (day, slot), producing cross-term hard violations.
+        from django.db.models import Max, Q as _Q
+        _lat = list(Timetable.objects.values("term").annotate(max_v=Max("version")))
+        if _lat:
+            _q = _Q()
+            for _e in _lat:
+                _q |= _Q(term_id=_e["term"], version=_e["max_v"])
+            _other_ids = list(
+                Timetable.objects.filter(_q)
+                .exclude(pk=self.timetable_id)
+                .exclude(term=self.term)
+                .values_list("id", flat=True)
+            )
+            if _other_ids:
+                _cross = list(
+                    LectureAllocation.objects.filter(timetable_id__in=_other_ids)
+                    .values_list("room_id", "timeslot__day", "timeslot__slot_number")
+                )
+                _blocked = 0
+                for _rid, _day, _slot in _cross:
+                    if (_day, _slot) in self.slot_map:
+                        self.tracker._room_busy[(_day, _slot)].add(_rid)
+                        _blocked += 1
+                log.info(
+                    f"  Cross-term room pre-block: {_blocked} slots blocked "
+                    f"from {len(_other_ids)} other timetable(s)"
+                )
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # AUTO-ASSIGN FACULTY (Phase 0)
+    # Pre-assigns best-suited faculty to offerings that have no admin-assigned
+    # teacher. Uses workload balancing, course-type fit, and diversity so
+    # one teacher doesn't hog all subjects.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _auto_assign_faculty(self):
+        """Phase 0 — assign faculty to unassigned offerings before scheduling.
+
+        For each offering without an assigned_faculty:
+          1. Collect eligible candidates (exclude program/semester/course exclusions).
+          2. Score each candidate on: ML affinity, remaining workload, course-type
+             fit (theory vs lab), and a diversity penalty (fewer distinct courses
+             already assigned = better).
+          3. Pick the highest-scored faculty, set it as assigned_faculty in memory.
+
+        This ensures the scheduler has a pre-selected best-fit teacher for every
+        subject BEFORE slot placement begins.
+        """
+        unassigned = [o for o in self.offerings if not o.assigned_faculty]
+        if not unassigned:
+            log.info("AUTO-ASSIGN: all offerings already have faculty.")
+            return
+
+        log.info(f"AUTO-ASSIGN PHASE: {len(unassigned)} offerings need faculty")
+
+        # Build exclusion sets once (per course/program/semester)
+        _excl_cache: dict[int, set] = {}  # course_id → set of excluded faculty ids
+
+        def _get_excluded(offering: CourseOffering) -> set:
+            cid = offering.course_id
+            if cid in _excl_cache:
+                return _excl_cache[cid]
+            excluded_ids = set(
+                FacultySubjectEligibility.objects
+                .filter(course=offering.course)
+                .values_list("faculty_id", flat=True)
+            )
+            if offering.course.program_id:
+                excluded_ids |= set(
+                    FacultyProgramExclusion.objects
+                    .filter(program_id=offering.course.program_id)
+                    .values_list("faculty_id", flat=True)
+                )
+            if offering.course.program_id and offering.course.semester:
+                excluded_ids |= set(
+                    FacultySemesterExclusion.objects
+                    .filter(
+                        program_id=offering.course.program_id,
+                        semester=offering.course.semester,
+                    )
+                    .values_list("faculty_id", flat=True)
+                )
+            _excl_cache[cid] = excluded_ids
+            return excluded_ids
+
+        # Sort: labs first (hardest constraint), then higher priority, then by
+        # weekly load descending (more sessions needed = harder to place)
+        unassigned.sort(key=lambda o: (
+            -(1 if o.course.requires_lab_room or o.course.requires_consecutive_slots else 0),
+            -o.course.priority,
+            -(o.weekly_load or o.course.min_weekly_lectures),
+        ))
+
+        all_fac = list(Faculty.objects.filter(is_active=True))
+
+        # Track which courses each faculty has been assigned to (for diversity)
+        fac_course_set: dict[int, set] = defaultdict(set)  # fac_id → {course_id, ...}
+        # Track which groups each faculty teaches
+        fac_group_courses: dict[int, dict[int, set]] = defaultdict(lambda: defaultdict(set))
+        # Track total weekly load assigned so far (sessions, not hours)
+        fac_assigned_load: dict[int, int] = defaultdict(int)
+
+        # Also pre-populate from already-assigned offerings
+        for o in self.offerings:
+            if o.assigned_faculty:
+                fac_course_set[o.assigned_faculty_id].add(o.course_id)
+                fac_group_courses[o.assigned_faculty_id][o.student_group_id].add(o.course_id)
+                fac_assigned_load[o.assigned_faculty_id] += (
+                    o.weekly_load or o.course.min_weekly_lectures
+                )
+
+        for offering in unassigned:
+            course = offering.course
+            is_lab = bool(course.requires_lab_room or course.requires_consecutive_slots)
+            excluded = _get_excluded(offering)
+            needed_sessions = offering.weekly_load or course.min_weekly_lectures
+
+            # ── PR auto-faculty: inherit from theory offering ──────────────────
+            if course.course_type == "PR":
+                raw_name = course.name
+                theory_name = (
+                    raw_name
+                    .replace(" Lab", "").replace(" lab", "")
+                    .replace("Lab ", "").replace("lab ", "")
+                    .replace("Lab", "").replace("lab", "")
+                    .strip()
+                )
+                for o in self.offerings:
+                    if (
+                        o.course.course_type != "PR"
+                        and theory_name.lower() in o.course.name.lower()
+                        and o.student_group_id == offering.student_group_id
+                        and o.assigned_faculty
+                    ):
+                        offering.assigned_faculty = o.assigned_faculty
+                        offering.assigned_faculty_id = o.assigned_faculty.id
+                        self._auto_assigned[offering.id] = o.assigned_faculty
+                        fac_course_set[o.assigned_faculty.id].add(course.id)
+                        fac_group_courses[o.assigned_faculty.id][offering.student_group_id].add(course.id)
+                        fac_assigned_load[o.assigned_faculty.id] += needed_sessions
+                        log.info(
+                            f"  AUTO-ASSIGN (PR inherit): {course.code} "
+                            f"({offering.student_group.name}) → {o.assigned_faculty.name}"
+                        )
+                        break
+                if offering.assigned_faculty:
+                    continue
+
+            # ── Score all eligible faculty ─────────────────────────────────────
+            candidates = []
+            group = offering.student_group
+
+            # Build ML score params for batch scoring
+            eligible_fac = [
+                fac for fac in all_fac
+                if fac.id not in excluded
+                and fac.id in self.faculty_meta
+            ]
+
+            if not eligible_fac:
+                log.warning(
+                    f"  AUTO-ASSIGN: no eligible faculty for {course.code} "
+                    f"({group.name}) — will use ML fallback during scheduling"
+                )
+                continue
+
+            sp_batch = []
+            for fac in eligible_fac:
+                meta = self.faculty_meta[fac.id]
+                sp_batch.append(dict(
+                    faculty_name               = fac.name,
+                    room_number                = "UNKNOWN",
+                    day                        = "WED",
+                    slot                       = 2,
+                    is_lab                     = is_lab,
+                    contact_hours              = needed_sessions,
+                    semester                   = self.term.semester,
+                    current_load               = fac_assigned_load[fac.id],
+                    course_name                = course.name,
+                    room_type                  = "LAB" if is_lab else "THEORY",
+                    room_capacity              = 60,
+                    requires_consecutive_slots = bool(course.requires_consecutive_slots),
+                    is_elective                = course.course_type in {"OE", "PE"},
+                    section_name               = group.name,
+                    program_code               = getattr(self.term.program, "code", None),
+                    current_load_today         = 0,
+                    max_daily                  = meta.get("max_daily", 4),
+                    is_combined                = bool(offering.combined_token),
+                    working_days               = group.working_days,
+                ))
+
+            ml_scores = self.ml.score_batch(sp_batch)
+
+            for fac, ml_sc in zip(eligible_fac, ml_scores):
+                meta = self.faculty_meta[fac.id]
+                max_weekly = meta.get("max_weekly", 18)
+                remaining  = max_weekly - fac_assigned_load[fac.id]
+
+                # Skip if this faculty can't absorb the needed sessions
+                if remaining < needed_sessions:
+                    continue
+
+                # ── Composite score ────────────────────────────────────────────
+                # 1) ML base score (history + slot affinity)
+                score = ml_sc
+
+                # 2) Workload remaining bonus: more remaining = better
+                #    Heavily prefer faculty with the MOST remaining capacity.
+                workload_ratio = remaining / max(max_weekly, 1)
+                score += workload_ratio * 0.50
+
+                # 2b) Saturation penalty: faculty already near capacity get
+                #     a steep penalty so the engine spreads load across staff.
+                used_ratio = fac_assigned_load[fac.id] / max(max_weekly, 1)
+                if used_ratio > 0.70:
+                    score -= (used_ratio - 0.70) * 2.0
+
+                # 2c) Senior role cap: PVC/DEAN/HOD should teach fewer courses.
+                _senior_roles = {"PVC", "DEAN", "HOD"}
+                if getattr(fac, 'role', '') in _senior_roles:
+                    # Penalize heavily once they already have 1+ courses assigned
+                    if len(fac_course_set[fac.id]) >= 1:
+                        score -= 0.60
+                    score -= 0.15  # baseline penalty for senior roles
+
+                # 3) Course-type fit: check teaches_theory / teaches_lab
+                if is_lab and not fac.teaches_lab:
+                    score -= 0.40
+                if not is_lab and not fac.teaches_theory:
+                    score -= 0.40
+
+                # 4) Diversity penalty: if this faculty already teaches many
+                #    distinct courses, penalize exponentially to spread load
+                n_courses_already = len(fac_course_set[fac.id])
+                if n_courses_already > 0:
+                    score -= n_courses_already * 2.0  # Heavily penalize multiple courses
+                    
+                # 4b) Section diversity: heavily penalize if teaching multiple DISTINCT
+                #     subjects to the SAME section (to avoid one teacher monopolizing a class).
+                taught_to_group = fac_group_courses[fac.id][group.id]
+                diff_courses_group = [c for c in taught_to_group if c != course.id]
+                if diff_courses_group:
+                    score -= len(diff_courses_group) * 5.0
+
+                # 5) Department match bonus
+                if (fac.department_id and course.program
+                        and fac.department_id == course.program.department_id):
+                    score += 0.10
+
+                # 6) Same course already being taught by this faculty
+                #    (in another section) → strong affinity
+                if course.id in fac_course_set[fac.id]:
+                    score += 0.20
+
+                candidates.append((score, fac))
+
+            if not candidates:
+                log.warning(
+                    f"  AUTO-ASSIGN: no candidate has capacity for {course.code} "
+                    f"({group.name})"
+                )
+                continue
+
+            # Pick the best
+            candidates.sort(key=lambda x: -x[0])
+            best_score, best_fac = candidates[0]
+
+            # Assign in memory
+            offering.assigned_faculty = best_fac
+            offering.assigned_faculty_id = best_fac.id
+            self._auto_assigned[offering.id] = best_fac
+
+            # Update running counters
+            fac_course_set[best_fac.id].add(course.id)
+            fac_group_courses[best_fac.id][group.id].add(course.id)
+            fac_assigned_load[best_fac.id] += needed_sessions
+            self._fac_assigned_course_count[best_fac.id] += 1
+
+            log.info(
+                f"  AUTO-ASSIGN ✓ {course.code} ({group.name}) → {best_fac.name} "
+                f"(score={best_score:.3f}, courses={len(fac_course_set[best_fac.id])}, "
+                f"load={fac_assigned_load[best_fac.id]}/{self.faculty_meta[best_fac.id].get('max_weekly', 18)})"
+            )
+
+        auto_count = len(self._auto_assigned)
+        still_unassigned = sum(1 for o in self.offerings if not o.assigned_faculty)
+        log.info(
+            f"AUTO-ASSIGN PHASE done: {auto_count} assigned, "
+            f"{still_unassigned} still unassigned"
+        )
+
     # ═════════════════════════════════════════════════════════════════════════
     # ML-RANKED FACULTY FALLBACK
-    # Used as the primary faculty pool for all courses.
+    # Used as the primary faculty pool for courses that still have no
+    # assigned faculty even after auto-assign.
     # FacultySubjectEligibility records (exclusions) are applied afterward.
     # ═════════════════════════════════════════════════════════════════════════
 
     def _ml_rank_all_faculty(self, offering: CourseOffering) -> list:
         course = offering.course
-        if course.id in self._ml_faculty_cache:
-            return self._ml_faculty_cache[course.id]
+        # NOTE: We intentionally do NOT cache here any more. The stale cache
+        # caused the same faculty to be picked for every subject. Each call
+        # now reflects current workload and assignment state.
 
         group  = offering.student_group
         is_lab = bool(course.requires_lab_room or course.requires_consecutive_slots)
 
-        all_fac = list(Faculty.objects.filter(is_active=True))
-        log.warning(
-            f"No eligible faculty for {course.code}. "
-            f"ML-ranking all {len(all_fac)} active faculty as fallback."
+        all_fac = [f for f_id, f_meta in self.faculty_meta.items()
+                   for f in [f_meta["obj"]]]
+        log.info(
+            f"  ML-ranking {len(all_fac)} faculty for {course.code} "
+            f"(no pre-assigned teacher)"
         )
 
         # Batch-score all faculty in one RF call
         at_caps  = []
+        diversity_penalties = []
         sp_rank  = []
         for fac in all_fac:
             meta       = self.faculty_meta.get(fac.id, {})
@@ -342,6 +646,11 @@ class SchedulerEngine:
             today_load = self.tracker.faculty_day_load(fac.id, "WED")
             max_daily  = meta.get("max_daily", fac.max_lectures_per_day or 4)
             at_caps.append(cur_load >= max_weekly)
+
+            # Diversity penalty: faculty with many courses already get penalized
+            n_assigned = self._fac_assigned_course_count.get(fac.id, 0)
+            diversity_penalties.append(n_assigned * 1.5)
+
             sp_rank.append(dict(
                 faculty_name               = fac.name,
                 room_number                = "UNKNOWN",
@@ -365,13 +674,16 @@ class SchedulerEngine:
             ))
 
         scores_rank = self.ml.score_batch(sp_rank)
-        scored = [(sc, at_cap, fac) for sc, at_cap, fac in zip(scores_rank, at_caps, all_fac)]
+        scored = [
+            (sc - div_pen, at_cap, fac)
+            for sc, at_cap, div_pen, fac
+            in zip(scores_rank, at_caps, diversity_penalties, all_fac)
+        ]
 
         # Higher score first; ties broken by not-at-cap, then insertion order
         scored.sort(key=lambda x: (-x[0], x[1]))
         result = [fac for _, _, fac in scored]
         log.info(f"  ML ranking for {course.code}: top 3 = {[f.name for f in result[:3]]}")
-        self._ml_faculty_cache[course.id] = result
         return result
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -494,9 +806,10 @@ class SchedulerEngine:
         """
         Pick the best available room from `pool` for (day, slot).
 
-        Priority:
-          1. Section's historically preferred room (affinity from this run)
-          2. Walk pool in program-affinity order (already pre-sorted by _load)
+        Sort key: (global_usage_count, not_section_preferred, pool_rank)
+          - Rooms used fewer times in this run are preferred (load balancing)
+          - Among equally-loaded rooms, section's historical room wins (continuity)
+          - Pool rank (program affinity) breaks remaining ties
 
         `extra_busy_slots` is used by lab pair checks (e.g., also block slot s2).
         """
@@ -506,16 +819,21 @@ class SchedulerEngine:
                 busy |= self.tracker._room_busy.get((day, extra_slot), set())
 
         pref_id = self.tracker.preferred_room_for_section(group_id)
-        if pref_id:
-            for r in pool:
-                if r.id == pref_id and r.id not in busy and r.capacity >= capacity_needed:
-                    return r
 
-        for r in pool:
-            if r.id not in busy and r.capacity >= capacity_needed:
-                return r
-
-        return None
+        free = [
+            (
+                self.tracker.room_session_count(r.id),  # fewer uses = lower = better
+                0 if r.id == pref_id else 1,             # section-preferred = better
+                idx,                                      # pool rank (affinity order)
+                r,
+            )
+            for idx, r in enumerate(pool)
+            if r.id not in busy and r.capacity >= capacity_needed
+        ]
+        if not free:
+            return None
+        free.sort()
+        return free[0][3]
 
     # ═════════════════════════════════════════════════════════════════════════
     # SCORING HELPER
@@ -711,6 +1029,7 @@ class SchedulerEngine:
                 self._assign_combined(fac.id, room.id, group_id, day, s1)
                 self._assign_combined(fac.id, room.id, group_id, day, s2)
                 self.tracker.mark_group_lab_day(group_id, day)
+                self.tracker.mark_course_day(group_id, course.id, day)
 
                 for slot in (s1, s2):
                     self.pending_saves.append({
@@ -765,6 +1084,7 @@ class SchedulerEngine:
                         "score"           : sc,
                     })
                 self.tracker.mark_group_lab_day(group_id, day)
+                self.tracker.mark_course_day(group_id, course.id, day)
                 log.info(
                     f"  LAB G1/G2 ✓ {course.code} | {fac.name} | "
                     f"R{room_g1.room_number}/R{room_g2.room_number} | "
@@ -827,11 +1147,11 @@ class SchedulerEngine:
         all_pe = pe_in_groups + ungrouped_pe
 
         if all_pe:
-            pe_by_term = defaultdict(list)
+            pe_by_group = defaultdict(list)
             for o in all_pe:
-                pe_by_term[o.student_group.term_id].append(o)
-            for term_id, offs in pe_by_term.items():
-                grp_name = f"PE_auto_{term_id}"
+                pe_by_group[o.student_group_id].append(o)
+            for gid, offs in pe_by_group.items():
+                grp_name = f"PE_auto_group_{gid}"
                 non_pe_groups[grp_name] = offs
                 for o in offs:
                     seen_in_elective.add(o.id)
@@ -998,6 +1318,10 @@ class SchedulerEngine:
 
                     # Batch-mark in tracker (groups counted ONCE)
                     self._assign_pe_slot(pe_assignments, day, slot)
+                    # Mark course-per-day for each PE option and each group
+                    for cid_pe in by_course:
+                        for gid_pe in all_gids:
+                            self.tracker.mark_course_day(gid_pe, cid_pe, day)
 
                     placed = True
                     scheduled_count += 1
@@ -1081,6 +1405,7 @@ class SchedulerEngine:
 
             for gid in group_ids:
                 self._assign_combined(fac.id, room.id, gid, day, slot)
+                self.tracker.mark_course_day(gid, course.id, day)
             for o in unit:
                 self.pending_saves.append({
                     "offering_id"     : o.id,
@@ -1179,6 +1504,7 @@ class SchedulerEngine:
                 continue
 
             self.tracker.assign(fac.id, room.id, group_id, day, slot)
+            self.tracker.mark_course_day(group_id, course.id, day)
             self.pending_saves.append({
                 "offering_id"     : offering.id,
                 "student_group_id": group_id,
@@ -1277,6 +1603,9 @@ class SchedulerEngine:
                     break
                 if self.tracker.group_day_load(group_id, day) >= MAX_GRP_DAILY:
                     continue
+                # HARD: max 1 session of any course per day per section
+                if self.tracker.has_course_today(group_id, course.id, day):
+                    continue
 
                 room = self._pick_room(self.theory_rooms, group_id, day, slot, group.strength)
                 if not room:
@@ -1290,6 +1619,7 @@ class SchedulerEngine:
                     continue
 
                 self.tracker.assign(fac.id, room.id, group_id, day, slot)
+                self.tracker.mark_course_day(group_id, course.id, day)
                 self.pending_saves.append({
                     "offering_id"     : offering.id,
                     "student_group_id": group_id,
@@ -1366,6 +1696,11 @@ class SchedulerEngine:
                         offering.student_group_id, day, slot
                     ):
                         continue
+                    # HARD: max 1 session of any course per day per section
+                    if self.tracker.has_course_today(
+                        offering.student_group_id, offering.course_id, day
+                    ):
+                        continue
                     for fac in eligible:
                         meta = self.faculty_meta.get(fac.id)
                         if not meta:
@@ -1378,6 +1713,9 @@ class SchedulerEngine:
                         if ok:
                             self.tracker.assign(
                                 fac.id, room.id, offering.student_group_id, day, slot
+                            )
+                            self.tracker.mark_course_day(
+                                offering.student_group_id, offering.course_id, day
                             )
                             self.pending_saves.append({
                                 "offering_id"     : offering.id,
@@ -1473,6 +1811,9 @@ class SchedulerEngine:
                     continue
                 if group.working_days and vday not in group.working_days:
                     continue
+                # HARD: max 1 session of any course per day per section
+                if self.tracker.has_course_today(group_id, course.id, vday):
+                    continue
 
                 # Evict.
                 self.tracker.unassign(
@@ -1515,6 +1856,7 @@ class SchedulerEngine:
                 self.tracker.assign(
                     chosen_fac.id, room.id, group_id, vday, vslot,
                 )
+                self.tracker.mark_course_day(group_id, course.id, vday)
                 # Remove victim from pending_saves and insert replacement.
                 self.pending_saves.pop(vi)
                 # Append evicted offering back to unscheduled (its spot was
@@ -1620,10 +1962,14 @@ class SchedulerEngine:
                     break
 
                 for offering in offerings:
-                    # FIX: raised cap to 3× min so 3-credit courses can fill
-                    # enough slots to hit the 80% weekly target.
-                    cap = offering.course.min_weekly_lectures * 3
+                    # FIX: raised cap to 2× min so 3-credit courses can fill
+                    # enough slots but not dominate the timetable.
+                    cap = offering.course.min_weekly_lectures * 2
                     if extra_count.get(offering.id, 0) >= cap:
+                        continue
+
+                    # HARD: max 1 session of any course per day per section
+                    if self.tracker.has_course_today(gid, offering.course_id, day):
                         continue
 
                     eligible = self._eligible_faculty(offering)
@@ -1644,6 +1990,7 @@ class SchedulerEngine:
                             continue
 
                         self.tracker.assign(fac.id, room.id, gid, day, slot)
+                        self.tracker.mark_course_day(gid, offering.course_id, day)
                         self.pending_saves.append({
                             "offering_id"     : offering.id,
                             "student_group_id": gid,
@@ -1764,6 +2111,10 @@ class SchedulerEngine:
         with self.timer.phase("load"):
             self._load()
 
+        # Phase 0 — auto-assign faculty to unassigned offerings
+        with self.timer.phase("auto_assign"):
+            self._auto_assign_faculty()
+
         if not self.offerings:
             return {
                 "status"      : "failed",
@@ -1823,45 +2174,92 @@ class SchedulerEngine:
             f"{len(theory_offerings)} theory (incl. PRJ)"
         )
 
-        with self.timer.phase("labs"):
-            if lab_offerings:
-                self._schedule_labs(lab_offerings)
+        # ── Try CP-SAT solver first; fall back to greedy on failure ──────────
+        cpsat_used = False
+        with self.timer.phase("cpsat"):
+            try:
+                from scheduler.engine.cp_sat_solver import CPSATScheduler
+                cpsat = CPSATScheduler(time_limit_seconds=120)
 
-        with self.timer.phase("theory"):
-            if theory_offerings:
-                self._schedule_theory(theory_offerings)
+                # Build pre_blocked from what _load already placed into tracker
+                # (cross-term rooms were already inserted into _room_busy in _load)
+                pre_blocked: dict = {
+                    key: set(room_ids)
+                    for key, room_ids in self.tracker._room_busy.items()
+                }
 
-        with self.timer.phase("repair"):
-            if self.unscheduled_offerings:
-                fixed = self._repair_unscheduled()
-                if fixed:
-                    fixed_codes = {o.course.code for o in fixed}
-                    self.unscheduled = [
-                        msg for msg in self.unscheduled
-                        if not any(code in msg for code in fixed_codes)
+                cpsat_saves, cpsat_unsched = cpsat.solve(
+                    offerings           = self.offerings,
+                    slot_map            = self.slot_map,
+                    theory_rooms        = self.theory_rooms,
+                    lab_rooms           = self.lab_rooms,
+                    faculty_meta        = self.faculty_meta,
+                    ml_scorer           = self.ml,
+                    pre_blocked         = pre_blocked,
+                    valid_pairs         = VALID_CONSECUTIVE_PAIRS,
+                    days                = DAYS,
+                    config              = self.config,
+                    combined_to_ind     = self._combined_to_individual,
+                )
+
+                if cpsat_saves is not None:
+                    self.pending_saves          = cpsat_saves
+                    self.unscheduled_offerings  = cpsat_unsched or []
+                    self.unscheduled            = [
+                        f"THEORY {o.course.code} ({o.student_group.name}) "
+                        f"— CP-SAT: no feasible slot"
+                        for o in self.unscheduled_offerings
                     ]
-                    self.unscheduled_offerings = [
-                        o for o in self.unscheduled_offerings if o not in fixed
-                    ]
+                    cpsat_used = True
+                    log.info(
+                        f"CP-SAT succeeded: {len(cpsat_saves)} allocations, "
+                        f"{len(self.unscheduled_offerings)} unscheduled."
+                    )
+                else:
+                    log.info("CP-SAT returned no solution — running greedy fallback.")
 
-            # Eviction-repair (#4) — only if repair still couldn't place everyone.
-            if self.unscheduled_offerings:
-                evicted = self._eviction_repair()
-                if evicted:
-                    evicted_codes = {o.course.code for o in evicted}
-                    self.unscheduled = [
-                        msg for msg in self.unscheduled
-                        if not any(code in msg for code in evicted_codes)
-                    ]
-                    self.unscheduled_offerings = [
-                        o for o in self.unscheduled_offerings if o not in evicted
-                    ]
+            except Exception as _cpsat_err:
+                log.warning(f"CP-SAT error ({_cpsat_err}) — running greedy fallback.")
 
-        with self.timer.phase("idle_pack"):
-            self._idle_room_pass()
+        if not cpsat_used:
+            with self.timer.phase("labs"):
+                if lab_offerings:
+                    self._schedule_labs(lab_offerings)
 
-        with self.timer.phase("slot_pack"):
-            self._pack_group_slots(target_fill=0.80)
+            with self.timer.phase("theory"):
+                if theory_offerings:
+                    self._schedule_theory(theory_offerings)
+
+            with self.timer.phase("repair"):
+                if self.unscheduled_offerings:
+                    fixed = self._repair_unscheduled()
+                    if fixed:
+                        fixed_codes = {o.course.code for o in fixed}
+                        self.unscheduled = [
+                            msg for msg in self.unscheduled
+                            if not any(code in msg for code in fixed_codes)
+                        ]
+                        self.unscheduled_offerings = [
+                            o for o in self.unscheduled_offerings if o not in fixed
+                        ]
+
+                if self.unscheduled_offerings:
+                    evicted = self._eviction_repair()
+                    if evicted:
+                        evicted_codes = {o.course.code for o in evicted}
+                        self.unscheduled = [
+                            msg for msg in self.unscheduled
+                            if not any(code in msg for code in evicted_codes)
+                        ]
+                        self.unscheduled_offerings = [
+                            o for o in self.unscheduled_offerings if o not in evicted
+                        ]
+
+            with self.timer.phase("idle_pack"):
+                self._idle_room_pass()
+
+            with self.timer.phase("slot_pack"):
+                self._pack_group_slots(target_fill=0.80)
 
         with self.timer.phase("save"):
             try:
@@ -1894,6 +2292,7 @@ class SchedulerEngine:
                 for msg in self.unscheduled
             },
             "ml_used"        : self.ml.available,
+            "solver"         : "cp-sat" if cpsat_used else "greedy",
             "warnings"       : self.unscheduled,
             "timings"        : self.timer.as_dict(),
             "rejection_top"  : self.rejection_log.summary(5),

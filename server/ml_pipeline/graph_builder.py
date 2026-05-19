@@ -4,7 +4,6 @@ Builds a heterogeneous GNN graph from normalized CSV metadata.
 Nodes: faculty, course, section, room, timeslot.
 """
 
-import os
 import json
 import pickle
 import logging

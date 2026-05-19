@@ -106,6 +106,7 @@ class GenerateTimetableView(APIView):
         term_id    = request.data.get("term_id")
         program_id = request.data.get("program_id")
         semester   = request.data.get("semester")
+        disabled_courses = request.data.get("disabled_courses", [])
 
         if term_id:
             term = get_object_or_404(AcademicTerm, pk=term_id)
@@ -188,7 +189,7 @@ class GenerateTimetableView(APIView):
             )
 
         try:
-            engine = SchedulerEngine(timetable_id=timetable.id)
+            engine = SchedulerEngine(timetable_id=timetable.id, disabled_courses=disabled_courses)
             result = engine.run()
         except Exception as e:
             # If engine crashes entirely, delete the empty timetable

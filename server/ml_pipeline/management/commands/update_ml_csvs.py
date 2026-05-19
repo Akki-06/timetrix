@@ -1,8 +1,6 @@
-import csv
 import pandas as pd
 from pathlib import Path
 from django.core.management.base import BaseCommand
-from academics.models import CourseOffering, StudentGroup, Program
 from faculty.models import Faculty
 from infrastructure.models import Room
 from scheduler.models import TimeSlot

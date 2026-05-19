@@ -12,10 +12,11 @@
 ![Vite](https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch_2.10-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn_1.8-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![OR-Tools](https://img.shields.io/badge/OR--Tools_9.15-4285F4?style=for-the-badge&logo=google&logoColor=white)
 
 <br/>
 
-*An intelligent, full-stack platform that automates university timetable scheduling using Graph Neural Networks, Random Forest prediction, and Constraint-Based Optimization — solving one of academia's hardest operational challenges.*
+*An intelligent, full-stack platform that automates university timetable scheduling using Graph Neural Networks, Random Forest prediction, and Google OR-Tools CP-SAT Integer Programming — solving one of academia's hardest operational challenges with globally-optimal results.*
 
 <br/>
 
@@ -132,9 +133,10 @@ TIMETRIX/
 │   │   ├── views.py                         #     Generate, Schedule, Config, Notifications
 │   │   ├── urls.py
 │   │   ├── 📂 engine/                       #     ⚙️  Core scheduling logic
-│   │   │   ├── runner.py                    #     Main SchedulerEngine (~1900 lines)
+│   │   │   ├── runner.py                    #     Main SchedulerEngine (CP-SAT primary + greedy fallback)
+│   │   │   ├── cp_sat_solver.py             #     Google OR-Tools CP-SAT ILP solver
 │   │   │   ├── constants.py                 #     Days, slots, valid pairs
-│   │   │   ├── constraint_tracker.py        #     Real-time constraint monitoring
+│   │   │   ├── constraint_tracker.py        #     Real-time constraint monitoring + room load tracking
 │   │   │   ├── difficulty.py                #     Course difficulty scoring
 │   │   │   ├── feasibility.py               #     Pre-run feasibility checks
 │   │   │   ├── ml_scorer.py                 #     ML model integration layer
@@ -256,12 +258,12 @@ TIMETRIX uses a **multi-stage hybrid AI + constraint solving pipeline**:
 <td>
 
 ### 🤖 Intelligent Scheduling
-- Lab-first strategy with 2-slot enforcement
-- ML-powered candidate ranking (GraphSAGE + RF)
-- Heuristic fallback when ML unavailable
-- Faculty workload balancing
-- Conflict detection & prevention
-- Lunch break protection
+- **CP-SAT ILP solver** (Google OR-Tools) — globally optimal
+- ML suitability scores as ILP objective (GraphSAGE + RF)
+- Greedy engine as automatic fallback on timeout
+- Cross-term room isolation — no conflicts across programs
+- Load-balanced room distribution across all available rooms
+- Faculty workload balancing, lunch break protection
 
 </td>
 </tr>
@@ -353,9 +355,102 @@ The GNN produces **32-dimensional embeddings** via link prediction training.
 | 🔴 **Hard** | Labs must occupy 2 consecutive slots |
 | 🔴 **Hard** | Faculty weekly workload limits (role-based) |
 | 🔴 **Hard** | Lunch break protection |
+| 🔴 **Hard** | Cross-term room isolation (rooms shared across programs) |
 | 🟢 **Soft** | Faculty time preferences & availability |
 | 🟢 **Soft** | Room-course affinity matching |
 | 🟢 **Soft** | Balanced workload distribution |
+
+---
+
+### 🔷 CP-SAT Constraint Solver (Google OR-Tools)
+
+TIMETRIX uses **Google OR-Tools CP-SAT** as its primary scheduling engine — replacing the greedy multi-phase approach with a **globally-optimal Integer Programming** model. The greedy engine is retained as an automatic fallback.
+
+```
+                         POST /api/scheduler/generate/
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │   Phase 0: Auto-Assign Faculty  │
+                    │   ML scoring + workload balance │
+                    └────────────┬───────────────────┘
+                                 │
+                                 ▼
+                    ┌────────────────────────────────┐
+                    │   Cross-Term Room Pre-Blocking  │
+                    │   Read other terms' allocations │
+                    │   → mark rooms busy in tracker  │
+                    └────────────┬───────────────────┘
+                                 │
+                                 ▼
+              ┌──────────────────────────────────────────┐
+              │           CP-SAT ILP Model               │
+              │                                          │
+              │  Variables                               │
+              │  ─────────                               │
+              │  t[offering, day, slot, room] ∈ {0,1}   │
+              │  l[lab, day, pair_start, room] ∈ {0,1}  │
+              │                                          │
+              │  Hard Constraints (C1–C9)                │
+              │  ──────────────────────────              │
+              │  C1  Coverage: Σ = weekly_load           │
+              │  C2  Room uniqueness: Σ ≤ 1 per slot     │
+              │  C3  Faculty clash: Σ ≤ 1 per slot       │
+              │  C4  Group clash: Σ ≤ 1 per slot         │
+              │  C5  Faculty daily cap                   │
+              │  C6  Faculty weekly cap                  │
+              │  C7  PE same slot: all options together  │
+              │  C8  Combined sections same slot+room    │
+              │  C9  ≤ 1 course per (group, day)         │
+              │                                          │
+              │  Objective (maximise)                    │
+              │  ──────────────────                      │
+              │  Σ ML_score(offering, slot, room) × var  │
+              │  Scores batch-computed via RF + GNN      │
+              │                                          │
+              │  Solver: OR-Tools CP-SAT                 │
+              │  Workers: 4   Time limit: 120s           │
+              └──────────┬─────────────┬────────────────┘
+                         │             │
+                 OPTIMAL/FEASIBLE    TIMEOUT/INFEASIBLE
+                         │             │
+                         ▼             ▼
+              ┌──────────────┐  ┌──────────────────────┐
+              │  CP-SAT      │  │  Greedy Fallback      │
+              │  solution    │  │  Labs → Theory → PE → │
+              │  extracted   │  │  Combined → Repair →  │
+              └──────┬───────┘  │  Idle → Pack          │
+                     │          └──────────┬────────────┘
+                     └──────────┬──────────┘
+                                ▼
+                    ┌────────────────────────┐
+                    │   Phase 4: DB Save     │
+                    │   Bulk-insert records  │
+                    │   result["solver"] =   │
+                    │   "cp-sat" | "greedy"  │
+                    └────────────────────────┘
+```
+
+**CP-SAT vs Greedy — key differences:**
+
+| Aspect | Greedy (old) | CP-SAT (new) |
+|:-------|:------------|:-------------|
+| Optimality | Local (first-fit) | Global (ILP optimal) |
+| Room distribution | Concentrated (top 3 rooms) | Spread across all rooms |
+| Cross-term rooms | Blind (each run isolated) | Pre-blocked from other terms |
+| PE electives | Same-slot enforced post-hoc | Modelled as shared slot constraint |
+| Faculty daily cap | Checked per assignment | Enforced as ILP constraint |
+| Objective | Heuristic score sum | Maximise ML suitability scores |
+| Time limit | None (iterative) | 120 seconds, then greedy fallback |
+
+**Room load-balancing fix** (also applied to greedy fallback):
+
+```python
+# _pick_room now sorts free rooms by:
+# (global_usage_count, not_section_preferred, pool_rank)
+# → least-used rooms chosen first; program affinity as tiebreaker
+free.sort()   # (usage, prefer_flag, rank) ascending
+```
 
 ---
 
@@ -385,11 +480,12 @@ The GNN produces **32-dimensional embeddings** via link prediction training.
 </td>
 <td align="center" width="25%">
 
-**Machine Learning**
+**ML + Optimization**
 
 ![PyTorch](https://img.shields.io/badge/PyTorch_2.10-EE4C2C?logo=pytorch&logoColor=white)
 ![PyG](https://img.shields.io/badge/PyG_2.7-orange)
 ![sklearn](https://img.shields.io/badge/sklearn_1.8-F7931E?logo=scikit-learn&logoColor=white)
+![OR-Tools](https://img.shields.io/badge/OR--Tools_9.15-4285F4?logo=google&logoColor=white)
 
 </td>
 <td align="center" width="25%">

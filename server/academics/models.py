@@ -43,7 +43,7 @@ class Program(models.Model):
     @property
     def display_name(self):
         if self.specialization:
-            return f"{self.name} ({self.specialization})"
+            return f"{self.name} — {self.specialization}"
         return self.name
 
     def __str__(self):

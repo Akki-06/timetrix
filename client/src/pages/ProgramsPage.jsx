@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { asList, extractError } from "../utils/helpers";
+import { asList, extractError, formatProgramLabel } from "../utils/helpers";
 import {
   FaUniversity, FaTrash, FaEdit, FaTimes, FaPlus,
   FaGraduationCap, FaLayerGroup, FaCalendarAlt, FaSearch,
@@ -337,7 +337,7 @@ function ProgramsPage() {
                       <div key={prog.id} className="sec-card">
                         <div className="sec-card-top">
                           <div className="sec-card-name-row">
-                            <span className="sec-card-name">{prog.display_name || prog.name}</span>
+                            <span className="sec-card-name">{formatProgramLabel(prog)}</span>
                             <span className="sec-card-sem-badge">{prog.code}</span>
                           </div>
                           <div className="sec-card-actions">

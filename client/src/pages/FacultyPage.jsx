@@ -3,7 +3,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
 import { toBoolean, toNumber } from "../utils/spreadsheet";
-import { asList, extractError } from "../utils/helpers";
+import { asList, extractError, formatProgramLabel } from "../utils/helpers";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -130,7 +130,7 @@ function EligibilityConfigurator({
       <div className="elig-prog-list">
         {programs
           .filter((p) => tree[p.id])
-          .sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || ""))
+          .sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b)))
           .map((prog) => {
             const isProgExcluded = !!excludedPrograms[prog.id];
             const isExpanded = expandedProg === prog.id;
@@ -156,7 +156,7 @@ function EligibilityConfigurator({
                   </label>
                   <FaGraduationCap className="elig-prog-icon" />
                   <span className={`elig-prog-name ${isProgExcluded ? "excl-strike" : ""}`}>
-                    {prog.display_name || prog.name}
+                    {formatProgramLabel(prog)}
                   </span>
                   {isProgExcluded && <span className="elig-prog-count excl">Excluded</span>}
                   {!isProgExcluded && (courseExclInProg + semExclInProg) > 0 && (
@@ -360,7 +360,7 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
         <div className="fac-detail-prog-list">
           {programs
             .filter(p => courseTree[p.id])
-            .sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || ""))
+            .sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b)))
             .map(prog => {
               const isExp = expandedProg === prog.id;
               const isProgExcl = excludedProgIds.has(prog.id);
@@ -375,7 +375,7 @@ function FacultyDetailView({ fac, programs, courses, exclusions, progExclusions,
                     onClick={() => setExpandedProg(isExp ? null : prog.id)}
                   >
                     <FaGraduationCap className="elig-prog-icon" />
-                    <span className={`elig-prog-name ${isProgExcl ? "excl-strike" : ""}`}>{prog.display_name || prog.name}</span>
+                    <span className={`elig-prog-name ${isProgExcl ? "excl-strike" : ""}`}>{formatProgramLabel(prog)}</span>
                     {isProgExcl && <span className="elig-prog-count excl">Program Excluded</span>}
                     {!isProgExcl && progExclCount > 0 && <span className="elig-prog-count excl">{progExclCount}</span>}
                     {isExp ? <FaChevronUp className="elig-chevron" /> : <FaChevronDown className="elig-chevron" />}

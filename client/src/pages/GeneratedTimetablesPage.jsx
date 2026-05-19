@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api/axios";
-import { asList } from "../utils/helpers";
+import { asList, formatProgramLabel } from "../utils/helpers";
 
 const PALETTE = [
   { bg: "rgba(59,130,246,0.12)",  border: "#3b82f6" },
@@ -416,10 +416,10 @@ function GeneratedTimetablesPage() {
     const peItems    = cells.filter((a) => a.course_type === "PE");
     const nonPeItems = cells.filter((a) => a.course_type !== "PE");
     return (
-      <>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         {peItems.length > 0 && renderPEChip(peItems)}
         {nonPeItems.map(renderChip)}
-      </>
+      </div>
     );
   };
 
@@ -473,7 +473,7 @@ function GeneratedTimetablesPage() {
                 <select className="input" value={selProgram} onChange={(e) => setSelProgram(e.target.value)}>
                   <option value="">Select Program</option>
                   {programs.map((p) => (
-                    <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                    <option key={p.id} value={p.id}>{formatProgramLabel(p)}</option>
                   ))}
                 </select>
               </div>

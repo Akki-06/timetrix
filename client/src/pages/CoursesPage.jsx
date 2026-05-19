@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import BulkUploadCard from "../components/BulkUploadCard";
-import { asList, extractError, courseDisplayCode } from "../utils/helpers";
+import { asList, extractError, courseDisplayCode, formatProgramLabel } from "../utils/helpers";
 import {
   FaBook, FaTrash, FaEdit, FaTimes, FaPlus, FaFlask, FaSearch,
   FaGraduationCap, FaLayerGroup,
@@ -170,7 +170,7 @@ function CoursesPage() {
         const prog = programs.find((p) => p.id === c.program);
         map[progId] = {
           progId,
-          progName: prog?.display_name || prog?.name || "Unassigned",
+          progName: formatProgramLabel(prog) || "Unassigned",
           progCode: prog?.code || "",
           totalCourses: 0,
           labCount: 0,
@@ -224,8 +224,8 @@ function CoursesPage() {
                 onChange={(e) => setForm((p) => ({ ...p, program: e.target.value, semester: "" }))}
               >
                 <option value="">Choose program</option>
-                {[...programs].sort((a, b) => (a.display_name || a.name || "").localeCompare(b.display_name || b.name || "")).map((p) => (
-                  <option key={p.id} value={p.id}>{p.display_name || p.name} ({p.code})</option>
+                {[...programs].sort((a, b) => formatProgramLabel(a).localeCompare(formatProgramLabel(b))).map((p) => (
+                  <option key={p.id} value={p.id}>{formatProgramLabel(p)}</option>
                 ))}
               </select>
             </div>

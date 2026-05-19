@@ -14,6 +14,11 @@
 
   // Django-specific: silence false "unresolved" on dynamic model attrs
   "python.analysis.diagnosticSeverityOverrides": {
-    "reportAttributeAccessIssue": "none"
+    "reportAttributeAccessIssue": "none",
+    "reportMissingImports": "warning",
+    "reportMissingModuleSource": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportUnusedImport": "warning"
   }
 }

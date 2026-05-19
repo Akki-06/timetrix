@@ -1518,11 +1518,16 @@ tr:hover td {
   padding: 18px 8px;
 }
 
+.has-class {
+  height: 1px;
+}
+
 .lecture-chip {
-  height: 100%;
+  flex: 1;
   min-height: 78px;
   border-left: 3px solid transparent;
   padding: 8px;
+  box-sizing: border-box;
 }
 
 .lecture-subject {
