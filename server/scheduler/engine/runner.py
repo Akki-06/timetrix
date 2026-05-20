@@ -231,6 +231,14 @@ class SchedulerEngine:
 
         log.info(f"  Faculty loaded: {len(self.faculty_meta)}")
 
+        # ── Auto-combine cross-section PE offerings ───────────────────────────
+        # For every PE course offered to multiple sections of this term, ensure
+        # a combined StudentGroup + CourseOffering exists so the elective is
+        # scheduled ONCE at a shared (day, slot, room, faculty) across all
+        # sections, on the INTERSECTION of those sections' working_days.
+        # No-op if the admin already created a combined offering for the course.
+        self._auto_combine_pe_offerings()
+
         # ── offerings ─────────────────────────────────────────────────────────
         # Skip PC/standard-theory offerings for combined groups (e.g. A+B).
         # Combined groups only need PE courses;
@@ -894,6 +902,166 @@ class SchedulerEngine:
     # When assigning a combined section (e.g. A+B), also block constituent
     # individual sections (A, B) so they don't get overlapping theory classes.
     # ═════════════════════════════════════════════════════════════════════════
+
+    def _auto_combine_pe_offerings(self):
+        """Auto-create combined StudentGroup + CourseOffering rows for any PE
+        course that is offered to multiple sections of this term, so the
+        elective is scheduled exactly once across all eligible sections at
+        the intersection of their working_days.
+
+        Idempotent: skips PE courses where the admin already created a
+        combined ('A+B') offering. Subsequent runs reuse the auto-created rows.
+        The existing redundant-offering removal in _load() then drops the
+        per-section individual offerings, leaving only the combined one to be
+        scheduled. The view layer's combined-group expansion logic surfaces
+        the resulting allocation under each constituent section's timetable.
+        """
+        DAY_ORDER = {d: i for i, d in enumerate(DAYS)}
+
+        pe_qs = (
+            CourseOffering.objects.filter(
+                student_group__term=self.term,
+                course__course_type="PE",
+            )
+            .select_related("course", "student_group", "assigned_faculty")
+        )
+
+        # Group individual-section PE offerings by course
+        pe_by_course: dict = defaultdict(list)
+        for o in pe_qs:
+            if "+" in o.student_group.name:
+                continue   # already a combined offering
+            pe_by_course[o.course_id].append(o)
+
+        # All PE offerings of a term should share ONE elective_slot_group so the
+        # solver enforces "same (day, slot) for every PE option in the program-
+        # semester" (per user spec: PE lectures of all eligible sections must be
+        # at the same time). Reuse any existing group; otherwise synthesize one.
+        existing_esg = next(
+            (o.elective_slot_group for o in pe_qs if o.elective_slot_group),
+            None,
+        )
+        unified_esg = existing_esg or f"PE_AUTO_TERM_{self.term.id}"
+
+        created_offerings = 0
+        created_groups    = 0
+        unified_count     = 0
+
+        for course_id, offs in pe_by_course.items():
+            if len(offs) <= 1:
+                continue  # only one section offers this PE — nothing to combine
+
+            # Skip if a combined offering for this course already exists
+            already_combined = CourseOffering.objects.filter(
+                course_id=course_id,
+                student_group__term=self.term,
+                student_group__name__contains="+",
+            ).exists()
+            if already_combined:
+                continue
+
+            # Stable canonical ordering by section name
+            offs.sort(key=lambda o: o.student_group.name)
+            section_names = [o.student_group.name for o in offs]
+            combined_name = "+".join(section_names)
+
+            # Intersection of working_days across all participating sections
+            wd_sets = [
+                set(o.student_group.working_days or DAYS)
+                for o in offs
+            ]
+            intersection = wd_sets[0].intersection(*wd_sets[1:])
+            wd_list = sorted(intersection, key=lambda d: DAY_ORDER.get(d, 99))
+
+            if not wd_list:
+                log.warning(
+                    f"  Auto-combine PE: course {offs[0].course.code} "
+                    f"has empty working_days intersection across sections "
+                    f"{section_names} — skipping; admin must reconcile."
+                )
+                continue
+
+            # Get-or-create the combined StudentGroup (one-time DB write per term)
+            combined_sg, sg_created = StudentGroup.objects.get_or_create(
+                term=self.term,
+                name=combined_name,
+                defaults={
+                    "description"  : f"Auto-combined for cross-section PE",
+                    "strength"     : max(o.student_group.strength for o in offs),
+                    "working_days" : wd_list,
+                },
+            )
+            if sg_created:
+                created_groups += 1
+            elif not combined_sg.working_days:
+                combined_sg.working_days = wd_list
+                combined_sg.save(update_fields=["working_days"])
+
+            # Use the first individual offering as a template (faculty, load, etc.)
+            canonical = offs[0]
+
+            # Warn if other sections assigned a different faculty for the same PE
+            mismatch = [
+                o for o in offs[1:]
+                if o.assigned_faculty_id and canonical.assigned_faculty_id
+                and o.assigned_faculty_id != canonical.assigned_faculty_id
+            ]
+            if mismatch:
+                names = ", ".join(
+                    f"{o.student_group.name}:{o.assigned_faculty.name}"
+                    for o in mismatch
+                )
+                log.warning(
+                    f"  Auto-combine PE: {canonical.course.code} has different "
+                    f"faculty across sections ({names}); using "
+                    f"{canonical.assigned_faculty.name if canonical.assigned_faculty else 'unassigned'} "
+                    f"from canonical section {canonical.student_group.name}."
+                )
+
+            # Create the combined CourseOffering — get_or_create makes it idempotent.
+            # Use the unified PE slot group so CP-SAT's C7 places all PE options
+            # of this (program, semester) at the same (day, slot).
+            combined_off, off_created = CourseOffering.objects.get_or_create(
+                course           = canonical.course,
+                student_group    = combined_sg,
+                defaults={
+                    "assigned_faculty"   : canonical.assigned_faculty,
+                    "weekly_load"        : canonical.weekly_load,
+                    "elective_slot_group": unified_esg,
+                    "combined_token"     : canonical.combined_token,
+                },
+            )
+            if off_created:
+                created_offerings += 1
+                log.info(
+                    f"  Auto-combined PE: {canonical.course.code} → "
+                    f"section '{combined_name}' (days={wd_list}, "
+                    f"slot_group={unified_esg})"
+                )
+            elif combined_off.elective_slot_group != unified_esg:
+                # Existing combined offering — ensure it shares the unified group
+                combined_off.elective_slot_group = unified_esg
+                combined_off.save(update_fields=["elective_slot_group"])
+                unified_count += 1
+
+        # Also unify any existing combined PE offerings (created by admin or
+        # previous runs) under the same slot group so all PE share one timeslot
+        for combined_off in CourseOffering.objects.filter(
+            student_group__term=self.term,
+            course__course_type="PE",
+            student_group__name__contains="+",
+        ).exclude(elective_slot_group=unified_esg):
+            combined_off.elective_slot_group = unified_esg
+            combined_off.save(update_fields=["elective_slot_group"])
+            unified_count += 1
+
+        if created_offerings or created_groups or unified_count:
+            log.info(
+                f"  Auto-combine PE summary: {created_groups} combined "
+                f"section(s) created, {created_offerings} combined "
+                f"offering(s) created, {unified_count} re-keyed to "
+                f"slot group '{unified_esg}'."
+            )
 
     def _assign_combined(self, fac_id, room_id, group_id, day, slot):
         """Assign and also block constituent sections of combined groups."""
