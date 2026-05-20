@@ -6131,3 +6131,323 @@ tr:hover td {
   .gen-result-stats { grid-template-columns: repeat(3, 1fr); }
   .gen-quick-stats  { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ============================================================== */
+/* Generation Progress Overlay (live SSE terminal + countdown)    */
+/* ============================================================== */
+.gpo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 11, 24, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: gpoFadeIn 220ms ease-out;
+}
+
+@keyframes gpoFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.gpo-modal {
+  width: min(960px, 100%);
+  max-height: 88vh;
+  background: linear-gradient(180deg, rgba(17,22,40,0.98), rgba(13,17,32,0.98));
+  border: 1px solid rgba(99,102,241,0.32);
+  border-radius: 20px;
+  box-shadow:
+    0 20px 60px -10px rgba(99,102,241,0.35),
+    0 0 0 1px rgba(255,255,255,0.04) inset;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: gpoModalIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gpoModalIn {
+  from { transform: translateY(20px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);    opacity: 1; }
+}
+
+.gpo-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.gpo-title-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.gpo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: rgba(99,102,241,0.14);
+  color: #a5b4fc;
+  flex-shrink: 0;
+}
+
+.gpo-icon-spin {
+  animation: gpoSpin 1.6s linear infinite;
+}
+
+@keyframes gpoSpin {
+  to { transform: rotate(360deg); }
+}
+
+.gpo-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.gpo-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 600px;
+}
+
+.gpo-close {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 160ms ease;
+}
+
+.gpo-close:hover {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.4);
+  color: #fca5a5;
+}
+
+/* ── Countdown + progress bar ── */
+.gpo-progress-block {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.015);
+}
+
+.gpo-timer {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.gpo-timer-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gpo-timer-val {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.gpo-timer-lbl {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.gpo-timer-sep {
+  color: #334155;
+  font-size: 22px;
+  align-self: center;
+  transform: translateY(-7px);
+}
+
+.gpo-bar-wrap {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.gpo-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7, #06b6d4);
+  background-size: 200% 100%;
+  border-radius: 10px;
+  transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: gpoShimmer 2.4s linear infinite;
+}
+
+.gpo-bar-done {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  animation: none;
+}
+
+@keyframes gpoShimmer {
+  from { background-position: 0% 0%; }
+  to   { background-position: 200% 0%; }
+}
+
+.gpo-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Terminal-style log ── */
+.gpo-terminal {
+  flex: 1;
+  min-height: 280px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 14px 22px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  background: #08091a;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+.gpo-terminal::-webkit-scrollbar { width: 6px; }
+.gpo-terminal::-webkit-scrollbar-track { background: transparent; }
+.gpo-terminal::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.gpo-terminal-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-style: italic;
+  padding: 24px 0;
+}
+
+.gpo-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 1px 0;
+  font-variant-numeric: tabular-nums;
+  animation: gpoLineIn 220ms ease-out;
+}
+
+@keyframes gpoLineIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.gpo-line-time {
+  color: #475569;
+  flex-shrink: 0;
+  width: 56px;
+  font-size: 11px;
+}
+
+.gpo-line-kind {
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.gpo-line-msg {
+  color: inherit;
+  word-break: break-word;
+}
+
+.gpo-line-dim {
+  color: #475569;
+  font-size: 11px;
+}
+
+/* ── Footer ── */
+.gpo-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.015);
+}
+
+.gpo-view-btn {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.gpo-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px -4px rgba(99,102,241,0.5);
+}
+
+.gpo-close-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #cbd5e1;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.gpo-close-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+@media (max-width: 640px) {
+  .gpo-modal { max-height: 95vh; }
+  .gpo-timer { gap: 10px; }
+  .gpo-timer-val { font-size: 18px; }
+  .gpo-timer-sep { display: none; }
+  .gpo-line { font-size: 11.5px; }
+  .gpo-line-time { width: 48px; }
+}

@@ -30,6 +30,7 @@ from scheduler.engine.constraint_tracker import ConstraintTracker
 from scheduler.engine.observability      import RejectionLog, RunTimer
 from scheduler.engine.difficulty         import DifficultyScorer
 from scheduler.engine.feasibility        import FeasibilityChecker
+from scheduler.engine.progress           import ProgressReporter
 
 log = logging.getLogger(__name__)
 
@@ -38,9 +39,11 @@ log = logging.getLogger(__name__)
 class SchedulerEngine:
     """One instance per scheduling run."""
 
-    def __init__(self, timetable_id: int, disabled_courses: list = None):
+    def __init__(self, timetable_id: int, disabled_courses: list = None,
+                 progress: Optional[ProgressReporter] = None):
         self.timetable_id = timetable_id
         self.disabled_courses = disabled_courses or []
+        self.progress = progress or ProgressReporter(None)   # no-op when streaming off
         self.timetable    = (
             Timetable.objects
             .select_related("term", "term__program")
@@ -81,6 +84,11 @@ class SchedulerEngine:
         self.timer           = RunTimer()
         self.difficulty      = None    # built after load
         self.feasibility     = None    # built after load
+
+        # DB-truth snapshot (populated by _load; used by _verify_against_db)
+        self._db_room_busy:    dict = defaultdict(set)
+        self._db_faculty_busy: dict = defaultdict(set)
+        self._db_group_busy:   dict = defaultdict(set)
 
     # ── internal helpers ──────────────────────────────────────────────────────
 
@@ -328,11 +336,22 @@ class SchedulerEngine:
 
         log.info(f"  Offerings loaded: {len(self.offerings)}")
 
-        # ── Pre-block rooms used by OTHER terms' latest timetables ────────────
+        # ── Pre-block rooms AND faculty used by OTHER terms' latest timetables ─
         # Each scheduling run is isolated; without this, two terms can assign the
-        # same room to the same (day, slot), producing cross-term hard violations.
+        # same room or the same faculty to the same (day, slot), producing
+        # cross-term hard violations. We block both in one DB pass and store
+        # the DB snapshot so _verify_against_db() can use it later.
         from django.db.models import Max, Q as _Q
         _lat = list(Timetable.objects.values("term").annotate(max_v=Max("version")))
+
+        # DB snapshot of every (room/faculty, day, slot) occupied by another
+        # term's latest timetable. Kept on self so the final verify pass can
+        # double-check pending_saves against this authoritative set without
+        # re-issuing the query.
+        self._db_room_busy:    dict = defaultdict(set)   # (day, slot) → {room_id, ...}
+        self._db_faculty_busy: dict = defaultdict(set)   # (day, slot) → {fac_id, ...}
+        self._db_group_busy:   dict = defaultdict(set)   # (day, slot) → {group_id, ...}
+
         if _lat:
             _q = _Q()
             for _e in _lat:
@@ -344,18 +363,39 @@ class SchedulerEngine:
                 .values_list("id", flat=True)
             )
             if _other_ids:
+                # Single DB hit: pull (room, faculty, group, day, slot) for every
+                # other-term allocation. Iterating in Python is cheaper than
+                # three separate queries.
                 _cross = list(
-                    LectureAllocation.objects.filter(timetable_id__in=_other_ids)
-                    .values_list("room_id", "timeslot__day", "timeslot__slot_number")
+                    LectureAllocation.objects
+                    .filter(timetable_id__in=_other_ids)
+                    .values_list(
+                        "room_id", "faculty_id", "student_group_id",
+                        "timeslot__day", "timeslot__slot_number",
+                    )
                 )
-                _blocked = 0
-                for _rid, _day, _slot in _cross:
-                    if (_day, _slot) in self.slot_map:
-                        self.tracker._room_busy[(_day, _slot)].add(_rid)
-                        _blocked += 1
+                _blocked_r = _blocked_f = _blocked_g = 0
+                for _rid, _fid, _gid, _day, _slot in _cross:
+                    key = (_day, _slot)
+                    if key not in self.slot_map:
+                        continue
+                    if _rid:
+                        self.tracker._room_busy[key].add(_rid)
+                        self._db_room_busy[key].add(_rid)
+                        _blocked_r += 1
+                    if _fid:
+                        self.tracker._faculty_busy[key].add(_fid)
+                        self._db_faculty_busy[key].add(_fid)
+                        _blocked_f += 1
+                    if _gid:
+                        # Cross-term group block is rare (different terms ≠
+                        # same group) but guards combined groups that span terms.
+                        self._db_group_busy[key].add(_gid)
+                        _blocked_g += 1
                 log.info(
-                    f"  Cross-term room pre-block: {_blocked} slots blocked "
-                    f"from {len(_other_ids)} other timetable(s)"
+                    f"  Cross-term pre-block from {len(_other_ids)} other "
+                    f"timetable(s): {_blocked_r} room/slot, "
+                    f"{_blocked_f} faculty/slot, {_blocked_g} group/slot"
                 )
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -612,6 +652,9 @@ class SchedulerEngine:
                 f"  AUTO-ASSIGN ✓ {course.code} ({group.name}) → {best_fac.name} "
                 f"(score={best_score:.3f}, courses={len(fac_course_set[best_fac.id])}, "
                 f"load={fac_assigned_load[best_fac.id]}/{self.faculty_meta[best_fac.id].get('max_weekly', 18)})"
+            )
+            self.progress.assign(
+                "FACULTY", course.code, group.name, faculty=best_fac.name,
             )
 
         auto_count = len(self._auto_assigned)
@@ -1214,6 +1257,11 @@ class SchedulerEngine:
                     f"Room {room.room_number} ({room.building.code}) | "
                     f"{day} S{s1}+S{s2} | score={sc:.3f}"
                 )
+                self.progress.assign(
+                    "LAB", course.code, group.name,
+                    faculty=fac.name, room=room.room_number,
+                    day=day, slot=s1,
+                )
                 scheduled = True
 
         else:
@@ -1409,10 +1457,56 @@ class SchedulerEngine:
                 )
 
             # ── Collect unique faculty across options ──────────────────────────
+            # Edge case: PE offerings sometimes land here without an
+            # assigned_faculty (admin missed it, or auto-assign skipped a course
+            # with empty eligibility). Fall back to the ML-ranked candidate
+            # pool so the PE option can still be scheduled instead of silently
+            # leaving fac_id=None.
             option_faculty = {}  # course_id → faculty_id
+            pe_fallbacks_used = []
             for cid, offerings in by_course.items():
                 fac = offerings[0].assigned_faculty
-                option_faculty[cid] = fac.id if fac else None
+                if fac:
+                    option_faculty[cid] = fac.id
+                    continue
+                # No admin/auto faculty — pick the highest-ranked eligible one
+                # whose schedule has remaining capacity. Skip if none exists.
+                fallback_pool = self._eligible_faculty(offerings[0])
+                if fallback_pool:
+                    chosen = fallback_pool[0]
+                    option_faculty[cid] = chosen.id
+                    for o in offerings:
+                        o.assigned_faculty    = chosen
+                        o.assigned_faculty_id = chosen.id
+                    pe_fallbacks_used.append((offerings[0].course.code, chosen.name))
+                else:
+                    option_faculty[cid] = None
+            if pe_fallbacks_used:
+                log.info(
+                    f"    PE fallback faculty assigned: "
+                    + ", ".join(f"{c}→{n}" for c, n in pe_fallbacks_used)
+                )
+
+            # Warn (and skip) any PE option that still has no faculty so the
+            # scheduler doesn't write fac_id=NULL allocations.
+            no_fac = [
+                offerings[0].course.code
+                for cid, offerings in by_course.items()
+                if option_faculty.get(cid) is None
+            ]
+            if no_fac:
+                msg = (
+                    f"PE option(s) {', '.join(no_fac)} have no eligible faculty "
+                    f"— skipping in elective scheduling"
+                )
+                log.warning(f"    {msg}")
+                self.unscheduled.append(msg)
+                self.progress.log(msg)
+                # Drop them from this scheduling pass
+                by_course = {cid: offs for cid, offs in by_course.items() if option_faculty.get(cid) is not None}
+                n_options  = len(by_course)
+                if not by_course:
+                    continue
 
             scheduled_count = 0
             for _pass in range(needed):
@@ -1494,6 +1588,11 @@ class SchedulerEngine:
 
                     placed = True
                     scheduled_count += 1
+                    self.progress.assign(
+                        "PE", "+".join(opt_names),
+                        "+".join(sorted({offs[0].student_group.name for offs in by_course.values()})),
+                        day=day, slot=slot,
+                    )
                     log.info(
                         f"    Elective {group_name!r} pass {_pass+1} done "
                         f"{day} S{slot} ({n_options} options)"
@@ -1589,6 +1688,12 @@ class SchedulerEngine:
             log.info(
                 f"  COMBINED ✓ {course.code} | {fac.name} | "
                 f"R{room.room_number} ({room.building.code}) | {day} S{slot} | score={sc:.3f}"
+            )
+            self.progress.assign(
+                "COMBINED", course.code,
+                "+".join(g.name for g in groups),
+                faculty=fac.name, room=room.room_number,
+                day=day, slot=slot,
             )
 
         if scheduled < needed:
@@ -1688,6 +1793,11 @@ class SchedulerEngine:
             log.info(
                 f"  THEORY ✓ {course.code} | {fac.name} | "
                 f"R{room.room_number} ({room.building.code}) | {day} S{slot} | score={sc:.3f}"
+            )
+            self.progress.assign(
+                "THEORY", course.code, group.name,
+                faculty=fac.name, room=room.room_number,
+                day=day, slot=slot,
             )
 
         if scheduled < needed:
@@ -2084,6 +2194,11 @@ class SchedulerEngine:
         (faculty, room, group, day, slot) tuples are busy and which course is
         on which day, so we mirror the CP-SAT placements back into the tracker
         before any further passes run.
+
+        For combined groups (A+B) we also mark the constituent individual
+        sections (A, B) as busy. Without this the pack pass would happily
+        schedule a theory class for section A at the same slot where A+B's
+        PE allocation lives, and _verify_against_db would drop it later.
         """
         off_course = {o.id: o.course_id for o in self.offerings}
         for s in self.pending_saves:
@@ -2091,13 +2206,20 @@ class SchedulerEngine:
             if not key:
                 continue
             day, slot = key
-            self.tracker.assign(
-                s.get("faculty_id"), s.get("room_id"), s.get("student_group_id"),
-                day, slot,
-            )
+            fid = s.get("faculty_id")
+            rid = s.get("room_id")
+            gid = s.get("student_group_id")
+            self.tracker.assign(fid, rid, gid, day, slot)
+            # Combined → individual blocking
+            if gid is not None:
+                for ind_id in self._combined_to_individual.get(gid, []):
+                    self.tracker._group_busy[(day, slot)].add(ind_id)
+                    self.tracker._group_day[ind_id][day] += 1
             cid = off_course.get(s.get("offering_id"))
-            if cid is not None:
-                self.tracker.mark_course_day(s["student_group_id"], cid, day)
+            if cid is not None and gid is not None:
+                self.tracker.mark_course_day(gid, cid, day)
+                for ind_id in self._combined_to_individual.get(gid, []):
+                    self.tracker.mark_course_day(ind_id, cid, day)
 
     def _pack_group_slots(self, target_fill: float = 0.80, min_fill: float = 0.70):
         """
@@ -2264,6 +2386,148 @@ class SchedulerEngine:
         )
 
     # ═════════════════════════════════════════════════════════════════════════
+    # FINAL DB-TRUTH VERIFICATION
+    # Re-checks every pending allocation against the freshest DB state so
+    # nothing slips past in-memory tracking. Catches:
+    #   • Faculty already teaching at (day, slot) in another live timetable
+    #   • Room booked at (day, slot) in another live timetable
+    #   • Group already scheduled at (day, slot) by any timetable
+    #   • Race condition where another generation request landed a save in
+    #     the same slot during this run
+    # Drops violating saves so the bulk_create succeeds.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _verify_against_db(self):
+        if not self.pending_saves:
+            return
+
+        # Re-query DB freshly — captures anything written during this run by
+        # a concurrent request. This is the "look at DB even if it takes more
+        # time" requirement: paid once per generation, never per allocation.
+        from django.db.models import Max, Q as _Q
+        _lat = list(Timetable.objects.values("term").annotate(max_v=Max("version")))
+        if _lat:
+            _q = _Q()
+            for _e in _lat:
+                _q |= _Q(term_id=_e["term"], version=_e["max_v"])
+            other_ids = list(
+                Timetable.objects.filter(_q)
+                .exclude(pk=self.timetable_id)
+                .values_list("id", flat=True)
+            )
+        else:
+            other_ids = []
+
+        db_busy_fac:  dict = defaultdict(set)
+        db_busy_room: dict = defaultdict(set)
+        db_busy_grp:  dict = defaultdict(set)
+
+        if other_ids:
+            for fid, rid, gid, day, slot in (
+                LectureAllocation.objects
+                .filter(timetable_id__in=other_ids)
+                .values_list(
+                    "faculty_id", "room_id", "student_group_id",
+                    "timeslot__day", "timeslot__slot_number",
+                )
+            ):
+                key = (day, slot)
+                if fid: db_busy_fac[key].add(fid)
+                if rid: db_busy_room[key].add(rid)
+                if gid: db_busy_grp[key].add(gid)
+
+        # Build a set of constituent section ids per combined group so we can
+        # block individual sections when a combined offering occupies a slot.
+        combined_to_ind = self._combined_to_individual
+
+        # Track within-run claims so two pending saves can't share a
+        # (faculty, day, slot) or (room, day, slot) themselves (PE excepted).
+        seen_fac:  dict = defaultdict(set)
+        seen_room: dict = defaultdict(set)
+        seen_grp:  dict = defaultdict(set)
+
+        kept    = []
+        dropped = 0
+        for s in self.pending_saves:
+            key = self.slot_id_to_key.get(s["timeslot_id"])
+            if not key:
+                kept.append(s)
+                continue
+            day, slot = key
+            fid = s.get("faculty_id")
+            rid = s.get("room_id")
+            gid = s.get("student_group_id")
+            is_pe = bool(s.get("is_pe"))
+
+            # 1) DB-truth: another timetable already holds these resources
+            if fid and fid in db_busy_fac.get(key, ()):
+                log.warning(
+                    f"  VERIFY drop: faculty {fid} already booked in DB at "
+                    f"{day} S{slot} (offering={s.get('offering_id')})"
+                )
+                dropped += 1
+                continue
+            if rid and rid in db_busy_room.get(key, ()):
+                log.warning(
+                    f"  VERIFY drop: room {rid} already booked in DB at "
+                    f"{day} S{slot} (offering={s.get('offering_id')})"
+                )
+                dropped += 1
+                continue
+            if gid and gid in db_busy_grp.get(key, ()):
+                log.warning(
+                    f"  VERIFY drop: group {gid} already scheduled in DB at "
+                    f"{day} S{slot} (offering={s.get('offering_id')})"
+                )
+                dropped += 1
+                continue
+
+            # 2) Within-run claim — PE allocations are allowed to share faculty/room
+            # if the same option is repeated (rare); always block other types.
+            if fid and fid in seen_fac[key] and not is_pe:
+                log.warning(
+                    f"  VERIFY drop: faculty {fid} already used this run at "
+                    f"{day} S{slot}"
+                )
+                dropped += 1
+                continue
+            if rid and rid in seen_room[key]:
+                log.warning(
+                    f"  VERIFY drop: room {rid} already used this run at "
+                    f"{day} S{slot}"
+                )
+                dropped += 1
+                continue
+            # Group: PE options legitimately share the slot for the same
+            # combined group, so allow exact-same group only if is_pe.
+            if gid and gid in seen_grp[key] and not is_pe:
+                log.warning(
+                    f"  VERIFY drop: group {gid} already used this run at "
+                    f"{day} S{slot}"
+                )
+                dropped += 1
+                continue
+
+            # Combined groups: also reserve constituent ids
+            if fid: seen_fac[key].add(fid)
+            if rid: seen_room[key].add(rid)
+            if gid:
+                seen_grp[key].add(gid)
+                for ind in combined_to_ind.get(gid, []):
+                    seen_grp[key].add(ind)
+            kept.append(s)
+
+        if dropped:
+            log.warning(
+                f"  VERIFY: dropped {dropped} pending allocation(s); "
+                f"{len(kept)} survive."
+            )
+            self.progress.log(
+                f"DB verification: dropped {dropped} conflicting allocations",
+            )
+        self.pending_saves = kept
+
+    # ═════════════════════════════════════════════════════════════════════════
     # PHASE 4: ATOMIC DB SAVE
     # ═════════════════════════════════════════════════════════════════════════
 
@@ -2355,12 +2619,23 @@ class SchedulerEngine:
             f"Scheduler started — timetable={self.timetable_id}, "
             f"term={self.term}, ml={'on' if self.ml.available else 'heuristic'}"
         )
+        self.progress.log(
+            f"Scheduler started for {self.term} "
+            f"(ML: {'enabled' if self.ml.available else 'heuristic fallback'})"
+        )
 
         # Phase 1 — load
+        self.progress.phase("load", "Loading timeslots, rooms, faculty, offerings...")
         with self.timer.phase("load"):
             self._load()
+        self.progress.log(
+            f"Loaded {len(self.offerings)} offerings, "
+            f"{len(self.faculty_meta)} faculty, "
+            f"{len(self.theory_rooms)} theory rooms, {len(self.lab_rooms)} lab rooms"
+        )
 
         # Phase 0 — auto-assign faculty to unassigned offerings
+        self.progress.phase("auto_assign", "Auto-assigning faculty to unassigned offerings...")
         with self.timer.phase("auto_assign"):
             self._auto_assign_faculty()
 
@@ -2426,6 +2701,11 @@ class SchedulerEngine:
         # ── Try CP-SAT solver first; fall back to greedy on failure ──────────
         cpsat_used   = False
         cpsat_status = "not_attempted"   # surfaced in API result for diagnostics
+        self.progress.phase(
+            "cpsat",
+            f"Running CP-SAT solver on {len(self.offerings)} offerings "
+            f"({len(lab_offerings)} labs, {len(theory_offerings)} theory)...",
+        )
         with self.timer.phase("cpsat"):
             try:
                 from scheduler.engine.cp_sat_solver import CPSATScheduler
@@ -2438,6 +2718,14 @@ class SchedulerEngine:
                     for key, room_ids in self.tracker._room_busy.items()
                 }
 
+                # Faculty pre-block from other-term latest timetables.
+                # Without this, CP-SAT may pick a faculty already teaching
+                # somewhere else; _verify_against_db() would then drop those.
+                pre_blocked_fac: dict = {
+                    key: set(fac_ids)
+                    for key, fac_ids in self._db_faculty_busy.items()
+                }
+
                 cpsat_saves, cpsat_unsched = cpsat.solve(
                     offerings           = self.offerings,
                     slot_map            = self.slot_map,
@@ -2446,6 +2734,7 @@ class SchedulerEngine:
                     faculty_meta        = self.faculty_meta,
                     ml_scorer           = self.ml,
                     pre_blocked         = pre_blocked,
+                    pre_blocked_fac     = pre_blocked_fac,
                     valid_pairs         = VALID_CONSECUTIVE_PAIRS,
                     days                = DAYS,
                     config              = self.config,
@@ -2469,23 +2758,74 @@ class SchedulerEngine:
                         f"CP-SAT succeeded: {len(cpsat_saves)} allocations, "
                         f"{len(self.unscheduled_offerings)} unscheduled."
                     )
+                    self.progress.log(
+                        f"CP-SAT solver succeeded: {len(cpsat_saves)} allocations placed",
+                        success=True,
+                    )
+                    # Emit per-allocation events so the terminal UI shows what
+                    # CP-SAT placed (greedy emits these inline; CP-SAT writes
+                    # straight into pending_saves and bypassed the assign hooks).
+                    off_by_id = {o.id: o for o in self.offerings}
+                    fac_by_id = {f["obj"].id: f["obj"] for f in self.faculty_meta.values()}
+                    room_by_id: dict = {}
+                    for r in self.theory_rooms + self.lab_rooms:
+                        room_by_id[r.id] = r
+                    for s in cpsat_saves:
+                        off = off_by_id.get(s.get("offering_id"))
+                        if not off:
+                            continue
+                        ts_key = self.slot_id_to_key.get(s.get("timeslot_id"))
+                        if not ts_key:
+                            continue
+                        day, slot = ts_key
+                        is_lab = bool(
+                            off.course.requires_lab_room
+                            or off.course.requires_consecutive_slots
+                        )
+                        is_pe = (off.course.course_type == "PE") or s.get("is_pe")
+                        kind = (
+                            "PE" if is_pe else
+                            "LAB" if is_lab else
+                            "COMBINED" if "+" in off.student_group.name else
+                            "THEORY"
+                        )
+                        fac  = fac_by_id.get(s.get("faculty_id"))
+                        room = room_by_id.get(s.get("room_id"))
+                        self.progress.assign(
+                            kind,
+                            off.course.code,
+                            off.student_group.name,
+                            faculty = fac.name if fac else "",
+                            room    = room.room_number if room else "",
+                            day     = day,
+                            slot    = slot,
+                        )
                 else:
                     cpsat_status = "infeasible_or_missing_models"
                     log.info("CP-SAT returned no solution — running greedy fallback.")
+                    self.progress.log("CP-SAT infeasible — switching to greedy solver")
 
             except Exception as _cpsat_err:
                 cpsat_status = f"error:{type(_cpsat_err).__name__}: {_cpsat_err}"
                 log.warning(f"CP-SAT error ({_cpsat_err}) — running greedy fallback.")
+                self.progress.log(f"CP-SAT error: {_cpsat_err} — using greedy solver")
 
         if not cpsat_used:
+            self.progress.phase("labs", f"Scheduling {len(lab_offerings)} lab offerings...")
             with self.timer.phase("labs"):
                 if lab_offerings:
                     self._schedule_labs(lab_offerings)
 
+            self.progress.phase(
+                "theory",
+                f"Scheduling {len(theory_offerings)} theory offerings "
+                f"(PE → combined → standard)...",
+            )
             with self.timer.phase("theory"):
                 if theory_offerings:
                     self._schedule_theory(theory_offerings)
 
+            self.progress.phase("repair", "Repair pass for unscheduled offerings...")
             with self.timer.phase("repair"):
                 if self.unscheduled_offerings:
                     fixed = self._repair_unscheduled()
@@ -2511,14 +2851,32 @@ class SchedulerEngine:
                             o for o in self.unscheduled_offerings if o not in evicted
                         ]
 
+            self.progress.phase("idle_pack", "Filling idle rooms with leftover offerings...")
             with self.timer.phase("idle_pack"):
                 self._idle_room_pass()
 
         # Slot-packing runs for both solvers so every section reaches the
         # 80% fill target (with a 70% relaxed floor) regardless of solver.
+        self.progress.phase(
+            "slot_pack",
+            "Packing remaining slots to hit 80% per-section fill target...",
+        )
         with self.timer.phase("slot_pack"):
             self._pack_group_slots(target_fill=0.80, min_fill=0.70)
 
+        # DB-level verification: re-check every pending save against current DB
+        # state and drop any allocation that would create a hard violation.
+        self.progress.phase(
+            "verify",
+            f"Verifying {len(self.pending_saves)} allocations against database...",
+        )
+        with self.timer.phase("verify"):
+            self._verify_against_db()
+
+        self.progress.phase(
+            "save",
+            f"Writing {len(self.pending_saves)} allocations to database...",
+        )
         with self.timer.phase("save"):
             try:
                 saved = self._save()
@@ -2575,4 +2933,10 @@ class SchedulerEngine:
             f"Scheduler done — status={status}, saved={saved}, "
             f"unscheduled={len(self.unscheduled)}, total={self.timer.total():.2f}s"
         )
+        self.progress.log(
+            f"Done: {saved} allocations saved, {len(self.unscheduled)} unscheduled "
+            f"({self.timer.total():.1f}s)",
+            success=True,
+        )
+        self.progress.done(result)
         return result

@@ -10,6 +10,7 @@ from .views import (
     NotificationViewSet,
     TimetableScheduleView,
 )
+from .sse_views import GenerateTimetableStreamView
 
 router = DefaultRouter()
 router.register(r"timeslots",     TimeSlotViewSet)
@@ -19,6 +20,11 @@ router.register(r"notifications", NotificationViewSet)
 
 urlpatterns = router.urls + [
     path("generate/", GenerateTimetableView.as_view(), name="generate-timetable"),
+    path(
+        "generate-stream/",
+        GenerateTimetableStreamView.as_view(),
+        name="generate-timetable-stream",
+    ),
     path("config/",   SchedulerConfigView.as_view(),   name="scheduler-config"),
     path("schedule/", TimetableScheduleView.as_view(), name="timetable-schedule"),
 ]

@@ -66,6 +66,7 @@ class CPSATScheduler:
         days: list,         # active day strings e.g. ["MON",.."FRI"]
         config,             # SchedulerConfig
         combined_to_ind: dict,  # {combined_group_id: [individual_group_ids]}
+        pre_blocked_fac: dict = None,  # {(day, slot): set[faculty_id]} cross-term faculty
     ):
         """
         Returns
@@ -114,6 +115,8 @@ class CPSATScheduler:
         t_by_fds  = defaultdict(list)   # (fac_id,day,slot) → [(o_id,var)]
         t_by_gds  = defaultdict(list)   # (grp_id,day,slot) → [(o_id,var)]
 
+        pre_blocked_fac = pre_blocked_fac or {}
+
         for o in theory_offs:
             sg     = o.student_group
             fac_id = o.assigned_faculty_id if o.assigned_faculty else None
@@ -128,6 +131,10 @@ class CPSATScheduler:
                     if day not in meta.get("avail_days", set(days)):
                         continue
                     if slot not in meta.get("avail_slots", {}).get(day, set(range(1, 10))):
+                        continue
+                    # Cross-term DB pre-block: skip slots where this faculty is
+                    # already teaching another section in a different term.
+                    if fac_id in pre_blocked_fac.get((day, slot), set()):
                         continue
 
                 for r in theory_rooms:
@@ -172,6 +179,10 @@ class CPSATScheduler:
                     if fac_id:
                         avail = meta.get("avail_slots", {}).get(day, set(range(1, 10)))
                         if s1 not in avail or s2 not in avail:
+                            continue
+                        # Cross-term DB pre-block on either lab slot
+                        if (fac_id in pre_blocked_fac.get((day, s1), set()) or
+                                fac_id in pre_blocked_fac.get((day, s2), set())):
                             continue
 
                     for r in pool:
@@ -285,6 +296,46 @@ class CPSATScheduler:
                 pe_active_here = model.NewBoolVar(f"pe_active_{grp_id}_{day}_{slot}")
                 model.AddMaxEquality(pe_active_here, pe_vs)
                 model.Add(sum(non_pe) + pe_active_here <= 1)
+
+        # C4b: Combined→individual blocking.
+        # When a combined group (e.g. A+B) is scheduled at (day, slot), its
+        # constituent individual sections (A, B) MUST also be free — i.e. no
+        # individual-section offering may be scheduled there at the same time.
+        #
+        # We use an indicator var per (combined-group, day, slot) so that
+        # multiple PE options sharing the slot count as 1, not N.
+        ind_to_combined: dict = defaultdict(list)
+        for combined_id, ind_ids in (combined_to_ind or {}).items():
+            for ind_id in ind_ids:
+                ind_to_combined[ind_id].append(combined_id)
+
+        for ind_id, combined_ids in ind_to_combined.items():
+            for day, slot in all_ds:
+                # All combined-group vars at this slot (across constituent
+                # combined groups this individual belongs to)
+                combined_vars = []
+                for cid in combined_ids:
+                    for o_id, v in t_by_gds.get((cid, day, slot), []):
+                        combined_vars.append(v)
+                    for o_id, _, v in l_by_gds.get((cid, day, slot), []):
+                        combined_vars.append(v)
+                # All individual vars for this section at this slot
+                ind_vars = []
+                for o_id, v in t_by_gds.get((ind_id, day, slot), []):
+                    ind_vars.append(v)
+                for o_id, _, v in l_by_gds.get((ind_id, day, slot), []):
+                    ind_vars.append(v)
+                if combined_vars and ind_vars:
+                    # combined_active = OR(combined_vars) — equals 1 iff any
+                    # combined var is 1 here. PE options sharing the slot
+                    # count as 1, not N.
+                    combined_active = model.NewBoolVar(
+                        f"c2i_{ind_id}_{day}_{slot}"
+                    )
+                    model.AddMaxEquality(combined_active, combined_vars)
+                    # If the combined group is active, individuals must be 0.
+                    # If individuals are active (≤ 1 by C4), combined is 0.
+                    model.Add(sum(ind_vars) + combined_active <= 1)
 
         # C5 & C6: Faculty daily / weekly load
         fac_ids_in_model = {

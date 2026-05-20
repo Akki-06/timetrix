@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../api/axios";
 import { asList, extractError, formatProgramLabel } from "../utils/helpers";
+import GenerationProgressOverlay from "../components/GenerationProgressOverlay";
 import {
   FaMagic, FaUsers, FaCheckCircle, FaExclamationTriangle,
   FaArrowRight, FaRocket, FaHistory, FaClock, FaChartBar,
@@ -53,6 +54,13 @@ function TimetableGeneratorPage() {
 
   // animation tick for the generate button
   const [genTick, setGenTick] = useState(0);
+
+  // SSE-driven live progress
+  const [overlayOpen,     setOverlayOpen]     = useState(false);
+  const [progressEvents,  setProgressEvents]  = useState([]);
+  const [progressEstimate, setProgressEstimate] = useState(null);
+  const [progressStatus,  setProgressStatus]  = useState("idle");
+  const abortRef = useRef(null);
 
   /* ── load ── */
   const loadBase = useCallback(async () => {
@@ -125,32 +133,129 @@ function TimetableGeneratorPage() {
   const canGenerate       = selectedProgramId && selectedSemester && sections.length > 0 && !generating;
   const derivedYear       = selectedSemester ? yearFromSemester(Number(selectedSemester)) : null;
 
-  /* ── generate ── */
+  /* ── generate (streams progress via SSE) ── */
   const handleGenerate = async (disabledCourses = []) => {
     if (!selectedProgramId || !selectedSemester || sections.length === 0) return;
     setGenerating(true); setError(""); setResult(null);
+    setProgressEvents([]); setProgressEstimate(null);
+    setProgressStatus("running");
+    setOverlayOpen(true);
     const tick = setInterval(() => setGenTick(t => t + 1), 400);
+
+    // Build absolute URL via the same base axios uses; SSE needs raw fetch.
+    const baseURL = api.defaults.baseURL.replace(/\/+$/, "");
+    const url = `${baseURL}/scheduler/generate-stream/`;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const resp = await api.post("scheduler/generate/", {
-        program_id: Number(selectedProgramId),
-        semester:   Number(selectedSemester),
-        disabled_courses: disabledCourses,
-      }, { timeout: 120000 });
-      setResult(resp.data);
-      const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
-      setTimetables(asList(ttResp.data));
-      if (resp.data.allocations > 0) setTimeout(() => navigate("/generated"), 2500);
-    } catch (err) {
-      const errData = err?.response?.data;
-      if (errData?.status) setResult(errData);
-      else setError(extractError(err, "Generation failed. Check server logs."));
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+        body: JSON.stringify({
+          program_id:       Number(selectedProgramId),
+          semester:         Number(selectedSemester),
+          disabled_courses: disabledCourses,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!resp.ok || !resp.body) {
+        // Fall back to the JSON endpoint if streaming failed (e.g. 4xx upfront)
+        let bodyText;
+        try { bodyText = await resp.text(); } catch { bodyText = ""; }
+        let parsed = null;
+        try { parsed = JSON.parse(bodyText); } catch { /* not JSON */ }
+        if (parsed?.error) setError(parsed.error);
+        else setError("Generation failed before it could start.");
+        setProgressStatus("error");
+        setProgressEvents((evs) => [
+          ...evs,
+          { type: "error", msg: parsed?.error || "Failed to open progress stream", elapsed: 0 },
+        ]);
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalResult = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE frames are separated by \n\n
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const rawFrame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+
+          // Each frame: zero or more 'data: ...' or ':' (comment) lines
+          const dataLines = rawFrame
+            .split("\n")
+            .filter((l) => l.startsWith("data:"))
+            .map((l) => l.slice(5).trimStart());
+
+          if (dataLines.length === 0) continue;
+          const dataStr = dataLines.join("\n");
+          let ev;
+          try { ev = JSON.parse(dataStr); }
+          catch { continue; }
+
+          if (ev.type === "estimate") {
+            setProgressEstimate(ev);
+            setProgressEvents((evs) => [
+              ...evs,
+              {
+                type: "log",
+                msg: `Estimated ${ev.estimated_seconds}s for ${ev.total_offerings} offerings across ${ev.total_sections} sections`,
+                elapsed: 0,
+              },
+            ]);
+          } else if (ev.type === "complete") {
+            // stream ended successfully
+          } else if (ev.type === "result") {
+            finalResult = ev.result;
+            setResult(ev.result);
+            const s = ev.result?.status;
+            setProgressStatus(
+              s === "success" ? "success" :
+              s === "partial" ? "partial" :
+              s === "failed"  ? "failed"  : "success"
+            );
+          } else {
+            setProgressEvents((evs) => [...evs, ev]);
+            if (ev.type === "error") setProgressStatus("error");
+          }
+        }
+      }
+
+      // Refresh history regardless of outcome
       try {
         const ttResp = await api.get("scheduler/timetables/", { params: { ordering: "-created_at" } });
         setTimetables(asList(ttResp.data));
       } catch { /* ignore */ }
+
+      if (finalResult && finalResult.status !== "failed" && (finalResult.allocations ?? 0) > 0) {
+        // give the user a beat to see the success state, then navigate
+        setTimeout(() => navigate("/generated"), 2200);
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError(extractError(err, "Generation failed. Check server logs."));
+        setProgressStatus("error");
+        setProgressEvents((evs) => [
+          ...evs,
+          { type: "error", msg: err.message || "Network error", elapsed: 0 },
+        ]);
+      }
     } finally {
       clearInterval(tick);
       setGenerating(false);
+      abortRef.current = null;
     }
   };
 
@@ -215,6 +320,15 @@ function TimetableGeneratorPage() {
 
   return (
     <DashboardLayout>
+
+      <GenerationProgressOverlay
+        open={overlayOpen}
+        events={progressEvents}
+        estimate={progressEstimate}
+        status={progressStatus}
+        onClose={() => setOverlayOpen(false)}
+        onViewResult={() => navigate("/generated")}
+      />
 
       {/* ── Header ── */}
       <div className="sec-page-header">
