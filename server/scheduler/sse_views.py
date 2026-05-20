@@ -21,11 +21,11 @@ import queue
 import threading
 import time
 
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from academics.models      import AcademicTerm, StudentGroup, Course, CourseOffering
 from scheduler.engine      import SchedulerEngine
@@ -70,14 +70,25 @@ def _run_engine(timetable_id: int, disabled_courses: list,
             pass
 
 
-class GenerateTimetableStreamView(APIView):
-    """SSE endpoint that streams live progress while a timetable is generated."""
+@method_decorator(csrf_exempt, name="dispatch")
+class GenerateTimetableStreamView(View):
+    """SSE endpoint that streams live progress while a timetable is generated.
+
+    Plain Django view (not DRF) so the Accept: text/event-stream header
+    from the SPA doesn't trigger DRF's content-negotiation 406.
+    """
 
     def post(self, request):
-        term_id          = request.data.get("term_id")
-        program_id       = request.data.get("program_id")
-        semester         = request.data.get("semester")
-        disabled_courses = request.data.get("disabled_courses", [])
+        # Parse JSON body manually since we're not using DRF's request parser.
+        try:
+            data = json.loads(request.body.decode("utf-8")) if request.body else {}
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Malformed JSON body."}, status=400)
+
+        term_id          = data.get("term_id")
+        program_id       = data.get("program_id")
+        semester         = data.get("semester")
+        disabled_courses = data.get("disabled_courses", [])
 
         # ── Resolve term (mirrors GenerateTimetableView for client parity) ───
         if term_id:
@@ -87,29 +98,27 @@ class GenerateTimetableStreamView(APIView):
                 semester   = int(semester)
                 program_id = int(program_id)
             except (TypeError, ValueError):
-                return Response(
-                    {"error": "Invalid program_id or semester."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                return JsonResponse(
+                    {"error": "Invalid program_id or semester."}, status=400,
                 )
             term = AcademicTerm.objects.filter(
                 program_id=program_id, semester=semester
             ).first()
             if not term:
-                return Response(
+                return JsonResponse(
                     {"error": "No sections registered for this program/semester."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=400,
                 )
         else:
-            return Response(
+            return JsonResponse(
                 {"error": "Provide term_id or (program_id + semester)."},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=400,
             )
 
         sections = list(StudentGroup.objects.filter(term=term))
         if not sections:
-            return Response(
-                {"error": "No sections registered under this term."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return JsonResponse(
+                {"error": "No sections registered under this term."}, status=400,
             )
 
         # Bump version (same pattern as the standard endpoint)
