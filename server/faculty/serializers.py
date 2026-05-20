@@ -10,7 +10,32 @@ from .models import (
 # ----------------------------
 
 class FacultySerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source="department.name", read_only=True, default=None)
+    # Primary: the FK on Faculty itself.
+    # Fallback: derived from the department of programs whose courses this
+    # faculty is assigned to. Without this, faculty rows without an explicit
+    # department FK fall into a useless "Unassigned" bucket on the UI even
+    # though we can infer a sensible department from their workload.
+    department_name = serializers.SerializerMethodField()
+
+    def get_department_name(self, obj):
+        if obj.department_id and obj.department:
+            return obj.department.name
+
+        # Derived fallback: most-common department across assigned offerings.
+        # One query per row is fine on the list endpoint (≤ 100 faculty), and
+        # ModelViewSet.list isn't a hot path.
+        from collections import Counter
+        from academics.models import CourseOffering
+        depts = (
+            CourseOffering.objects
+            .filter(assigned_faculty=obj)
+            .select_related("course__program__department")
+            .values_list("course__program__department__name", flat=True)
+        )
+        names = [d for d in depts if d]
+        if not names:
+            return None
+        return Counter(names).most_common(1)[0][0]
 
     def validate(self, data):
         if data["max_consecutive_lectures"] > data["max_lectures_per_day"]:

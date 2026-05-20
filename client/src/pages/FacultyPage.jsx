@@ -755,15 +755,28 @@ function FacultyPage() {
     };
     filtered.sort(cmp[sortBy] || cmp.az);
 
+    // Department-first grouping.
+    // Falls back to designation (e.g. "Head of Department", "Professor") so
+    // faculty without a department FK and without assigned courses still get
+    // a meaningful bucket instead of a generic "Unassigned" pile.
     const map = {};
     filtered.forEach((f) => {
-      const key = f.department_name || "Unassigned";
+      const key =
+        f.department_name ||
+        (f.designation ? `${f.designation} (no department)` : "Unassigned");
       if (!map[key]) map[key] = [];
       map[key].push(f);
     });
 
+    // Real departments alphabetically first, fallback buckets last.
+    const isFallback = (k) =>
+      k === "Unassigned" || k.endsWith("(no department)");
     return Object.entries(map)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => {
+        const fa = isFallback(a), fb = isFallback(b);
+        if (fa !== fb) return fa ? 1 : -1;
+        return a.localeCompare(b);
+      })
       .map(([dept, facs]) => ({ dept, facs }));
   }, [faculty, search, sortBy]);
 
