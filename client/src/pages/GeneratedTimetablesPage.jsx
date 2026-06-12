@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api/axios";
@@ -44,6 +44,7 @@ const SLOT_TIMES = {
 function GeneratedTimetablesPage() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const role = user?.role || "student";
 
   const modes =
@@ -507,31 +508,59 @@ function GeneratedTimetablesPage() {
                         <option key={tt.id} value={tt.id}>v{tt.version}{tt.is_finalized ? " (Published)" : ""}</option>
                       ))}
                     </select>
-                    {/* Delete the currently-selected version (or latest if none selected) */}
+                    {/* Edit + Delete buttons for the currently-selected version (or latest if none) */}
                     {(() => {
-                      const ttToDel = selTimetable
+                      const ttFocus = selTimetable
                         ? versionOptions.find((t) => String(t.id) === selTimetable)
                         : versionOptions[0];
-                      if (!ttToDel) return null;
+                      if (!ttFocus) return null;
+                      const canEdit = !ttFocus.is_finalized && !!selSection;
                       return (
-                        <button
-                          type="button"
-                          title={`Delete timetable v${ttToDel.version}`}
-                          onClick={() => confirmDelete(ttToDel)}
-                          style={{
-                            background: "transparent",
-                            border: "1px solid var(--danger, #ef4444)",
-                            color: "var(--danger, #ef4444)",
-                            borderRadius: "var(--radius)",
-                            padding: "6px 10px",
-                            cursor: "pointer",
-                            fontSize: 16,
-                            lineHeight: 1,
-                            flexShrink: 0,
-                          }}
-                        >
-                          🗑
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            title={canEdit
+                              ? `Edit timetable v${ttFocus.version} for this section`
+                              : ttFocus.is_finalized
+                                ? "Published timetables can't be edited"
+                                : "Select a section first to edit"}
+                            disabled={!canEdit}
+                            onClick={() => navigate(`/timetable-editor/${ttFocus.id}/${selSection}`)}
+                            style={{
+                              background: canEdit ? "var(--brand-light)" : "transparent",
+                              border: "1px solid var(--brand, #6366f1)",
+                              color: "var(--brand, #6366f1)",
+                              borderRadius: "var(--radius)",
+                              padding: "6px 10px",
+                              cursor: canEdit ? "pointer" : "not-allowed",
+                              fontSize: 14,
+                              lineHeight: 1,
+                              flexShrink: 0,
+                              opacity: canEdit ? 1 : 0.45,
+                              fontWeight: 600,
+                            }}
+                          >
+                            ✎ Edit
+                          </button>
+                          <button
+                            type="button"
+                            title={`Delete timetable v${ttFocus.version}`}
+                            onClick={() => confirmDelete(ttFocus)}
+                            style={{
+                              background: "transparent",
+                              border: "1px solid var(--danger, #ef4444)",
+                              color: "var(--danger, #ef4444)",
+                              borderRadius: "var(--radius)",
+                              padding: "6px 10px",
+                              cursor: "pointer",
+                              fontSize: 16,
+                              lineHeight: 1,
+                              flexShrink: 0,
+                            }}
+                          >
+                            🗑
+                          </button>
+                        </>
                       );
                     })()}
                   </div>

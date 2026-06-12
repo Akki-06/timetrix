@@ -1,7 +1,7 @@
 {
   // Point Pylance at the project venv so all installed packages resolve
-  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
-  "python.pythonPath": "${workspaceFolder}/venv/Scripts/python.exe",
+  "python.defaultInterpreterPath": "c:\\Users\\akki2\\OneDrive\\Desktop\\BCA sem-4\\Minor project\\Timetrix\\venv\\Scripts\\python.exe",
+  "python.pythonPath": "c:\\Users\\akki2\\OneDrive\\Desktop\\BCA sem-4\\Minor project\\Timetrix\\venv\\Scripts\\python.exe",
 
   // Pylance type-checking — use basic to avoid noise on 3rd-party stubs
   "python.analysis.typeCheckingMode": "basic",

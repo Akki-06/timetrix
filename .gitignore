@@ -12,6 +12,8 @@ __pycache__/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
+*.db
 
 # Media & Static (generated)
 media/
@@ -167,3 +169,8 @@ server/ml_pipeline/trained/*.zip
 
 # Standalone diagnostic/scratch scripts at server root
 server/check_*.py
+
+# ==============================
+# Graphify knowledge graph output
+# ==============================
+graphify-out/

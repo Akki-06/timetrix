@@ -236,8 +236,16 @@ function SettingsPage() {
                 </thead>
                 <tbody>
                   {slots.map((slot, idx) => (
-                    <tr key={slot.id}>
-                      <td><strong>Slot {slot.slot_number}</strong></td>
+                    <tr key={slot.id} style={slot.slot_number === 99 ? { background: "rgba(245,158,11,0.06)" } : {}}>
+                      <td>
+                        {slot.slot_number === 99 ? (
+                          <strong style={{ color: "#f59e0b", display: "flex", alignItems: "center", gap: 6 }}>
+                            🍽 Lunch Break
+                          </strong>
+                        ) : (
+                          <strong>Slot {slot.slot_number}</strong>
+                        )}
+                      </td>
                       <td>
                         <input
                           type="time"

@@ -1,0 +1,620 @@
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  Timetable Editor — full-screen drag-and-drop playground     ║
+   ║  Uses the existing theme tokens from global.css              ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+/* Normal flow (NOT position:fixed) so HTML5 drag captures just the dragged
+   element. A `position: fixed` ancestor with full inset causes Chrome on
+   Windows to render a viewport-sized white "ghost" that paints over the
+   entire UI during drag. height:100vh + overflow on the grid-wrap is enough. */
+.editor-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-gradient, var(--bg));
+  color: var(--text);
+  font-family: inherit;
+  overflow: hidden;
+  /* Own stacking context so the editor cannot be visually covered by any
+     leaked overlay from elsewhere in the app during drag operations. */
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+/* ── header ─────────────────────────────────────────────── */
+
+.editor-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 22px;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--stroke);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.editor-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.editor-exit:hover {
+  background: var(--stroke-light);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.editor-exit-arrow { font-size: 18px; line-height: 1; }
+
+.editor-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.editor-title strong { font-size: 17px; letter-spacing: -0.01em; }
+.editor-sub { color: var(--muted); font-size: 12.5px; }
+.editor-dirty { color: var(--brand); font-style: normal; font-weight: 600; }
+
+.editor-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--brand-dark, #4f46e5), var(--brand));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+.editor-save:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+.editor-save:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
+/* ── body layout ────────────────────────────────────────── */
+
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden; /* inner elements will scroll */
+}
+
+/* ── palette ────────────────────────────────────────────── */
+
+.editor-palette {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  background: var(--surface, #fff);
+  border-right: 1px solid var(--stroke);
+  overflow-y: auto;
+}
+.palette-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.palette-hint {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0 0 16px;
+}
+.palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.palette-card {
+  border: 1.5px solid;
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.18s ease, opacity 0.18s;
+  user-select: none;
+}
+.palette-card:active { cursor: grabbing; }
+.palette-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.pc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.pc-code { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+.pc-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.pc-tag.lab      { background: #ef4444; }
+.pc-tag.pe       { background: #a855f7; }
+.pc-tag.combined { background: #0ea5e9; }
+
+.pc-name {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-bottom: 4px;
+}
+.pc-faculty {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-count { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); }
+.pc-count .ok   { color: #16a34a; }
+.pc-count .left { color: var(--brand); }
+.pc-count em    { font-style: normal; color: var(--muted); font-weight: 500; margin-left: 2px; }
+
+/* ── grid ───────────────────────────────────────────────── */
+
+.editor-grid-wrap {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 18px 22px;
+}
+
+.editor-grid {
+  width: 100%;
+  border-collapse: separate;
+  /* Wider vertical gap visually separates day rows */
+  border-spacing: 6px 14px;
+  table-layout: fixed;
+}
+
+/* Subtle alternating row tint to reinforce day separation */
+.editor-grid tbody tr:nth-child(even) .drop-cell:not(.has-row) {
+  background: rgba(99, 102, 241, 0.025);
+}
+[data-theme="dark"] .editor-grid tbody tr:nth-child(even) .drop-cell:not(.has-row) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Bolder left edge on the day label to make each day "block" feel distinct */
+.editor-grid .day-label {
+  position: relative;
+  background: linear-gradient(135deg, var(--brand-light), var(--bg));
+  border-left: 3px solid var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--brand-dark, var(--brand));
+}
+
+.editor-grid th,
+.editor-grid td {
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.editor-grid th {
+  background: var(--brand-light);
+  color: var(--brand-dark, var(--brand));
+  font-weight: 700;
+  font-size: 12px;
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid var(--stroke);
+}
+.editor-grid .sl-n { display: block; font-size: 14px; letter-spacing: -0.01em; }
+.editor-grid .sl-t { display: block; font-size: 10.5px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+.editor-grid .day-col {
+  width: 92px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--bg);
+  border: 1px solid var(--stroke);
+  color: var(--text-secondary);
+}
+.editor-grid .day-label { vertical-align: middle; }
+
+.editor-grid .lunch-col {
+  width: 70px;
+  background: var(--stroke-light);
+  color: var(--muted);
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--stroke);
+}
+
+/* drop targets */
+.drop-cell {
+  position: relative;
+  min-height: 110px;
+  border: 1.5px dashed transparent;
+  background: var(--surface, #fff);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.drop-cell:not(.has-row) {
+  background: var(--stroke-light);
+  border-color: var(--stroke);
+}
+.drop-cell.is-hover {
+  background: var(--brand-light);
+  border: 2px dashed var(--brand);
+  /* No transform — transform on <td> creates a new stacking context that
+     can confuse the table layout AND amplifies drag-ghost artifacts. */
+}
+.drop-cell.is-busy::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.cell-spinner {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 4;
+}
+
+/* ── slot cards (placed lectures) ───────────────────────── */
+
+.slot-card {
+  position: relative;
+  border-left: 4px solid;
+  border-radius: 10px;
+  padding: 8px 10px 8px 12px;
+  margin-bottom: 6px;
+  cursor: grab;
+  font-size: 11.5px;
+  transition: transform 0.15s ease, box-shadow 0.18s ease, opacity 0.2s;
+  animation: slotCardIn 0.22s ease;
+  user-select: none;
+}
+.slot-card:last-child { margin-bottom: 0; }
+.slot-card:active { cursor: grabbing; }
+.slot-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.slot-card.card-red {
+  background: rgba(239, 68, 68, 0.13) !important;
+  border-left-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
+}
+.slot-card.card-yellow {
+  background: rgba(234, 179, 8, 0.16) !important;
+  border-left-color: #eab308 !important;
+  box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.4);
+}
+
+@keyframes slotCardIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-x {
+  position: absolute;
+  top: 4px; right: 6px;
+  width: 18px; height: 18px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.slot-card:hover .card-x { opacity: 1; }
+.card-x:hover { background: var(--danger); color: #fff; }
+
+.sc-code {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sc-tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sc-tag.lab      { background: #ef4444; }
+.sc-tag.pe       { background: #a855f7; }
+.sc-tag.combined { background: #0ea5e9; }
+
+.sc-name {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-bottom: 3px;
+}
+.sc-faculty {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-room { font-size: 10.5px; color: var(--text-secondary); font-weight: 600; }
+.needs-room { color: var(--danger); font-weight: 700; }
+
+/* ── modals ─────────────────────────────────────────────── */
+
+.editor-modal-backdrop {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  animation: backdropIn 0.18s ease;
+}
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+
+.editor-modal {
+  background: var(--surface, #fff);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius, 14px);
+  padding: 24px 28px;
+  max-width: 480px;
+  width: 92%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  animation: modalIn 0.22s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.editor-modal h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.editor-modal p {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.modal-actions .btn-ghost {
+  border: 1px solid var(--stroke);
+  background: transparent;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.modal-actions .btn-ghost:hover { background: var(--stroke-light); }
+.modal-actions .btn-primary {
+  background: linear-gradient(135deg, var(--brand-dark, #4f46e5), var(--brand));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* room picker */
+.rooms-modal { max-width: 560px; }
+.rooms-sub {
+  background: var(--brand-light);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 14px !important;
+}
+.rooms-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px; color: var(--muted); font-size: 13px;
+  justify-content: center;
+}
+.rooms-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  background: var(--stroke-light);
+  border-radius: 10px;
+}
+.rooms-empty em { display: block; color: var(--muted); font-style: normal; font-size: 11.5px; margin-top: 4px; }
+.rooms-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.room-pill {
+  background: var(--brand-light);
+  border: 1.5px solid transparent;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.room-pill:hover {
+  border-color: var(--brand);
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+}
+.rp-num  { font-size: 13px; font-weight: 700; color: var(--brand-dark, var(--brand)); }
+.rp-meta { font-size: 10.5px; color: var(--muted); }
+
+/* ── spinner ────────────────────────────────────────────── */
+
+.ring {
+  display: inline-block;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--stroke);
+  border-top-color: var(--brand);
+  animation: spin 0.75s linear infinite;
+}
+.ring.small { width: 14px; height: 14px; border-width: 2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.editor-loader, .editor-error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  flex-direction: column;
+}
+.editor-error .btn-primary {
+  margin-top: 10px;
+  background: linear-gradient(135deg, var(--brand-dark, #4f46e5), var(--brand));
+  color: #fff; border: none; border-radius: 10px;
+  padding: 9px 18px; font-weight: 600; cursor: pointer;
+}
+
+/* ── floating drag preview (pointer-based drag) ─────────── */
+
+.drag-preview {
+  position: fixed;
+  z-index: 9000;
+  pointer-events: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid;
+  background: var(--surface, #fff);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  animation: dragPreviewIn 0.12s ease-out;
+}
+.drag-preview strong { font-size: 12.5px; font-weight: 800; letter-spacing: -0.01em; }
+.drag-preview span   { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes dragPreviewIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Disable text-selection on draggable elements so pointer-drag feels clean */
+.palette-card, .slot-card {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* ── toast ──────────────────────────────────────────────── */
+
+.editor-toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 12px 20px;
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--stroke);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+  max-width: 420px;
+  animation: toastIn 0.25s ease;
+}
+@keyframes toastIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.editor-toast.toast-ok    { border-left: 4px solid #16a34a; }
+.editor-toast.toast-error { border-left: 4px solid var(--danger); }
+.editor-toast button {
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 18px; padding: 0; line-height: 1;
+}
+.editor-toast button:hover { color: var(--text); }
+
+/* ── dark-mode adjustments ──────────────────────────────── */
+
+[data-theme="dark"] .editor-shell { background: var(--bg-gradient); }
+[data-theme="dark"] .drop-cell:not(.has-row) { background: rgba(255, 255, 255, 0.02); }
+[data-theme="dark"] .drop-cell.is-busy::after { background: rgba(0, 0, 0, 0.4); }
+[data-theme="dark"] .room-pill:hover { background: var(--input-bg); }
+[data-theme="dark"] .editor-grid .day-col { background: var(--input-bg); }
+
+/* ── responsive ─────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .editor-header { padding: 10px 14px; gap: 10px; }
+  .editor-grid-wrap { padding: 12px; }
+  .palette-card { min-width: 152px; }
+  .drop-cell { min-height: 96px; }
+}

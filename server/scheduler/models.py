@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models  # type: ignore
 from academics.models import AcademicTerm, CourseOffering, StudentGroup
 from faculty.models import Faculty
 from infrastructure.models import Room
@@ -145,6 +145,13 @@ class Timetable(models.Model):
 
     total_constraint_score = models.FloatField(default=0.0)
 
+    # Editor draft support: working copies for real-time editing
+    is_draft = models.BooleanField(default=False)
+    draft_base_id = models.IntegerField(
+        null=True, blank=True,
+        help_text="Source timetable ID this draft was cloned from"
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -157,7 +164,8 @@ class Timetable(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.term} - Version {self.version}"
+        tag = " [DRAFT]" if self.is_draft else ""
+        return f"{self.term} - Version {self.version}{tag}"
 
 
 # ----------------------------
@@ -195,7 +203,9 @@ class LectureAllocation(models.Model):
 
     room = models.ForeignKey(
         Room,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
 
     timeslot = models.ForeignKey(

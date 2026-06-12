@@ -79,6 +79,7 @@ TIMETRIX/
 │   │   │   ├── InfrastructurePage.jsx       #     Buildings, rooms, labs
 │   │   │   ├── TimetableGeneratorPage.jsx   #     Trigger + monitor schedule generation
 │   │   │   ├── GeneratedTimetablesPage.jsx  #     Role-based timetable viewer
+│   │   │   ├── TimetableEditorPage.jsx      #     Interactive drag-and-drop editor
 │   │   │   └── SettingsPage.jsx             #     Global scheduler configuration
 │   │   │
 │   │   ├── 📂 routes/
@@ -131,6 +132,7 @@ TIMETRIX/
 │   │   ├── models.py                        #     TimeSlot, Timetable, LectureAllocation, Notification, SchedulerConfig
 │   │   ├── serializers.py
 │   │   ├── views.py                         #     Generate, Schedule, Config, Notifications
+│   │   ├── editor_views.py                  #     Interactive editor endpoints (copy-on-edit)
 │   │   ├── urls.py
 │   │   ├── 📂 engine/                       #     ⚙️  Core scheduling logic
 │   │   │   ├── runner.py                    #     Main SchedulerEngine (CP-SAT primary + greedy fallback)
@@ -142,6 +144,7 @@ TIMETRIX/
 │   │   │   ├── ml_scorer.py                 #     ML model integration layer
 │   │   │   └── observability.py             #     Logging + metrics
 │   │   └── 📂 management/commands/          #     Django management commands
+│   │       └── editor_cleanup.py            #     Cron job to clear stale editor drafts
 │   │
 │   └── 📂 ml_pipeline/                      #     🧠 Machine Learning pipeline
 │       ├── graph_builder.py                 #     Heterogeneous graph construction (NetworkX)
@@ -270,7 +273,9 @@ TIMETRIX uses a **multi-stage hybrid AI + constraint solving pipeline**:
 <tr>
 <td>
 
-### 📊 Timetable Viewer
+### 📊 Timetable Viewer & Editor
+- **Interactive Editor** — Drag-and-drop manual adjustments
+- **Real-time Validation** — Prevents double-booking and constraint violations
 - **Section view** — program/semester/section grid
 - **Faculty view** — full weekly schedule
 - **Room view** — occupancy matrix
@@ -559,6 +564,9 @@ free.sort()   # (usage, prefer_flag, rank) ascending
 | `config/` | GET · PUT · PATCH | Global scheduler settings |
 | `notifications/` | GET · PATCH · DELETE | In-app notifications |
 | `notifications/mark-all-read/` | PATCH | Bulk mark read |
+| `editor/start/` | POST | Initialize draft copy for editing |
+| `editor/move/` | POST | Move/assign slots with validation |
+| `editor/save/` | POST | Commit draft as new version |
 
 **Schedule View Query Parameters:**
 
@@ -701,6 +709,7 @@ Features:  22
 - [x] Auto-publish on generation
 - [x] Global scheduler settings panel
 - [x] Responsive UI — mobile sidebar, 4 breakpoints
+- [x] **Interactive Timetable Editor** — drag-and-drop manual adjustment with validation
 
 ### 🔮 Future Enhancements
 

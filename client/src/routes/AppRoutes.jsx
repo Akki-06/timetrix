@@ -11,6 +11,7 @@ import CoursesPage from "../pages/CoursesPage";
 import InfrastructurePage from "../pages/InfrastructurePage";
 import TimetableGeneratorPage from "../pages/TimetableGeneratorPage";
 import GeneratedTimetablesPage from "../pages/GeneratedTimetablesPage";
+import TimetableEditorPage from "../pages/TimetableEditorPage";
 import SettingsPage from "../pages/SettingsPage";
 import CourseAssignmentPage from "../pages/CourseAssignmentPage";
 import FacultyEligibilityPage from "../pages/FacultyEligibilityPage";
@@ -87,6 +88,12 @@ function AppRoutes() {
         <Route path="/generated" element={
           <ProtectedRoute allowedRoles={["admin", "teacher", "student"]}>
             <GeneratedTimetablesPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/timetable-editor/:timetableId/:sectionId" element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <TimetableEditorPage />
           </ProtectedRoute>
         } />
 

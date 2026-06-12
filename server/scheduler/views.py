@@ -40,7 +40,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
 # ----------------------------
 
 class TimetableViewSet(viewsets.ModelViewSet):
-    queryset = Timetable.objects.select_related("term", "term__program").all()
+    queryset = Timetable.objects.select_related("term", "term__program").filter(is_draft=False)
     serializer_class = TimetableSerializer
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -143,7 +143,7 @@ class GenerateTimetableView(APIView):
         # Create a new timetable version (auto-increments)
         last_version = (
             Timetable.objects
-            .filter(term=term)
+            .filter(term=term, is_draft=False)
             .order_by("-version")
             .values_list("version", flat=True)
             .first()
@@ -326,7 +326,7 @@ class TimetableScheduleView(APIView):
     def _latest_tt_ids(self):
         """Return IDs of the latest-version timetable per term."""
         latest = list(
-            Timetable.objects.values("term")
+            Timetable.objects.filter(is_draft=False).values("term")
             .annotate(max_v=Max("version"))
         )
         if not latest:
@@ -391,7 +391,7 @@ class TimetableScheduleView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
             else:
-                tt = Timetable.objects.filter(term=sg.term).order_by("-version").first()
+                tt = Timetable.objects.filter(term=sg.term, is_draft=False).order_by("-version").first()
 
             if not tt:
                 return Response({"allocations": [], "timetable": None})

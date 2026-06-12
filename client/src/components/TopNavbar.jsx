@@ -37,7 +37,7 @@ function NotificationBell() {
 
   // Poll every 30 seconds for new notifications (pause when tab is hidden)
   useEffect(() => {
-    load();
+    load(); // eslint-disable-line react-hooks/set-state-in-effect
     const id = setInterval(() => {
       if (document.visibilityState === "visible") load();
     }, 30000);

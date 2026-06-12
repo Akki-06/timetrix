@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import NeuralNetwork3D from "../components/NeuralNetwork3D";
+import timetrixLogo from "../assets/logo/timetrix-logo.png";
 import {
   FaArrowRight,
   FaBrain,
@@ -166,17 +167,7 @@ export default function LandingPage() {
       {/* ────── NAVBAR ────── */}
       <nav className={`lp-navbar${scrolled ? " scrolled" : ""}`}>
         <a href="#" className="lp-nav-logo">
-          <div className="lp-nav-logo-icon">
-            <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-              <path
-                d="M14 16h20v2H14zM14 22h20v2H14zM14 28h14v2H14zM32 26l6 6-6 6"
-                stroke="#fff"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <img src={timetrixLogo} alt="Timetrix Logo" style={{ height: "40px", width: "40px", objectFit: "contain", borderRadius: "10px" }} />
           <span className="lp-nav-logo-text">TIMETRIX</span>
         </a>
 

@@ -145,7 +145,7 @@ export default function NeuralNetwork3D({ style, className }) {
     resize();
     window.addEventListener("resize", resize);
 
-    /* global mouse tracking */
+    // mouse tracking
     const onMove = (e) => {
       mouseRef.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
       mouseRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2;

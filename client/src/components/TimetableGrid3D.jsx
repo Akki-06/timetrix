@@ -64,7 +64,7 @@ export default function TimetableGrid3D({ style, className }) {
   const timeRef     = useRef(0);
   const cellsRef    = useRef(null);
 
-  if (!cellsRef.current) cellsRef.current = buildGrid();
+  // NOTE: cellsRef is initialized inside the effect to avoid accessing refs during render
 
   // 3D projection
   const project = useCallback((x3, y3, z3, cx, cy, rotY, rotX) => {
@@ -84,6 +84,8 @@ export default function TimetableGrid3D({ style, className }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    // Initialize cells lazily inside the effect (safe — refs must not be read during render)
+    if (!cellsRef.current) cellsRef.current = buildGrid();
     const cells = cellsRef.current;
 
     const resize = () => {
